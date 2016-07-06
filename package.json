@@ -1,0 +1,23 @@
+{
+  "name": "display-worker",
+  "version": "0.0.1",
+  "description": "Display worker helps to show and manipulate contents on screen",
+  "main": "src/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start" : "./node_modules/.bin/electron src/app.js"
+  },
+  "author": "yedendra shrinivasan",
+  "license": "ISC",
+  "private": true,
+  "dependencies": {
+    "electron-prebuilt": "^1.2.5",
+    "hapi": "^13.4.2",
+    "nes": "^6.2.1",
+    "node-uuid": "^1.4.7",
+    "celio": "git+ssh://github.ibm.com/celio/CELIO.git"
+  },
+  "devDependencies": {
+    "electron-prebuilt": "^1.2.6"
+  }
+}
