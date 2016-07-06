@@ -17,7 +17,7 @@ app.on('quit', () =>{
 })
 
 app.on('window-all-closed', () => {
-    console.log('all windows closed');
+    // console.log('all windows closed');
 //   app.quit();
 });
 
