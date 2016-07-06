@@ -198,6 +198,20 @@ class DisplayWorker {
     create_view(window_id, options, next){
         let view_id = uuid.v1()
         this.webviewOwnerStack.set(view_id, window_id)
+
+        if(options.position){
+            let pos = options.position
+            if(pos["grid-top"] && pos["grid-left"] ){
+               pos = pos["grid-left"] + ":" + pos["grid-top"];
+            }
+            let box = this.config.layout.grid[pos];
+            if(box){
+                options.left = box.x;
+                options.top = box.y;
+                options.width =  options.width ?  options.width : box.width;
+                options.height =  options.height ?  options.height : box.height;
+            }
+        }
         
         this.execute_in_webview(Object.assign(options, {
             window_id : window_id,
