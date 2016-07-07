@@ -202,7 +202,7 @@ class DisplayWorker {
         if(options.position){
             let pos = options.position
             if(pos["grid-top"] && pos["grid-left"] ){
-               pos = pos["grid-left"] + ":" + pos["grid-top"];
+               pos = pos["grid-top"] + ":" + pos["grid-left"];
             }
             let box = this.config.layout.grid[pos];
             if(box){
