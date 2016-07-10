@@ -2,18 +2,19 @@ let previousValue = new Map()
 let lastTransform = new Map()
 
 function execute(opts){
-    let options = JSON.parse(opts);
+    let options = JSON.parse(opts)
     try{
         if(options.command == "open"){
             let wv = document.createElement("webview")
-            wv.id = options.view_id;
-            wv.style.width = options.width;
-            wv.style.height = options.height;
-            wv.style.position = "absolute";
-            wv.style.top = options.top;
-            wv.style.left = options.left;
-            wv.src = options.url;
-            document.getElementById("content").appendChild(wv);
+            wv.id = options.view_id
+            toPixels(options)
+            wv.style.width = options.width
+            wv.style.height = options.height
+            wv.style.position = "absolute"
+            wv.style.top = options.top
+            wv.style.left = options.left
+            wv.src = options.url
+            document.getElementById("content").appendChild(wv)
             return { "view_id" : wv.id, command : "create" , "status" : "success", 
             "window_id" : options.window_id,"screenName" : options.screenName } 
         }else if(options.command == "reload") {
@@ -57,7 +58,7 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             
             if(wv){
-                document.getElementById('content').removeChild(wv);
+                document.getElementById('content').removeChild(wv)
                 return {"view_id" : wv.id,  command : "close" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "close" ,"error" : "view not found" }
@@ -69,6 +70,8 @@ function execute(opts){
                 if(lastTransform.has(wv.id)){
                     c = lastTransform.get(wv.id)
                 }
+
+                toPixels(options)
 
                 let currentValue = {
                     width : getComputedStyle(wv).width,
@@ -118,7 +121,27 @@ function execute(opts){
             return {"view_id" : options.view_id,  command : options.command ,"status" : "command not defined" }
         }
     }catch(e){
-        console.log(e);
+        console.log(e)
         return {"view_id" : options.view_id,  command : options.command ,"error" : e }
     }
+}
+
+function toPixels(options){
+    let ems = parseFloat(getComputedStyle(document.body, "").fontSize)
+
+    if( options.top.indexOf("em") > -1 ){
+        options.top =  Math.round(ems * parseFloat(options.top))
+    }
+
+    if( options.left.indexOf("em") > -1 ) {
+        options.left =  Math.round(ems * parseFloat(options.left))
+    }
+
+    if( options.width.indexOf("em") > -1 ) {
+        options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
+    }
+
+    if( options.height.indexOf("em") > -1 ) {
+        options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
+    } 
 }
