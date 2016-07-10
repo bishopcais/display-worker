@@ -130,15 +130,22 @@ class DisplayWorker {
             let b_list  = this.appWindows.get(this.activeAppContext)
             b_list.forEach((element) => {
                 let b = BrowserWindow.fromId(element)
-                if(b) b.hide()
+                if(b) {
+                    console.log('hiding');
+                    b.hide()
+                }
             }, this);
         }
         this.activeAppContext = context
-        let b_list  = this.appWindows.get(this.activeAppContext)
-        b_list.forEach((element) => {
-            let b = BrowserWindow.fromId(element)
-            if(b) b.show()
-        }, this)
+        if(this.appWindows.has(this.activeAppContext)){
+            let b_list  = this.appWindows.get(this.activeAppContext)
+            b_list.forEach((element) => {
+                let b = BrowserWindow.fromId(element)
+                if(b) b.show()
+            }, this)
+        }else{
+            this.appWindows.set(this.activeAppContext, []);
+        }
 
         next({
             "status" : "success",
@@ -239,7 +246,7 @@ class DisplayWorker {
                 break;
             case "set-app-context":
                 if(!this.appContext.has(message.options.context)){
-                    this.appContext.set(message.options.context)
+                    this.appContext.add(message.options.context)
                 }
                 this.set_app_context( message.options.context, next)
                 break;
