@@ -103,38 +103,56 @@ class DisplayWorker {
     }
 */
     close_app_context (context, next) {
+        if(context == "default"){
+            next({
+                "error" : "Cannot close default context",
+                "command" : "close-app-context"
+            })
+            return
+        }
         this.appContext.delete(context)
         let b_list  = this.appWindows.get(context)
-        b_list.forEach((b_id) => {
-            let b = BrowserWindow.fromId(b_id)
-            if(b) b.close()
+        if(b_list){
+            b_list.forEach((b_id) => {
+                let b = BrowserWindow.fromId(b_id)
+                if(b) b.close()
 
-            let wv_id = new Array();
-            this.webviewOwnerStack.forEach( (v, k) => {
-                if(v == b_id)
-                wv_id.push(k)
+                let wv_id = new Array();
+                this.webviewOwnerStack.forEach( (v, k) => {
+                    if(v == b_id)
+                    wv_id.push(k)
+                })
+                wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+
+            }, this)
+            this.appWindows.delete(context)
+            this.activeAppContext = "default"
+            next({
+                "status" : "success",
+                "command" : "close-app-context",
+                "message" : context + " : context closed. The active app context is set to default context. Please use setAppContext to bring up the default context or specify an existing or new app context."
+            }) 
+        }else{
+            next({
+                "status" : "warning",
+                "command" : "close-app-context",
+                "message" : context + " : context does not exist"
             })
-            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-
-        }, this)
-        this.appWindows.delete(context)
-        next({
-            "status" : "success",
-            "command" : "close-app-context",
-            "closedAppContext" : context
-        }) 
+        }
     }
 
     set_app_context(context, next) {
         if( this.activeAppContext != context ){
             let b_list  = this.appWindows.get(this.activeAppContext)
-            b_list.forEach((element) => {
-                let b = BrowserWindow.fromId(element)
-                if(b) {
-                    console.log('hiding');
-                    b.hide()
-                }
-            }, this);
+            if(b_list){
+                b_list.forEach((element) => {
+                    let b = BrowserWindow.fromId(element)
+                    if(b) {
+                        console.log('hiding');
+                        b.hide()
+                    }
+                }, this);
+            }
         }
         this.activeAppContext = context
         if(this.appWindows.has(this.activeAppContext)){
@@ -150,7 +168,7 @@ class DisplayWorker {
         next({
             "status" : "success",
             "command" : "set-active-context",
-            "activeContext" : this.activeAppContext
+            "message" : this.activeAppContext + " is now active"
         }) 
     }
 
@@ -195,7 +213,7 @@ class DisplayWorker {
             this.create_view(b_id, options, next)
         }else{
             next({
-                status : "ssuccess",
+                status : "success",
                 window_id : b_id,
                 screenName : this.screenName
             })
