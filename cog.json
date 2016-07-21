@@ -1,76 +1,31 @@
 {
+  "mq": {
+      "url": "localhost",
+      "username": "cel",
+      "password": "c0grabbit",
+    "exchange": "cel"
+  },
   "display" : {
+    "host" : "localhost",
     "port" : 8081,
     "screenName" : "front",
-    "coordinator": {
-        "host" : "127.0.0.1",
-        "port" : 8088
+    "hotspot" : {
+        "center" : [175.2119, 910.8918, -4263.35],
+        "normal" : [ 0.0, 0.0, 1.0 ],
+        "over" : [ 1.0, 0.0, 0.0 ],
+        "width" : 4102.0,
+        "height" : 2307.0,
+        "screen" : {
+          "x" : 0, "y" : 0 , "width" : 2560, "height" : 1440
+        } 
     },
-    "layout" : {
-            "x" : 0,
-            "y" : 0,
-            "width" : 1220,
-            "height" : 1000,
-            "hotspot" : {},
-            "grid" : {
-                "center":{
-                    "x" : 1921, "y" : 1081, "width" : 3840, "height" : 2160
-                },
-                "1:1" : {
-                "x" : 0, "y" : 0, "width" : 1920, "height" : 1080
-                },
-                "1:2" : {
-                "x" : 1921, "y" : 0, "width" : 1920, "height" : 1080
-                },
-                "1:3" : {
-                "x" : 3841, "y" : 0, "width" : 1920, "height" : 1080
-                },
-                "1:4" : {
-                "x" : 5761, "y" : 0, "width" : 1920, "height" : 1080
-                },
-                "2:1" : {
-                "x" : 0, "y" : 1081, "width" : 1920, "height" : 1080
-                },
-                "2:2" : {
-                "x" : 1921, "y" : 1081, "width" : 1920, "height" : 1080
-                },
-                "2:3" : {
-                "x" : 3841, "y" : 1081, "width" : 1920, "height" : 1080
-                },
-                "2:4" : {
-                "x" : 5761, "y" : 1081, "width" : 1920, "height" : 1080
-                },
-                "3:1" : {
-                "x" : 0, "y" : 2161, "width" : 1920, "height" : 1080
-                },
-                "3:2" : {
-                "x" : 1921, "y" : 2161, "width" : 1920, "height" : 1080
-                },
-                "3:3" : {
-                "x" : 3841, "y" : 2161, "width" : 1920, "height" : 1080
-                },
-                "3:4" : {
-                "x" : 5761, "y" : 2161, "width" : 1920, "height" : 1080
-                },
-                "4:1" : {
-                "x" : 0, "y" : 3241, "width" : 1920, "height" : 1080
-                },
-                "4:2" : {
-                "x" : 1921, "y" : 3241, "width" : 1920, "height" : 1080
-                },
-                "4:3" : {
-                "x" : 3841, "y" : 3241, "width" : 1920, "height" : 1080
-                },
-                "4:4" : {
-                "x" : 5761, "y" : 3241, "width" : 1920, "height" : 1080
-                }
-            }
+    "isPrimaryWorker" : true,
+    "logger" : {
+            "host" : "localhost",
+            "port" : 6379,
+            "container" : "io-server",
+            "messages-cap-length" : 500
     }
-  }, 
-  "logger" : {
-        "host" : "localhost",
-        "port" : 6379,
-        "container" : "io-server",
-        "messages-cap-length" : 500
   }
+
 }

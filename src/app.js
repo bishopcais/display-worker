@@ -1,14 +1,24 @@
 const hapi = require("hapi")
 const nes = require ("nes")
 const fs = require("fs")
+const electron = require('electron')
+
 const {app, BrowserWindow, ipcMain} = require("electron")
 const uuid = require('node-uuid')
 const CELIO = require('celio')
 const io = new CELIO()
 let displayWorker
-
+app.setName("CELIO Display Worker")
 app.on('ready', () => {
 	// console.log(process.argv)
+    // setTimeout(()=>{
+        let displays = electron.screen.getAllDisplays()    
+        displays.forEach((d) => {
+            console.log(d)
+        })
+
+    // }, 2000)
+     
 	displayWorker = new DisplayWorker(process.argv)
 });
 
@@ -53,14 +63,15 @@ class DisplayWorker {
                 this.process_message(null, request.payload, reply)
             }
         })
-        this.server.register({
-            register : nes,
-            heartbeat : false,
-            options : {
-                onDisconnection : this.coordinator_disconnect,
-                onMessage : this.process_message
-            }
-        })
+
+        // this.server.register( {
+        //     register : nes,
+        //     heartbeat : false,
+        //     options : {
+        //         onDisconnection : this.coordinator_disconnect,
+        //         onMessage : this.process_message
+        //     }
+        // })
 
         // this.client = new  nes.Client("ws://" + this.config.displayCoordinator.host + ":" 
         // + this.config.displayCoordinator.port)
@@ -78,6 +89,28 @@ class DisplayWorker {
                 // })
             } 
         });
+
+        this.hotspot = io.createHotspot(this.config.hotspot)
+        this.hotspot.onPointerEnter(msg => { 
+            // console.log('Entered', msg) 
+        })
+        this.hotspot.onPointerLeave(msg => { 
+            // console.log('Left', msg) 
+        })
+        this.hotspot.onPointerMove(msg => { 
+            // console.log('Move', msg) 
+            // let b = BrowserWindow.getFocusWindow()
+            // if(b)
+        })
+        this.clickWidth = 0
+        this.downPos = {}
+        this.hotspot.onPointerDown(msg => {
+
+            console.log('Down', msg)
+        })
+        this.hotspot.onPointerUp(msg => {console.log('Up', msg);});
+        this.hotspot.onPointerAttach(msg => {console.log('Attach', msg);});
+        this.hotspot.onPointerDetach(msg => {console.log('Detach', msg);});
     }
 
 /*
@@ -174,80 +207,86 @@ class DisplayWorker {
 
     create_window( context , options, next){
         let b_id = 0;
-        if(options.new_window || this.appWindows.get(this.activeAppContext).length == 0){
-            let opts = {
-                x : this.config.layout.x,
-                y : this.config.layout.y,
-                width : this.config.layout.width,
-                height : this.config.layout.height,
-                backgroundColor: '#2e2c29',
-                frame: false
-            }
-            // console.log(opts);
-
-            let browser = new BrowserWindow(opts)
-            browser.loadURL("file://" + process.env.PWD + "/index.html")
-            browser.on('closed', () =>{
-            })
-            this.appWindows.get(this.activeAppContext).push(browser.id)
-            let b_list = this.appWindows.get(this.activeAppContext)
-            b_id = b_list[b_list.length -1];    
-
-        }else if(options.window_id){
-            let b_list = this.appWindows.get(this.activeAppContext)
-            if(b_list.indexOf(options.window_id))
-                b_id = options.window_id
-            else
-                next({
-                    status : "window not found in appContext : " + this.activeAppContext ,
-                    window_id : b_id,
-                    screenName : this.screenName
-                })
-        }else{
-            let b_list = this.appWindows.get(this.activeAppContext)
-            b_id = b_list[b_list.length -1];   
+        // if(this.appWindows.get(context).length == 0){
+        let opts = {
+            x : options.x,
+            y : options.y,
+            width : options.width,
+            height : options.height,
+            frame: false,
+            enableLargerThanScreen: true
         }
+        // console.log(opts);
+
+        let browser = new BrowserWindow(opts)
+        browser.flashFrame(true)
+        browser.loadURL("file://" + process.env.PWD + "/" + options.template)
+        // browser.openDevTools()
+        browser.on('closed', () =>{
+        })
+        if(!this.appWindows.has(context)){
+            this.appWindows.set(context, [])
+        }
+        this.appWindows.get( context ).push( browser.id )
+        let b_list = this.appWindows.get( context )
+        b_id = b_list[b_list.length -1];    
+
+        // }else if(options.window_id){
+        //     let b_list = this.appWindows.get(this.activeAppContext)
+        //     if(b_list.indexOf(options.window_id))
+        //         b_id = options.window_id
+        //     else
+        //         next({
+        //             error : "window (" + b_id + ") not found in appContext : " + this.activeAppContext ,
+        //             window_id : b_id,
+        //             screenName : this.screenName
+        //         })
+        // }else{
+        //     let b_list = this.appWindows.get(this.activeAppContext)
+        //     b_id = b_list[b_list.length -1];   
+        // }
 
         
-        if(options.url){
-            this.create_view(b_id, options, next)
+        // if(options.url){
+        //     this.open_view(b_id, options, next)
+        // }else{
+
+        if(options.contentGrid){
+            this.execute_in_displaywindow(Object.assign(options, {
+                window_id: b_id,
+                screenName: this.screenName,
+                appContext: this.activeAppContext,
+                template: options.template,
+                command: "create-grid"
+            }), next)
         }else{
             next({
                 status : "success",
                 window_id : b_id,
-                screenName : this.screenName
+                screenName : this.screenName,
+                appContext : this.activeAppContext
             })
         }
     }
 
-    create_view(window_id, options, next){
-        let view_id = uuid.v1()
-        this.webviewOwnerStack.set(view_id, window_id)
 
-        if(options.position){
-            let pos = options.position
-            if(pos["grid-top"] && pos["grid-left"] ){
-               pos = pos["grid-top"] + ":" + pos["grid-left"];
-            }
-            let box = this.config.layout.grid[pos];
-            if(box){
-                options.left = box.x;
-                options.top = box.y;
-                options.width =  options.width ?  options.width : box.width;
-                options.height =  options.height ?  options.height : box.height;
-            }
-        }
+    create_viewobj( ctx, options, next){
+        let view_id = uuid.v1()
+        this.webviewOwnerStack.set(view_id, options.window_id)
         
-        this.execute_in_webview(Object.assign(options, {
-            window_id : window_id,
-            screenName : this.screenName,
-            command: "open",
+        this.execute_in_displaywindow(Object.assign(options, {
+            window_id : options.window_id,
+            screenName : options.screenName,
+            appContext : ctx,
+            command: "create-viewobj",
             view_id : view_id
         }), next)
     }
 
-    execute_in_webview(options, next){
+    execute_in_displaywindow(options, next){
+        console.log(options.window_id);
         let b = BrowserWindow.fromId(options.window_id)
+        if(b == undefined) console.log("window_id not found")
         b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
             next(d);
         })
@@ -259,14 +298,20 @@ class DisplayWorker {
         let ctx = this.activeAppContext
         try{
         switch (message.command){
+            case "get-screens" :
+                let displays = electron.screen.getAllDisplays()    
+                next(displays)
+                break;
             case "get-active-app-context" :
-                next(this.activeAppContext);
+                next(this.activeAppContext)
                 break;
             case "set-app-context":
                 if(!this.appContext.has(message.options.context)){
                     this.appContext.add(message.options.context)
                 }
                 this.set_app_context( message.options.context, next)
+                // this.server.publish('/display/' + message.client_id, )
+                io.publishTopic('display.' + message.client_id, JSON.stringify({ type : "app_context", data : "context changed to " + message.options.context}) )
                 break;
             case "close-app-context":
                 this.close_app_context(message.options.context, next)
@@ -317,6 +362,7 @@ class DisplayWorker {
                         "error" : "parameter window_id not present"
                     })
                 }
+                break;
             case "close-window":
                  if(message.options.window_id){
                     let b = BrowserWindow.fromId(message.options.window_id)
@@ -325,7 +371,7 @@ class DisplayWorker {
                         let wv_id = new Array();
                         this.webviewOwnerStack.forEach( (v, k) => {
                             if(v == message.options.window_id)
-                            wv_id.push(k)
+                                wv_id.push(k)
                         })
                         wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
 
@@ -335,7 +381,8 @@ class DisplayWorker {
                         b.close()
                         next({
                                 "command" : "close-window",
-                                "status" : "success"
+                                "status" : "success",
+                                "viewObjects" : wv_id
                             })
                     }else{
                         next({
@@ -347,18 +394,41 @@ class DisplayWorker {
                         "error" : "parameter window_id not present"
                     })
                  }
+                break;
+            case "window-dev-tools":
+               
+                let b = BrowserWindow.fromId(message.options.window_id)
+                if(b){
+                     console.log(message)
+                    if(message.options.devTools)
+                        b.openDevTools()
+                    else
+                        b.closeDevTools()
+                }
+                next({"status" : "success", "devTools" : message.options.devTools} )
                 break;   
-            case "open" :
+            case "create-viewobj" :
                 if(message.options.appContext){
                     ctx = message.options.context
                 }
-                this.create_window(ctx, message.options, next)
+                this.create_viewobj(ctx, message.options, next)
                 break;
             default :
                 if(message.options.view_id){
+                    console.log(message)
                     message.options.command = message.command
-                    message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
-                    this.execute_in_webview(message.options , next);
+                    if(this.webviewOwnerStack.has(message.options.view_id) ){
+                        message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
+                        this.execute_in_displaywindow(message.options , next)
+                    }else{
+                        next({
+                            "error" : "View Obj not found.",
+                            "message" : message.options.view_id + " - view object is not found."
+                        })    
+                    }
+                }else if(message.options.window_id){
+                     message.options.command = message.command
+                    this.execute_in_displaywindow(message.options , next)
                 }else{
                     next({
                         "error" : "Command not defined."
