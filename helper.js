@@ -151,6 +151,9 @@ function execute(opts){
                 return { "error" : "cell not found" } 
             }
 
+        }else if(options.command == "set-displaywindow-css-style") {
+            document.styleSheets[0].cssText = options.cssText 
+            return { command : "set-displaywindow-css-style" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
             if(options.position){
                 let pos = options.position
@@ -196,7 +199,7 @@ function execute(opts){
             document.getElementById("content").appendChild(wv)
             return { "view_id" : wv.id, command : "create" , "status" : "success", 
             "window_id" : options.window_id,"screenName" : options.screenName } 
-        }else if(options.command == "set-css-style") {
+        }else if(options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.cssText = options.cssText
