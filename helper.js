@@ -152,7 +152,7 @@ function execute(opts){
             }
 
         }else if(options.command == "set-displaywindow-font-size") {
-            document.styleSheets[0].cssText = options.fontSize 
+            document.body.style.fontSize = options.fontSize 
             return { command : "set-displaywindow-font-size" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
             if(options.position){
