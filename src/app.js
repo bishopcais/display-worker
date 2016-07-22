@@ -217,6 +217,9 @@ class DisplayWorker {
 
         let browser = new BrowserWindow(opts)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
+        browser.webContents.on('dom-ready', () => {
+            browser.isReady = true
+        })
         browser.on('closed', () =>{
         })
         if(!this.appWindows.has(context)){
@@ -284,12 +287,17 @@ class DisplayWorker {
             console.log("window_id not found")
             next({ "error" : "window_id not found", "message" : options })
         }else{
-            b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
-                if(d.command == "close"){
-                    this.webviewOwnerStack.delete( d.view_id )
-                }
-                next(d);
-            })
+            if(b.isReady){
+                b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
+                    if(d.command == "close"){
+                        this.webviewOwnerStack.delete( d.view_id )
+                    }
+                    next(d);
+                })
+            }else{
+                next({ "error" : "dom not ready"})
+            }
+
         }
     }
 
