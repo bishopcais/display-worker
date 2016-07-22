@@ -217,9 +217,7 @@ class DisplayWorker {
 
         let browser = new BrowserWindow(opts)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
-        browser.webContents.on('dom-ready', () => {
-            browser.isReady = true
-        })
+        
         browser.on('closed', () =>{
         })
         if(!this.appWindows.has(context)){
@@ -248,23 +246,26 @@ class DisplayWorker {
         // if(options.url){
         //     this.open_view(b_id, options, next)
         // }else{
-
-        if(options.contentGrid){
-            this.execute_in_displaywindow(Object.assign(options, {
-                window_id: b_id,
-                screenName: this.screenName,
-                appContext: this.activeAppContext,
-                template: options.template,
-                command: "create-grid"
-            }), next)
-        }else{
-            next({
-                status : "success",
-                window_id : b_id,
-                screenName : this.screenName,
-                appContext : this.activeAppContext
-            })
-        }
+        browser.webContents.on('dom-ready', () => {
+            browser.isReady = true
+             if(options.contentGrid){
+                this.execute_in_displaywindow(Object.assign(options, {
+                    window_id: b_id,
+                    screenName: this.screenName,
+                    appContext: this.activeAppContext,
+                    template: options.template,
+                    command: "create-grid"
+                }), next)
+            }else{
+                next({
+                    status : "success",
+                    window_id : b_id,
+                    screenName : this.screenName,
+                    appContext : this.activeAppContext
+                })
+            }
+        })
+       
     }
 
 
