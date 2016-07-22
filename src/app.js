@@ -181,7 +181,6 @@ class DisplayWorker {
                 b_list.forEach((element) => {
                     let b = BrowserWindow.fromId(element)
                     if(b) {
-                        console.log('hiding');
                         b.hide()
                     }
                 }, this);
@@ -207,7 +206,6 @@ class DisplayWorker {
 
     create_window( context , options, next){
         let b_id = 0;
-        // if(this.appWindows.get(context).length == 0){
         let opts = {
             x : options.x,
             y : options.y,
@@ -216,12 +214,9 @@ class DisplayWorker {
             frame: false,
             enableLargerThanScreen: true
         }
-        // console.log(opts);
 
         let browser = new BrowserWindow(opts)
-        browser.flashFrame(true)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
-        // browser.openDevTools()
         browser.on('closed', () =>{
         })
         if(!this.appWindows.has(context)){
@@ -284,17 +279,22 @@ class DisplayWorker {
     }
 
     execute_in_displaywindow(options, next){
-        console.log(options.window_id);
         let b = BrowserWindow.fromId(options.window_id)
-        if(b == undefined) console.log("window_id not found")
-        b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
-            next(d);
-        })
+        if(b == undefined) {
+            console.log("window_id not found")
+            next({ "error" : "window_id not found", "message" : options })
+        }else{
+            b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
+                if(d.command == "close"){
+                    this.webviewOwnerStack.delete( d.view_id )
+                }
+                next(d);
+            })
+        }
     }
 
     process_message (socket, message, next) {
-        // console.log(message)
-        let response = {command : message.command}
+        console.log("executing : ", message.command)
         let ctx = this.activeAppContext
         try{
         switch (message.command){
@@ -399,7 +399,6 @@ class DisplayWorker {
                
                 let b = BrowserWindow.fromId(message.options.window_id)
                 if(b){
-                     console.log(message)
                     if(message.options.devTools)
                         b.openDevTools()
                     else
@@ -415,7 +414,6 @@ class DisplayWorker {
                 break;
             default :
                 if(message.options.view_id){
-                    console.log(message)
                     message.options.command = message.command
                     if(this.webviewOwnerStack.has(message.options.view_id) ){
                         message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)

@@ -87,11 +87,12 @@ function addToGrid(label, bounds){
 
 
 
+
 function execute(opts){
     let options = JSON.parse(opts)
+    console.log('Executed command : ', options.command, options)
     try{
         if(options.command == "create-grid"){
-            console.log(options)
             let cont_grid = options.contentGrid
             grid = {}
             if(cont_grid.row && cont_grid.col){
@@ -108,11 +109,9 @@ function execute(opts){
 
             if(options.gridBackground){
                 document.getElementById('background').innerHTML = ""
-                console.log(Object.keys(grid))
                 for(let key of Object.keys(options.gridBackground)){
                    
                     let g = grid[key]
-                     console.log(key, g, options.gridBackground[key])
                     let div = document.createElement('div')
                     div.id = "bg" + key
                     div.className = "background-div"
@@ -143,7 +142,6 @@ function execute(opts){
                     currentValue[k] = getComputedStyle(g,"")[k]
                     destValue[k] = options.style[k]
                 }
-                console.log("bg" + options.label, currentValue, destValue)
                 g.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
                 })
@@ -185,20 +183,41 @@ function execute(opts){
                 wv.nodeintegration = false
             
             if(options.cssText){
+                wv.cssText = options.cssText
                 wv.addEventListener('did-finish-load', (evt) => { 
-                    console.log("did finish load", options.cssText)
-                    wv.insertCSS("body{" +options.cssText + "}")
+                    wv.insertCSS(wv.cssText )
                 })
 
                 wv.addEventListener('dom-ready', (evt) => { 
-                    console.log("dom ready", options.cssText)
-                    wv.insertCSS("body{" +options.cssText + "}")
+                    wv.insertCSS(wv.cssText)
                 })
             }
 
             document.getElementById("content").appendChild(wv)
             return { "view_id" : wv.id, command : "create" , "status" : "success", 
             "window_id" : options.window_id,"screenName" : options.screenName } 
+        }else if(options.command == "set-css-style") {
+            let wv = document.getElementById(options.view_id)
+            if(wv){
+                wv.cssText = options.cssText
+                try{
+                    wv.insertCSS(options.cssText )
+                }catch(e){
+
+                }
+                return {"view_id" : wv.id,  command : "set-css-style" ,"status" : "success" }
+            }else{
+                return {"view_id" : wv.id,  command : "set-css-style" ,"error" : "view not found" }
+            }
+          }else if(options.command == "set-url") {
+            let wv = document.getElementById(options.view_id)
+            if(wv){
+                wv.src = options.url
+                return {"view_id" : wv.id,  command : "set-url" ,"status" : "success" }
+            }else{
+                return {"view_id" : wv.id,  command : "set-url" ,"error" : "view not found" }
+            }
+            
         }else if(options.command == "reload") {
             let wv = document.getElementById(options.view_id)
             if(wv){
@@ -248,30 +267,52 @@ function execute(opts){
         }else if(options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                let c = {top :0, left:0}
+                let c = {top :0, left:0} 
+                let d = {top :0, left:0}
                 if(lastTransform.has(wv.id)){
                     c = lastTransform.get(wv.id)
                 }
 
                 toPixels(options)
+                let currentValue = {}
+                let destValue = {}
 
-                let currentValue = {
-                    width : getComputedStyle(wv).width,
-                    height : getComputedStyle(wv).height,
-                    transform :'translate(' + c.left + 'px,' + c.top  + 'px)',
-                    zIndex : getComputedStyle(wv).zIndex,
-                    opacity : getComputedStyle(wv).opacity
+                if(options.left){
+                    d.left = (parseInt(options.left) -  parseInt(getComputedStyle(wv).left))
+                }else{
+                    d.left = c.left
                 }
 
-                let ty = (parseInt(options.top) -  parseInt(getComputedStyle(wv).top))
-                let tx = (parseInt(options.left) -  parseInt(getComputedStyle(wv).left))
-                lastTransform.set(wv.id, { top : ty, left : tx })  
-                let destValue = {
-                    width : options.width ? options.width : currentValue.width,
-                    height : options.height ? options.height :  currentValue.height,
-                    transform : 'translate(' + tx  + 'px,' + ty + 'px)',
-                    zIndex : options.zIndex ? options.zIndex : currentValue.zIndex,
-                    opacity : options.opacity ? options.opacity : currentValue.opacity 
+                if(options.top){
+                    d.top = (parseInt(options.top) -  parseInt(getComputedStyle(wv).top))
+                }else{
+                    d.top = c.top
+                }
+
+                if(options.left || options.top){
+                    currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
+                    destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
+                    lastTransform.set(wv.id, { top : d.top, left : d.left })  
+                }
+
+                if(options.width){
+                    currentValue.width = getComputedStyle(wv).width
+                    destValue.width = options.width 
+                }
+
+                if(options.height){
+                    currentValue.height = getComputedStyle(wv).height
+                    destValue.height = options.height 
+                }
+
+                if(options.zIndex){
+                    currentValue.zIndex = getComputedStyle(wv).zIndex
+                    destValue.zIndex = options.zIndex
+                }
+
+                if(options.opacity){
+                    currentValue.opacity = getComputedStyle(wv).opacity
+                    destValue.opacity = options.opacity
                 }
 
                 wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
