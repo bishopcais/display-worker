@@ -300,7 +300,32 @@ class DisplayWorker {
         switch (message.command){
             case "get-screens" :
                 let displays = electron.screen.getAllDisplays()    
-                next(displays)
+            
+                let bound = { x : 0, y : 0, right : 0, bottom : 0 }
+                displays.forEach( (disp) => {
+                    //bounds: { x: 0, y: 0, width: 1920, height: 1200 }
+                    let bl = disp.bounds.x
+                    let bt = disp.bounds.y
+                    let br = disp.bounds.width + bl
+                    let bb = disp.bounds.height + bt
+
+                    bound.x = Math.min(bl, bound.x)
+                    bound.y = Math.min(bt, bound.y)
+
+                    bound.right = Math.max(br, bound.right)
+                    bound.bottom = Math.max(bb, bound.bottom)
+
+                    bound.width = bound.right - bound.x
+                    bound.height = bound.bottom - bound.y
+
+                })
+                let screens = {
+                    "screenName" : this.screenName,
+                    "bounds" : bound,
+                    "details" : displays
+                }
+
+                next([screens])
                 break;
             case "get-active-app-context" :
                 next(this.activeAppContext)
