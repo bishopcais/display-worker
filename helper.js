@@ -368,30 +368,32 @@ function toPixels(options){
     let h = parseInt(getComputedStyle(document.body, '').height)
 
     try{
-        if(options.indexOf("em") > -1){
-            options =  Math.round(ems * parseFloat(options))   
-        }
+        if(typeof(options) == "string"){
+            if(options.indexOf("em") > -1){
+                options =  Math.round(ems * parseFloat(options))   
+            }
+        }else if(typeof(options) == "object"){
         
-        if( options.top.indexOf("em") > -1 ){
-            options.top =  Math.round(ems * parseFloat(options.top))
+            if( options.top.indexOf("em") > -1 ){
+                options.top =  Math.round(ems * parseFloat(options.top))
+            }
+
+            if( options.left.indexOf("em") > -1 ) {
+                options.left =  Math.round(ems * parseFloat(options.left))
+            }
+
+            if( options.width.indexOf("em") > -1 ) {
+                options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
+            }else if( options.width.indexOf("%") > -1 ) {
+                options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
+            }
+
+            if( options.height.indexOf("em") > -1 ) {
+                options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
+            } else if( options.height.indexOf("%") > -1 ) {
+                options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
+            } 
         }
-
-        if( options.left.indexOf("em") > -1 ) {
-            options.left =  Math.round(ems * parseFloat(options.left))
-        }
-
-        if( options.width.indexOf("em") > -1 ) {
-            options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
-        }else if( options.width.indexOf("%") > -1 ) {
-            options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
-        }
-
-        if( options.height.indexOf("em") > -1 ) {
-            options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
-        } else if( options.height.indexOf("%") > -1 ) {
-            options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
-        } 
-
     }catch(e){
 
     }
