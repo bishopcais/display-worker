@@ -151,9 +151,9 @@ function execute(opts){
                 return { "error" : "cell not found" } 
             }
 
-        }else if(options.command == "set-displaywindow-css-style") {
-            document.styleSheets[0].cssText = options.cssText 
-            return { command : "set-displaywindow-css-style" ,"status" : "success" }
+        }else if(options.command == "set-displaywindow-font-size") {
+            document.styleSheets[0].cssText = options.fontSize 
+            return { command : "set-displaywindow-font-size" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
             if(options.position){
                 let pos = options.position
