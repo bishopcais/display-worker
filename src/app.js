@@ -214,7 +214,7 @@ class DisplayWorker {
             frame: false,
             enableLargerThanScreen: true
         }
-
+        
         let browser = new BrowserWindow(opts)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
         

@@ -271,7 +271,8 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 let c = {top :0, left:0} 
-                let d = {top :0, left:0}
+                let d = {}
+                
                 if(lastTransform.has(wv.id)){
                     c = lastTransform.get(wv.id)
                 }
@@ -295,8 +296,9 @@ function execute(opts){
                 if(options.left || options.top){
                     currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
                     destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
-                    lastTransform.set(wv.id, { top : d.top, left : d.left })  
+                    
                 }
+
 
                 if(options.width){
                     currentValue.width = getComputedStyle(wv).width
@@ -309,14 +311,29 @@ function execute(opts){
                 }
 
                 if(options.zIndex){
-                    currentValue.zIndex = getComputedStyle(wv).zIndex
-                    destValue.zIndex = options.zIndex
+                    // currentValue.zIndex = getComputedStyle(wv).zIndex
+                    // destValue.zIndex = options.zIndex
+                    wv.style.zIndex = options.zIndex
                 }
 
                 if(options.opacity){
                     currentValue.opacity = getComputedStyle(wv).opacity
                     destValue.opacity = options.opacity
                 }
+
+                if(options.scaleContent){
+                    let dsx  = parseInt(destValue.width) * 1.0 / parseInt(currentValue.width)
+                    let dsy  = parseInt(destValue.height) * 1.0 / parseInt(currentValue.height)
+                   
+                    if(!c.scale){
+                        c.scale = { x : 1, y :1}
+                    }
+
+
+                    
+                }
+
+                lastTransform.set(wv.id, d)  
 
                 wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
