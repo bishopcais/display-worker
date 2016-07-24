@@ -270,7 +270,7 @@ function execute(opts){
         }else if(options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                let c = {top :0, left:0} 
+                let c = {top :0, left:0, scale : 1} 
                 let d = {}
                 
                 if(lastTransform.has(wv.id)){
@@ -278,8 +278,8 @@ function execute(opts){
                 }
 
                 toPixels(options)
-                let currentValue = {}
-                let destValue = {}
+                let currentValue = {transform : ""}
+                let destValue = {transform : ""}
 
                 if(options.left){
                     d.left = (parseInt(options.left) -  parseInt(getComputedStyle(wv).left))
@@ -317,20 +317,19 @@ function execute(opts){
                 }
 
                 if(options.opacity){
+                    
                     currentValue.opacity = getComputedStyle(wv).opacity
                     destValue.opacity = options.opacity
                 }
 
-                if(options.scaleContent){
-                    let dsx  = parseInt(destValue.width) * 1.0 / parseInt(currentValue.width)
-                    let dsy  = parseInt(destValue.height) * 1.0 / parseInt(currentValue.height)
-                   
-                    if(!c.scale){
-                        c.scale = { x : 1, y :1}
-                    }
-
-
+                if(options.scale){
+                    d.scale = options.scale
+                    wv.style.transformOrigin = "top left"
+                    currentValue.transform += " scale(" + c.scale + ")"
+                    destValue.transform += " scale(" + d.scale + ")"
                     
+                }else{
+                    d.scale = c.scale
                 }
 
                 lastTransform.set(wv.id, d)  
