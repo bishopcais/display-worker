@@ -316,7 +316,8 @@ function execute(opts){
         }else if(options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                let c = {top : 0, left: 0, scale : 1} 
+                // let c = {top : 0, left: 0, scale : 1}
+                let c = {top : 0, left: 0} 
                 let d = {}
                 
                 if(lastTransform.has(wv.id)){
@@ -369,15 +370,15 @@ function execute(opts){
                     destValue.opacity = options.opacity
                 }
 
-                if(options.scale){
-                    d.scale = options.scale
-                    wv.style.transformOrigin = "top left"
-                    currentValue.transform += " scale(" + c.scale + ")"
-                    destValue.transform += " scale(" + d.scale + ")"
+                // if(options.scale){
+                //     d.scale = options.scale
+                //     wv.style.transformOrigin = "top left"
+                //     currentValue.transform += " scale(" + c.scale + ")"
+                //     destValue.transform += " scale(" + d.scale + ")"
                     
-                }else{
-                    d.scale = c.scale
-                }
+                // }else{
+                //     d.scale = c.scale
+                // }
 
                 lastTransform.set(wv.id, d)  
 
