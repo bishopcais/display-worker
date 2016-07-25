@@ -96,7 +96,7 @@ class DisplayWorker {
         
         this.hotspot.onPointerEnter(msg => { 
             // console.log('Entered', msg) 
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b && msg.hit){
                 let pos = this.getPixelPosition(msg)
                 pos.state = "move"
@@ -112,7 +112,7 @@ class DisplayWorker {
 
         this.hotspot.onPointerLeave(msg => { 
             // console.log('Left', msg) 
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b){
                 let pos = this.getPixelPosition(msg)
                 b.webContents.executeJavaScript("removeCursor('"  +  JSON.stringify(pos) + "')")
@@ -127,7 +127,7 @@ class DisplayWorker {
 
         this.hotspot.onPointerMove(msg => { 
             // console.log('Move', msg)
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b && msg.hit){
                 let pos = this.getPixelPosition(msg)
                 pos.state = "move"
@@ -143,7 +143,7 @@ class DisplayWorker {
         
         this.hotspot.onPointerDown(msg => {
             console.log('Down', msg)
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b && msg.hit){
                 let pos = this.getPixelPosition(msg)
                 pos.state = "down"
@@ -161,7 +161,7 @@ class DisplayWorker {
 
         this.hotspot.onPointerUp(msg => {
             console.log('Up', msg)
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b){
                 let pos = this.getPixelPosition(msg)
                 pos.state = "up"
@@ -185,7 +185,7 @@ class DisplayWorker {
         
         this.hotspot.onPointerAttach(msg => {
             console.log('Attach', msg)
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b && msg.hit){
                 let pos = this.getPixelPosition(msg)
                 pos.state = "move"
@@ -202,7 +202,7 @@ class DisplayWorker {
         
         this.hotspot.onPointerDetach(msg => {
             console.log('Detach', msg)
-            let b = BrowserWindow.getFocusWindow()
+            let b = BrowserWindow.getFocusedWindow()
             if(b){
                 b.webContents.executeJavaScript("removeCursor('"  +  JSON.stringify(msg) + "')")
             }
