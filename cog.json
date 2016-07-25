@@ -1,6 +1,6 @@
 {
   "mq": {
-      "url": "localhost",
+      "url": "cel-production.watson.ibm.com",
       "username": "cel",
       "password": "c0grabbit",
     "exchange": "cel"
@@ -11,12 +11,12 @@
     "screenName" : "front",
     "hotspot" : {
         "center" : [175.2119, 910.8918, -4263.35],
-        "normal" : [ 0.0, 0.0, 1.0 ],
+        "normal" : [ 0.0, 0.0, -1.0 ],
         "over" : [ 1.0, 0.0, 0.0 ],
         "width" : 4102.0,
         "height" : 2307.0,
         "screen" : {
-          "x" : 0, "y" : 0 , "width" : 2560, "height" : 1440, "clickWidth" : 4
+          "x" : 0, "y" : 0 , "width" : 7710, "height" : 4350, "clickWidth" : 20
         } 
     },
     "isPrimaryWorker" : true,

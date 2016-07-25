@@ -97,9 +97,11 @@ function addCursor(opts){
 
     let img = document.createElement('img')
     img.className = "cursor-normal"
+    img.src = "wandcursor.svg"
 
     let imgDown = document.createElement('img')
     imgDown.className = "cursor-down"
+    imgDown.src = "wandcursor-down.svg"
 
     if(opts.state == "down"){
         img.style.display = "none"
@@ -114,19 +116,21 @@ function addCursor(opts){
 }
 
 function removeCursor(opts){
+    opts = JSON.parse(opts)
     document.getElementById("pointing").removeChild(document.getElementById(opts.name))
 }
 
 function updateCursorPosition(opts){
+    opts = JSON.parse(opts)
     let cursordiv = document.getElementById(opts.name)
     if(cursordiv){
         cursordiv.style.transform = "translate( " + opts.x + "px," + opts.y +  "px )"
 
         if(opts.state == "down"){
-            cursordiv.getElementsByClassName("cursor")[0].style.display = "none"
+            cursordiv.getElementsByClassName("cursor-normal")[0].style.display = "none"
             cursordiv.getElementsByClassName("cursor-down")[0].style.display = "block"
         }else{
-            cursordiv.getElementsByClassName("cursor")[0].style.display = "block"
+            cursordiv.getElementsByClassName("cursor-normal")[0].style.display = "block"
             cursordiv.getElementsByClassName("cursor-down")[0].style.display = "none"
         }
     }else{
