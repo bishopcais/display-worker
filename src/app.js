@@ -90,27 +90,141 @@ class DisplayWorker {
             } 
         });
 
+        this.clickWidth = this.config.hotspot.screen.clickWidth
+        this.downPos = {}
         this.hotspot = io.createHotspot(this.config.hotspot)
+        
         this.hotspot.onPointerEnter(msg => { 
             // console.log('Entered', msg) 
+            let b = BrowserWindow.getFocusWindow()
+            if(b && msg.hit){
+                let pos = this.getPixelPosition(msg)
+                pos.state = "move"
+                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
+                let evt = {
+                    type : 'mouseEnter',
+                    x : pos.x,
+                    y : pos.y
+                }
+                b.webContents.sendInputEvent(evt)
+            }
         })
+
         this.hotspot.onPointerLeave(msg => { 
             // console.log('Left', msg) 
+            let b = BrowserWindow.getFocusWindow()
+            if(b){
+                let pos = this.getPixelPosition(msg)
+                b.webContents.executeJavaScript("removeCursor('"  +  JSON.stringify(pos) + "')")
+                let evt = {
+                    type : 'mouseLeave',
+                    x : pos.x,
+                    y : pos.y
+                }
+                b.webContents.sendInputEvent(evt)
+            }
         })
-        this.hotspot.onPointerMove(msg => { 
-            // console.log('Move', msg) 
-            // let b = BrowserWindow.getFocusWindow()
-            // if(b)
-        })
-        this.clickWidth = 0
-        this.downPos = {}
-        this.hotspot.onPointerDown(msg => {
 
-            console.log('Down', msg)
+        this.hotspot.onPointerMove(msg => { 
+            // console.log('Move', msg)
+            let b = BrowserWindow.getFocusWindow()
+            if(b && msg.hit){
+                let pos = this.getPixelPosition(msg)
+                pos.state = "move"
+                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
+                let evt = {
+                    type : 'mouseMove',
+                    x : pos.x,
+                    y : pos.y
+                }
+                b.webContents.sendInputEvent(evt)
+            }
         })
-        this.hotspot.onPointerUp(msg => {console.log('Up', msg);});
-        this.hotspot.onPointerAttach(msg => {console.log('Attach', msg);});
-        this.hotspot.onPointerDetach(msg => {console.log('Detach', msg);});
+        
+        this.hotspot.onPointerDown(msg => {
+            console.log('Down', msg)
+            let b = BrowserWindow.getFocusWindow()
+            if(b && msg.hit){
+                let pos = this.getPixelPosition(msg)
+                pos.state = "down"
+                this.downPos.set(pos.name, pos)
+                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
+                let evt = {
+                    type : 'mouseDown',
+                    x : pos.x,
+                    y : pos.y
+                }
+				b.webContents.sendInputEvent(evt)
+            }
+        })
+
+
+        this.hotspot.onPointerUp(msg => {
+            console.log('Up', msg)
+            let b = BrowserWindow.getFocusWindow()
+            if(b){
+                let pos = this.getPixelPosition(msg)
+                pos.state = "up"
+                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
+                
+                let evt = {
+                    type : 'mouseUp',
+                    x : pos.x,
+                    y : pos.y
+                }
+
+                if(this.isClick(pos)){
+                    let dpos = this.downPos.get(pos.name)
+                    evt.x = dpos.x
+                    evt.y = dpos.y
+                }
+				b.webContents.sendInputEvent(evt);
+
+            }
+        })
+        
+        this.hotspot.onPointerAttach(msg => {
+            console.log('Attach', msg)
+            let b = BrowserWindow.getFocusWindow()
+            if(b && msg.hit){
+                let pos = this.getPixelPosition(msg)
+                pos.state = "move"
+                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
+                let evt = {
+                    type : 'mouseMove',
+                    x : pos.x,
+                    y : pos.y
+                }
+                b.webContents.sendInputEvent(evt)
+            }
+        
+        })
+        
+        this.hotspot.onPointerDetach(msg => {
+            console.log('Detach', msg)
+            let b = BrowserWindow.getFocusWindow()
+            if(b){
+                b.webContents.executeJavaScript("removeCursor('"  +  JSON.stringify(msg) + "')")
+            }
+        })
+    }
+
+    getPixelPosition(pointer){
+        let pw = this.config.hotspot.screen.width / this.config.hotspot.width
+        let ph = this.config.hotspot.screen.height / this.config.hotspot.height
+
+        return { x : this.config.hotspot.screen.x + pointer.x  * pw,
+                 y : this.config.hotspot.screen.y + pointer.y  * ph,
+                name : pointer.details.name }
+    }
+
+    isClick(pos){
+        let downpos = this.downPos.get(pos.name)
+        if(downpos){
+            return Math.sqrt( Math.pow( downpos.x - pos.x, 2 ) + Math.pow( downpos.y - pos.y, 2 ) ) <= this.clickWidth 
+        }else{
+            return false
+        }
     }
 
 /*
@@ -246,6 +360,11 @@ class DisplayWorker {
         // if(options.url){
         //     this.open_view(b_id, options, next)
         // }else{
+
+        browser.on('blur', () => {
+            browser.webContents.executeJavaScript("clearAllCursors()")
+        })
+
         browser.webContents.on('dom-ready', () => {
             browser.isReady = true
              if(options.contentGrid){

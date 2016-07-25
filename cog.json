@@ -16,7 +16,7 @@
         "width" : 4102.0,
         "height" : 2307.0,
         "screen" : {
-          "x" : 0, "y" : 0 , "width" : 2560, "height" : 1440
+          "x" : 0, "y" : 0 , "width" : 2560, "height" : 1440, "clickWidth" : 4
         } 
     },
     "isPrimaryWorker" : true,

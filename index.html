@@ -4,7 +4,7 @@
     <style>
         body{
             overflow: hidden;
-            background: black;
+            background: white;
         }
         .pointing{
             width : 100vw;
@@ -14,6 +14,29 @@
             top: 0px;
             left: 0px;
             pointer-events: none;
+        }
+
+        .cursor{
+            position : absolute;
+        }
+
+        img.cursor-normal{
+            position:absolute;
+            top: 0px;
+            left: 0px;
+            width : 0.5vw;
+            height : 0.5vw;
+            src : "wandcursor.svg"
+        }
+        
+        img.cursor-down{
+            position:absolute;
+            top: 0px;
+            left: 0px;
+            width : 0.5vw;
+            height : 0.5vw;
+            display: none;
+            src : "wandcursor-down.svg"
         }
 
         .content{
@@ -48,6 +71,7 @@
     </style>
 <body onload="console.log('loaded')">
     <div id="pointing" class="pointing">
+        
     </div>
     <div id="content" class="content">
         
