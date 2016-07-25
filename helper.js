@@ -340,11 +340,11 @@ function execute(opts){
                     // d.top = c.top
                 // }
 
-                if(options.left || options.top){
-                    currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
-                    destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
+                // if(options.left || options.top){
+                currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
+                destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
                     
-                }
+                // }
 
 
                 if(options.width){
