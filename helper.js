@@ -322,8 +322,9 @@ function execute(opts){
                 if(lastTransform.has(wv.id)){
                     c = lastTransform.get(wv.id)
                 }
-
+                console.log(JSON.stringify(options))
                 toPixels(options)
+                console.log(JSON.stringify(options))
                 let currentValue = {transform : ""}
                 let destValue = {transform : ""}
 
@@ -379,6 +380,10 @@ function execute(opts){
                 }
 
                 lastTransform.set(wv.id, d)  
+
+                console.log(lastTransform)
+                console.log(currentValue)
+                console.log(destValue)
 
                 wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
@@ -457,6 +462,6 @@ function toPixels(options){
             } 
         }
     }catch(e){
-
+        console.log(e)
     }
 }
