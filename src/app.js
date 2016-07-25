@@ -137,7 +137,11 @@ class DisplayWorker {
                     x : pos.x,
                     y : pos.y
                 }
-                b.webContents.sendInputEvent(evt)
+                console.log(b)
+                console.log(b.webContents)
+                if(b.webContents){
+                    b.webContents.sendInputEvent(evt)
+                }
             }
         })
         

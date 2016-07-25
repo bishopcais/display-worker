@@ -330,13 +330,13 @@ function execute(opts){
                 let destValue = {transform : ""}
 
                 // if(options.left){
-                d.left = options.left - parseInt(getComputedStyle(wv).left)
+                d.left = parseInt(options.left) - parseInt(getComputedStyle(wv).left)
                 // }else{
                     // d.left = c.left
                 // }
 
                 // if(options.top ){
-                d.top = options.top -  parseInt(getComputedStyle(wv).top)
+                d.top = parseInt(options.top) -  parseInt(getComputedStyle(wv).top)
                 // }else{
                     // d.top = c.top
                 // }
