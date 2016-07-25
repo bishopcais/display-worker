@@ -316,7 +316,7 @@ function execute(opts){
         }else if(options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                let c = {top :0, left:0, scale : 1} 
+                let c = {top : parseInt(getComputedStyle(wv).top), left: parseInt(getComputedStyle(wv).left), scale : 1} 
                 let d = {}
                 
                 if(lastTransform.has(wv.id)){
@@ -328,17 +328,17 @@ function execute(opts){
                 let currentValue = {transform : ""}
                 let destValue = {transform : ""}
 
-                if(options.left){
-                    d.left = (parseInt(options.left) -  parseInt(getComputedStyle(wv).left))
-                }else{
-                    d.left = c.left
-                }
+                // if(options.left){
+                d.left = options.left - c.left
+                // }else{
+                    // d.left = c.left
+                // }
 
-                if(options.top){
-                    d.top = (parseInt(options.top) -  parseInt(getComputedStyle(wv).top))
-                }else{
-                    d.top = c.top
-                }
+                // if(options.top ){
+                d.top = options.top -  c.top
+                // }else{
+                    // d.top = c.top
+                // }
 
                 if(options.left || options.top){
                     currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
