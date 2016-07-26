@@ -7,6 +7,7 @@ const {app, BrowserWindow, ipcMain} = require("electron")
 const uuid = require('node-uuid')
 const CELIO = require('celio')
 const io = new CELIO()
+const BasicPointing = require('./basicpointing')
 let displayWorker
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
@@ -42,7 +43,6 @@ class DisplayWorker {
         
         this.appWindows = new Map()
         this.appWindows.set(this.activeAppContext, [])
-
         this.webviewOwnerStack = new Map()
 
         this.server = new hapi.Server();
@@ -90,145 +90,10 @@ class DisplayWorker {
             } 
         });
 
-        this.clickWidth = this.config.hotspot.screen.clickWidth
-        this.downPos = new Map()
-        this.hotspot = io.createHotspot(this.config.hotspot)
-        
-        // this.hotspot.onPointerEnter(msg => { 
-        //     // console.log('Entered', msg) 
-        //     let b = BrowserWindow.getFocusedWindow()
-        //     if(b && msg.hit){
-        //         let pos = this.getPixelPosition(msg)
-        //         pos.state = "move"
-        //         b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
-        //         let evt = {
-        //             type : 'mouseEnter',
-        //             x : pos.x,
-        //             y : pos.y
-        //         }
-        //         b.webContents.sendInputEvent(evt)
-        //     }
-        // })
+        this.pointing = new BasicPointing(io)
 
-        // this.hotspot.onPointerLeave(msg => { 
-        //     // console.log('Left', msg) 
-        //     let b = BrowserWindow.getFocusedWindow()
-        //     if(b){
-        //         let pos = this.getPixelPosition(msg)
-        //         b.webContents.executeJavaScript("removeCursor('"  +  JSON.stringify(pos) + "')")
-        //         let evt = {
-        //             type : 'mouseLeave',
-        //             x : pos.x,
-        //             y : pos.y
-        //         }
-        //         b.webContents.sendInputEvent(evt)
-        //     }
-        // })
-
-        this.hotspot.onPointerMove(msg => { 
-            // console.log('Move', msg)
-            let b = BrowserWindow.getFocusedWindow()
-            if(b && msg.hit){
-                let pos = this.getPixelPosition(msg)
-                pos.state = "move"
-                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
-                let evt = {
-                    type : 'mouseMove',
-                    x : pos.x,
-                    y : pos.y
-                }
-                if(b.webContents){
-                    b.webContents.sendInputEvent(evt)
-                }
-            }
-        })
-        
-        this.hotspot.onPointerDown(msg => {
-            console.log('Down', msg)
-            let b = BrowserWindow.getFocusedWindow()
-            if(b && msg.hit){
-                let pos = this.getPixelPosition(msg)
-                pos.state = "down"
-                this.downPos.set(pos.name, pos)
-                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
-                let evt = {
-                    type : 'mouseDown',
-                    x : pos.x,
-                    y : pos.y
-                }
-				b.webContents.sendInputEvent(evt)
-            }
-        })
-
-
-        this.hotspot.onPointerUp(msg => {
-            console.log('Up', msg)
-            let b = BrowserWindow.getFocusedWindow()
-            if(b){
-                let pos = this.getPixelPosition(msg)
-                pos.state = "up"
-                b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
-                
-                let evt = {
-                    type : 'mouseUp',
-                    x : pos.x,
-                    y : pos.y
-                }
-
-                if(this.isClick(pos)){
-                    console.log('clicked')
-                    let dpos = this.downPos.get(pos.name)
-                    evt.x = dpos.x
-                    evt.y = dpos.y
-                }
-
-                b.webContents.sendInputEvent(evt);
-            }
-        })
-        
-        // this.hotspot.onPointerAttach(msg => {
-        //     console.log('Attach', msg)
-        //     let b = BrowserWindow.getFocusedWindow()
-        //     if(b && msg.hit){
-        //         let pos = this.getPixelPosition(msg)
-        //         pos.state = "move"
-        //         b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
-        //         let evt = {
-        //             type : 'mouseMove',
-        //             x : pos.x,
-        //             y : pos.y
-        //         }
-        //         b.webContents.sendInputEvent(evt)
-        //     }
-        
-        // })
-        
-        this.hotspot.onPointerDetach(msg => {
-            console.log('Detach', msg)
-            let b = BrowserWindow.getFocusedWindow()
-            if(b){
-                b.webContents.executeJavaScript("removeCursor('"  +  JSON.stringify(msg) + "')")
-            }
-        })
     }
 
-    getPixelPosition(pointer){
-        let pw = this.config.hotspot.screen.width / this.config.hotspot.width
-        let ph = this.config.hotspot.screen.height / this.config.hotspot.height
-
-        return { x : Math.round(this.config.hotspot.screen.x + pointer.x  * pw),
-                 y : Math.round(this.config.hotspot.screen.y + pointer.y  * ph),
-                name : pointer.details.name }
-    }
-
-    isClick(pos){
-        let downpos = this.downPos.get(pos.name)
-        if(downpos){
-            return Math.sqrt( Math.pow( downpos.x - pos.x, 2 ) + Math.pow( downpos.y - pos.y, 2 ) ) <= this.clickWidth 
-        }else{
-            return false
-        }
-    }
 
 /*
     register () {
