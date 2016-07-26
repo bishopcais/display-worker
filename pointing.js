@@ -28,8 +28,7 @@ function addCursor(opts){
 }
 
 function removeCursor(opts){
-    opts = JSON.parse(opts)
-    document.getElementById("pointing").removeChild(document.getElementById(opts.name))
+    document.getElementById("pointing").removeChild(document.getElementById(opts))
 }
 
 function updateCursorPosition(opts){
