@@ -53,13 +53,17 @@ class BasicPointing {
             if(b && msg.hit){
                 let pos = this.getPixelPosition(msg)
                 pos.state = "move"
+                let buttonState = this.downPos.get(pos.name)
+                if(buttonState){
+                    pos.state = "down"
+                }
                 b.webContents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')")
                 let evt = {
                     type : 'mouseMove',
                     x : pos.x,
                     y : pos.y
                 }
-                let buttonState = this.downPos.get(pos.name)
+                
                 if(buttonState && (Date.now() - buttonState.downTime) > this.clickSpeed){
                     b.webContents.sendInputEvent(evt)
                 } else if(b.webContents){
