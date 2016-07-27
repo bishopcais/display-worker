@@ -1,9 +1,8 @@
 {
   "mq": {
-      "url": "cel-production.watson.ibm.com",
+      "url": "cel-production.watson.ibm.com/cel",
       "username": "cel",
-      "password": "c0grabbit",
-    "exchange": "cel"
+      "password": "c0grabbit"
   },
   "display" : {
     "host" : "localhost",

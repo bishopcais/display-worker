@@ -1,6 +1,7 @@
 let previousValue = new Map()
 let lastTransform = new Map()
 
+let dragTimer = new Map()
 
 let grid = {}
 function createGrid(row, col, rowHeight, colWidth, padding){
@@ -168,6 +169,7 @@ function execute(opts){
             }
             let wv = document.createElement("webview")
             wv.id = options.view_id
+            wv.className="ui-widget-content"
             
             toPixels(options)
             wv.style.width = options.width
@@ -175,7 +177,62 @@ function execute(opts){
             wv.style.position = "absolute"
             wv.style.top = options.top
             wv.style.left = options.left
+            wv.style.background = "white"
             wv.src = options.url
+            wv.addEventListener("mouseover", (e) => {
+                console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height())
+                if(!wv.canDrag){
+                    wv.canDrag = true
+                    wv.insertCSS("body{pointer-events:none;}")
+                    let pointingDiv = document.getElementById(wv.id + "-draghint") 
+                    if(pointingDiv == undefined){
+                        let pointingDiv = document.createElement("img")
+                        pointingDiv.src = "drag.svg"
+                        pointingDiv.id = wv.id + "-draghint"
+                        pointingDiv.style.position = "absolute"
+                        pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
+                        pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
+                        pointingDiv.style.width =  Math.round( $(document.body).width() * 0.1)+ "px"
+                        pointingDiv.style.height = Math.round( $(document.body).height() * 0.1) + "px"
+                        document.getElementById("pointing").appendChild(pointingDiv)
+                    }else{
+                        pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
+                        pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
+                        pointingDiv.style.width =  Math.round( $(document.body).width() * 0.1)+ "px"
+                        pointingDiv.style.height = Math.round( $(document.body).height() * 0.1) + "px"
+                        
+                    }
+                    wv.addEventListener("mousedown", wvMouseDownHandler)
+                    wv.addEventListener("mouseup", wvMouseUpHandler)
+                    dragTimer.set( wv.id, setTimeout(()=>{
+                        
+                        dragTimer.delete(wv.id)
+                        //  document.getElementById("pointing").removeChild(document.getElementById(wv.id + "-draghint"))
+                        $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
+                            $("#"+wv.id + "-draghint").remove()
+                            wv.insertCSS("body{pointer-events:all;}")
+                            wv.removeEventListener("mousedown", wvMouseDownHandler)
+                            wv.removeEventListener("mouseup", wvMouseUpHandler)
+                        })
+                    }, 1500) )
+                }
+                
+            })
+            wv.addEventListener("mouseout", (e) => {
+                console.log("mouse out")
+                clearTimeout(dragTimer.get(wv.id))
+                dragTimer.delete(wv.id)
+                wv.canDrag = false
+                $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
+                    $("#"+wv.id + "-draghint").remove()
+                    wv.insertCSS("body{pointer-events:all;}")
+                    wv.removeEventListener("mousedown", wvMouseDownHandler)
+                    wv.removeEventListener("mouseup", wvMouseUpHandler)
+                })
+            })
+
+            
+
             
             
             if(options.nodeIntegration)
@@ -195,6 +252,8 @@ function execute(opts){
             }
 
             document.getElementById("content").appendChild(wv)
+            // $( "#content webview" ).draggable({ stack: "#content webview" });
+
             return { "view_id" : wv.id, command : "create" , "status" : "success", 
             "window_id" : options.window_id,"screenName" : options.screenName } 
         }else if(options.command == "set-webview-css-style") {
@@ -379,6 +438,55 @@ function execute(opts){
     }catch(e){
         console.log(e)
         return {"view_id" : options.view_id,  command : options.command ,"error" : e }
+    }
+}
+
+
+function wvMouseDownHandler(e){
+    console.log("mouse down")
+    let wv = e.target
+    if(wv.canDrag){
+        clearTimeout(dragTimer.get(wv.id))
+        dragTimer.delete(wv.id)
+        let d_top = e.y- $(wv).offset().top
+        let d_left = e.x - $(wv).offset().left
+        if(lastTransform.has(wv.id)){
+            d_top += lastTransform.get(wv.id).top
+            d_left +=  lastTransform.get(wv.id).left
+        }
+        $(wv).draggable({
+            disabled : false,
+            cursorAt: { top: d_top, left: d_left },
+            scroll: false,
+            containment: "document.body",
+            drag: () => {
+                let pointingDiv = document.getElementById(wv.id + "-draghint") 
+                if(pointingDiv){
+                    pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
+                    pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
+                    
+                }                        
+            },
+            stop: () => {
+                wv.removeEventListener("mousedown", wvMouseDownHandler)
+                wv.removeEventListener("mouseup", wvMouseUpHandler)
+                $(wv).draggable( {disabled : true})
+            }
+        })
+    }
+}
+
+function wvMouseUpHandler(e){
+    console.log("mouse down")
+    let wv = e.target
+    if(wv.canDrag){
+        $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
+            $("#"+wv.id + "-draghint").remove()
+            wv.insertCSS("body{pointer-events:all;}")
+            wv.removeEventListener("mousedown", wvMouseDownHandler)
+            wv.removeEventListener("mouseup", wvMouseUpHandler)
+        })
+        wv.canDrag = false
     }
 }
 
