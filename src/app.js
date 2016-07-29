@@ -199,7 +199,7 @@ class DisplayWorker {
         
         let browser = new BrowserWindow(opts)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
-        
+        //browser.setIgnoreMouseEvents(true)    
         browser.on('closed', () =>{
         })
         if(!this.appWindows.has(context)){

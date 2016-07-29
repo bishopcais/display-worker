@@ -14,9 +14,10 @@ class BasicPointing {
         this.sy = io.display.hotspot.screen.y;
 
         this.downPos = new Map();
+        this.absPos = new Map();
 
         this.hotspot.onPointerMove(msg => {
-            // console.log('Move', msg)
+            // console.log('Move', msg);
             const w = BrowserWindow.getFocusedWindow();
 
             if (w) {
@@ -28,19 +29,19 @@ class BasicPointing {
                     if(buttonState){
                         pos.state = "down";
                     }
+
                     let evt = {
                         type : 'mouseMove',
                         x : pos.x,
                         y : pos.y
                     };
                     
+                    contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
                     if(buttonState) {
                         if ((Date.now() - buttonState.downTime) > this.clickSpeed) {
-                            contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
                             contents.sendInputEvent(evt);
                         }
                     } else {
-                        contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
                         contents.sendInputEvent(evt);
                     }
                 }
@@ -121,9 +122,35 @@ class BasicPointing {
     }
 
     getPixelPosition(pointer){
-        return { x : Math.round(this.sx + pointer.x  * this.ppm),
-                 y : Math.round(this.sy + pointer.y  * this.ppm),
-                name : pointer.details.name };
+        let x, y, abspos;
+        // lighthouse driver
+        if (pointer.details.trackpad) {
+            abspos = this.absPos.get(pointer.details.name);
+            if (pointer.details.trackpad[0] != 0 ||
+                pointer.details.trackpad[1] != 0) {
+                if (!abspos) {
+                    abspos = {x: this.sx + pointer.x  * this.ppm, y: this.sy + pointer.y  * this.ppm};
+                    this.absPos.set(pointer.details.name, abspos);
+                }
+
+                x = abspos.x + pointer.details.trackpad[0] * 500;
+                y = abspos.y - pointer.details.trackpad[1] * 500;
+            } else { // trackpad is not touched
+                if (abspos) {
+                    this.absPos.delete(pointer.details.name);
+                }
+                x = this.sx + pointer.x  * this.ppm;
+                y = this.sy + pointer.y  * this.ppm;
+            }
+        } else {
+            x = this.sx + pointer.x  * this.ppm;
+            y = this.sy + pointer.y  * this.ppm;
+        }
+        
+        return { x : Math.round(x),
+                 y : Math.round(y),
+                 abspos,
+                 name : pointer.details.name };
     }
 
     isClick(pos){
