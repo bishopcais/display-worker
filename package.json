@@ -12,8 +12,6 @@
   "private": true,
   "dependencies": {
     "electron-prebuilt": "^1.2.5",
-    "hapi": "^13.4.2",
-    "nes": "^6.2.1",
     "node-uuid": "^1.4.7",
     "celio": "git+ssh://github.ibm.com/celio/CELIO.git"
   },

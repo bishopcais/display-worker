@@ -1,5 +1,3 @@
-const hapi = require("hapi")
-const nes = require ("nes")
 const fs = require("fs")
 const electron = require('electron')
 
@@ -45,95 +43,25 @@ class DisplayWorker {
         this.appWindows.set(this.activeAppContext, [])
         this.webviewOwnerStack = new Map()
 
-        // this.server = new hapi.Server();
-        // this.server.connection( { port : this.config.port })
-        // this.server.route({
-        //     method : 'GET',
-        //     path : '/ping',
-        //     handler : ( request, reply) => {
-        //         this.process_message( request.payload, reply)
-        //     }
-        // })
-
-        // this.server.route({
-        //     method : 'POST',
-        //     path : '/execute',
-        //     handler : ( request, reply) => {
-        //         // reply("alive");
-        //         this.process_message(null, request.payload, reply)
-        //     }
-        // })
-
-        io.doCall('display-rpc-queue', (request, reply, ack)=>{
-            try{
-                let msg = JSON.parse(request.content.toString())
-                console.log(msg)
-                this.process_message(msg, reply)
-            }catch(e){
-                reply(JSON.stringify(e))
-            }
-        });
-
-
-        // this.server.register( {
-        //     register : nes,
-        //     heartbeat : false,
-        //     options : {
-        //         onDisconnection : this.coordinator_disconnect,
-        //         onMessage : this.process_message
-        //     }
-        // })
-
-        // this.client = new  nes.Client("ws://" + this.config.displayCoordinator.host + ":" 
-        // + this.config.displayCoordinator.port)
-        // this.id = ""
-
-        // this.server.start ( (e) => {
-        //     if(e) { 
-        //         console.log(e)
-        //         app.quit(); 
-        //     }else {
-        //         console.log("worker server started")
-        //         // this.client.connect({}, (err) => {
-        //         //     if(err) console.log(err)
-        //         //     else this.register();
-        //         // })
-        //     } 
-        // });
+        if(this.config.isPrimaryWorker){
+            io.doCall('display-rpc-queue', (request, reply, ack)=>{
+                try{
+                    let msg = JSON.parse(request.content.toString())
+                    console.log(msg)
+                    this.process_message(msg, reply)
+                }catch(e){
+                    reply(JSON.stringify(e))
+                }
+            })
+        }
 
         this.pointing = new BasicPointing(io)
         console.log("worker server started")
     }
 
-
-/*
-    register () {
-        console.log("registering ...")
-        let msg = {
-            command : "register",
-            port : this.config.port,
-            type : "display-worker"
-        }
-
-        this.client.message( msg , (e,d)=> {
-            if(e)console.log(e)
-            else{
-                console.log("registered (%s)", d.id)
-                this.id = d.id
-            }
-        })
-    }
-
-    coordinator_disconnect () {
-
-    }
-*/
     close_app_context (context, next) {
         if(context == "default"){
-            next({
-                "error" : "Cannot close default context",
-                "command" : "close-app-context"
-            })
+            next(JSON.stringify( new Error("Cannot close default context")))
             return
         }
         this.appContext.delete(context)
@@ -209,6 +137,7 @@ class DisplayWorker {
         }
         
         let browser = new BrowserWindow(opts)
+        console.log("loading template : ", "file://" + process.env.PWD + "/" + options.template)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
         
         browser.on('closed', () =>{
@@ -219,26 +148,6 @@ class DisplayWorker {
         this.appWindows.get( context ).push( browser.id )
         let b_list = this.appWindows.get( context )
         b_id = b_list[b_list.length -1];    
-
-        // }else if(options.window_id){
-        //     let b_list = this.appWindows.get(this.activeAppContext)
-        //     if(b_list.indexOf(options.window_id))
-        //         b_id = options.window_id
-        //     else
-        //         next({
-        //             error : "window (" + b_id + ") not found in appContext : " + this.activeAppContext ,
-        //             window_id : b_id,
-        //             screenName : this.screenName
-        //         })
-        // }else{
-        //     let b_list = this.appWindows.get(this.activeAppContext)
-        //     b_id = b_list[b_list.length -1];   
-        // }
-
-        
-        // if(options.url){
-        //     this.open_view(b_id, options, next)
-        // }else{
 
         browser.on('blur', () => {
             browser.webContents.executeJavaScript("clearAllCursors()")
