@@ -28,11 +28,11 @@ app.on('window-all-closed', () => {
 });
 
 
-ipcMain.on('view-object-updated', (event, arg) => {
+ipcMain.on('view-object-event', (event, arg) => {
   io.publishTopic("display.window.viewobject", arg)
 })
 
-ipcMain.on('view-object-createded', (event, arg) => {
+ipcMain.on('display-window-event', (event, arg) => {
   io.publishTopic("display.window", arg)
 })
 

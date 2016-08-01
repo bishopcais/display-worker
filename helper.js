@@ -299,7 +299,7 @@ function execute(opts){
             document.getElementById("content").appendChild(wv)
             // $( "#content webview" ).draggable({ stack: "#content webview" });
 
-            ipcRenderer.send('view-object-created', JSON.stringify({
+            ipcRenderer.send('display-window-event', JSON.stringify({
                     type : "viewobjectCreated",
                     details :  options
                 }))
@@ -323,7 +323,7 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.src = options.url
-                ipcRenderer.send('view-object-updated', JSON.stringify({
+                ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "urlChanged",
                     details :  {
                         view_id : wv.id,
@@ -340,7 +340,7 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.reload()
-                ipcRenderer.send('view-object-updated', JSON.stringify({
+                ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "urlReloaded",
                     details :  {
                         view_id : wv.id,
@@ -363,7 +363,7 @@ function execute(opts){
                 wv.className = 'hide'
                 wv.style.width = '0px'
                 wv.style.height = '0px'
-                ipcRenderer.send('view-object-updated', JSON.stringify({
+                ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "viewobjectHidden",
                     details :  {
                         view_id : wv.id
@@ -382,7 +382,7 @@ function execute(opts){
                 wv.style.width = c.width
                 wv.style.height = c.height
                 wv.className = ''
-                ipcRenderer.send('view-object-updated', JSON.stringify({
+                ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "viewobjectShown",
                     details :  {
                         view_id : wv.id
@@ -397,7 +397,7 @@ function execute(opts){
             
             if(wv){
                 document.getElementById('content').removeChild(wv)
-                ipcRenderer.send('view-object-updated', JSON.stringify({
+                ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "viewobjectClosed",
                     details :  {
                         view_id : wv.id
@@ -554,7 +554,7 @@ function wvMouseDownHandler(e){
                 wv.removeEventListener("mousedown", wvMouseDownHandler)
                 wv.removeEventListener("mouseup", wvMouseUpHandler)
                 $(wv).draggable( {disabled : true})
-                ipcRenderer.send('view-object-updated', JSON.stringify({
+                ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "positionChanged",
                     details : {
                         newOffset : $(wv).offset(),
