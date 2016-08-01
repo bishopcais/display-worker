@@ -4,6 +4,7 @@ let lastTransform = new Map()
 let dragTimer = new Map()
 
 let grid = {}
+const {ipcRenderer} = nodeRequire('electron')
 function createGrid(row, col, rowHeight, colWidth, padding){
 
     let w = parseInt(getComputedStyle(document.body, '').width) 
@@ -196,10 +197,21 @@ function execute(opts){
             wv.style.left = options.left
             wv.style.background = "white"
             wv.src = options.url
+
+            // wv.addEventListener("dragHintStart", (e)=>{
+            //     console.log("drag hint start")
+            // })
+
+            // wv.addEventListener("dragHintEnd", (e)=>{
+            //     console.log("drag hint end")
+            // })
+
+
             wv.addEventListener("mouseover", (e) => {
                 console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height())
                 if(!wv.canDrag){
                     wv.canDrag = true
+                    wv.dispatchEvent(new Event("dragHintStart"))
                     wv.insertCSS("body{pointer-events:none;}")
                     let pointingDiv = document.getElementById(wv.id + "-draghint") 
                     if(pointingDiv == undefined){
@@ -217,7 +229,6 @@ function execute(opts){
                         pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
                         pointingDiv.style.width =  Math.round( $(document.body).width() * 0.1)+ "px"
                         pointingDiv.style.height = Math.round( $(document.body).height() * 0.1) + "px"
-                        
                     }
                     wv.addEventListener("mousedown", wvMouseDownHandler)
                     wv.addEventListener("mouseup", wvMouseUpHandler)
@@ -227,10 +238,11 @@ function execute(opts){
                         //  document.getElementById("pointing").removeChild(document.getElementById(wv.id + "-draghint"))
                         $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
                             $("#"+wv.id + "-draghint").remove()
-                            wv.insertCSS("body{pointer-events:all;}")
-                            wv.removeEventListener("mousedown", wvMouseDownHandler)
-                            wv.removeEventListener("mouseup", wvMouseUpHandler)
                         })
+                        wv.insertCSS("body{pointer-events:all;}")
+                        wv.removeEventListener("mousedown", wvMouseDownHandler)
+                        wv.removeEventListener("mouseup", wvMouseUpHandler)
+                        wv.dispatchEvent(new Event("dragHintEnd"))
                     }, 1500) )
                 }
                 
@@ -417,7 +429,7 @@ function execute(opts){
                 wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
                 })
-
+                
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "set-bounds" ,"error" : "view not found" }
@@ -488,6 +500,15 @@ function wvMouseDownHandler(e){
                 wv.removeEventListener("mousedown", wvMouseDownHandler)
                 wv.removeEventListener("mouseup", wvMouseUpHandler)
                 $(wv).draggable( {disabled : true})
+                ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "viewObjectPositionChanged",
+                    details : {
+                        newOffset : $(wv).offset(),
+                        width : $(wv).width(),
+                        height : $(wv).height(),
+                        view_id : wv.id
+                    }
+                }))
             }
         })
     }

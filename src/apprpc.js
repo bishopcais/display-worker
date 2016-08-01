@@ -30,6 +30,12 @@ app.on('window-all-closed', () => {
 //   app.quit();
 });
 
+
+ipcMain.on('view-object-updated', (event, arg) => {
+  console.log(arg) 
+  io.publishTopic("display.viewObjectUpdated", arg)
+})
+
 class DisplayWorker {
     constructor(){
         this.config = io.display
@@ -133,7 +139,10 @@ class DisplayWorker {
             width : options.width,
             height : options.height,
             frame: false,
-            enableLargerThanScreen: true
+            enableLargerThanScreen: true,
+            webPreferences : {
+                nodeIntegration : true
+            }
         }
         
         let browser = new BrowserWindow(opts)
@@ -254,7 +263,7 @@ class DisplayWorker {
                 console.log(this.appContext)
                 this.set_app_context( message.options.context, next)
                 // this.server.publish('/display/' + message.client_id, )
-                io.publishTopic('display.' + message.client_id, JSON.stringify({ type : "app_context", data : "context changed to " + message.options.context}) )
+                io.publishTopic('display.' + message.client_id, JSON.stringify({ type : "app_context", details : "context changed to " + message.options.context}) )
                 break;
             case "hide-app-context":
                 let b_list  = this.appWindows.get(message.options.context)
@@ -392,6 +401,7 @@ class DisplayWorker {
             default :
                 if(message.options.view_id){
                     message.options.command = message.command
+                    message.options.client_id = message.client_id
                     if(this.webviewOwnerStack.has(message.options.view_id) ){
                         message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
                         this.execute_in_displaywindow(message.options , next)
