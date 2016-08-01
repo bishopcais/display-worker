@@ -299,6 +299,11 @@ function execute(opts){
             document.getElementById("content").appendChild(wv)
             // $( "#content webview" ).draggable({ stack: "#content webview" });
 
+            ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "viewobjectCreated",
+                    details :  options
+                }))
+
             return { "view_id" : wv.id, command : "create" , "status" : "success", 
             "window_id" : options.window_id,"screenName" : options.screenName } 
         }else if(options.command == "set-webview-css-style") {
@@ -318,7 +323,15 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.src = options.url
+                ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "urlChanged",
+                    details :  {
+                        view_id : wv.id,
+                        url : options.url 
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "set-url" ,"status" : "success" }
+                
             }else{
                 return {"view_id" : wv.id,  command : "set-url" ,"error" : "view not found" }
             }
@@ -327,6 +340,13 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.reload()
+                ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "urlReloaded",
+                    details :  {
+                        view_id : wv.id,
+                        url : wv.src 
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
@@ -343,6 +363,12 @@ function execute(opts){
                 wv.className = 'hide'
                 wv.style.width = '0px'
                 wv.style.height = '0px'
+                ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "viewobjectHidden",
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "hide" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "hide" ,"error" : "view not found" }
@@ -356,6 +382,12 @@ function execute(opts){
                 wv.style.width = c.width
                 wv.style.height = c.height
                 wv.className = ''
+                ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "viewobjectShown",
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "show" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "show" ,"error" : "view not found" }
@@ -365,6 +397,12 @@ function execute(opts){
             
             if(wv){
                 document.getElementById('content').removeChild(wv)
+                ipcRenderer.send('view-object-updated', JSON.stringify({
+                    type : "viewobjectClosed",
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "close" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "close" ,"error" : "view not found" }
@@ -517,7 +555,7 @@ function wvMouseDownHandler(e){
                 wv.removeEventListener("mouseup", wvMouseUpHandler)
                 $(wv).draggable( {disabled : true})
                 ipcRenderer.send('view-object-updated', JSON.stringify({
-                    type : "viewObjectPositionChanged",
+                    type : "positionChanged",
                     details : {
                         newOffset : $(wv).offset(),
                         width : $(wv).width(),

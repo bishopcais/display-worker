@@ -9,16 +9,11 @@ const BasicPointing = require('./basicpointing')
 let displayWorker
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
-	// console.log(process.argv)
-    // setTimeout(()=>{
-        let displays = electron.screen.getAllDisplays()    
-        displays.forEach((d) => {
-            console.log(d)
-        })
-
-    // }, 2000)
-     
-	displayWorker = new DisplayWorker(process.argv)
+	let displays = electron.screen.getAllDisplays()    
+    displays.forEach((d) => {
+        console.log(d)
+    })
+    displayWorker = new DisplayWorker(process.argv)
 });
 
 app.on('quit', () =>{
@@ -27,13 +22,12 @@ app.on('quit', () =>{
 
 app.on('window-all-closed', () => {
     // console.log('all windows closed');
-//   app.quit();
+    // This dummy handler is required to keep display-worker running after closing all browserwindow
 });
 
 
 ipcMain.on('view-object-updated', (event, arg) => {
-  console.log(arg) 
-  io.publishTopic("display.viewObjectUpdated", arg)
+  io.publishTopic("display.window.viewobject", arg)
 })
 
 class DisplayWorker {
@@ -92,6 +86,13 @@ class DisplayWorker {
                 "command" : "close-app-context",
                 "message" : context + " : context closed. The active app context is set to default context. Please use setAppContext to bring up the default context or specify an existing or new app context."
             })) 
+            io.publishTopic("display", JSON.stringify({
+                type : "appContextClosed",
+                details : {
+                    appContext : context,
+                    newAppContext : this.activeAppContext
+                }
+            }))
         }else{
             next(JSON.stringify({
                 "status" : "warning",
@@ -123,7 +124,12 @@ class DisplayWorker {
         }else{
             this.appWindows.set(this.activeAppContext, []);
         }
-
+        io.publishTopic("display", JSON.stringify({
+            type : "appContextChanged",
+            details : {
+                appContext : this.activeAppContext
+            }
+        }))
         next(JSON.stringify({
             "status" : "success",
             "command" : "set-active-context",
@@ -180,6 +186,14 @@ class DisplayWorker {
                     appContext : this.activeAppContext
                 }))
             }
+            io.publishTopic("display.window", JSON.stringify({
+                type : "displayWindowCreated",
+                details : {
+                    appContext : this.activeAppContext,
+                    window_id : b_id,
+                    screenName : this.screenName
+                }
+            }))
         })
        
     }
@@ -262,8 +276,6 @@ class DisplayWorker {
                 }
                 console.log(this.appContext)
                 this.set_app_context( message.options.context, next)
-                // this.server.publish('/display/' + message.client_id, )
-                io.publishTopic('display.' + message.client_id, JSON.stringify({ type : "app_context", details : "context changed to " + message.options.context}) )
                 break;
             case "hide-app-context":
                 let b_list  = this.appWindows.get(message.options.context)
