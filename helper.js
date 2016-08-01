@@ -1,5 +1,6 @@
 let previousValue = new Map()
 let lastTransform = new Map()
+let uniformGridCellSize = {}
 
 let dragTimer = new Map()
 
@@ -35,6 +36,19 @@ function createGrid(row, col, rowHeight, colWidth, padding){
             colWidth[y] = Math.ceil( colWidth[y] * w )
         }
     }
+
+    uniformGridCellSize.width = 0
+    for(let x = 0; x < colWidth.length; x++){
+        uniformGridCellSize.width += colWidth[x]
+    }
+
+    uniformGridCellSize.width /= colWidth.length
+
+    uniformGridCellSize.height = 0
+    for(let x = 0; x < rowHeight.length; x++){
+        uniformGridCellSize.height += rowHeight[x]
+    }
+    uniformGridCellSize.height /= rowHeight.length
 
     let rr = 0;
     for(let r = 1 ; r <= row; r++ ){
@@ -145,6 +159,8 @@ function execute(opts){
             }
         }else  if(options.command == "get-grid"){
             return grid
+        }else  if(options.command == "uniform-grid-cell-size"){
+            return uniformGridCellSize
         }else  if(options.command == "add-to-grid"){
             let bounds = toPixels(options.bounds)
             addToGrid(options.label, bounds, options.style)
