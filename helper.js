@@ -1,10 +1,12 @@
 let previousValue = new Map()
 let lastTransform = new Map()
 let uniformGridCellSize = {}
-
 let dragTimer = new Map()
-
 let grid = {}
+
+
+
+
 const {ipcRenderer} = nodeRequire('electron')
 function createGrid(row, col, rowHeight, colWidth, padding){
 
@@ -199,7 +201,7 @@ function execute(opts){
                     options.top = box.y;
                     options.width =  options.width ?  options.width : box.width;
                     options.height =  options.height ?  options.height : box.height;
-                }
+                } 
             }
             let wv = document.createElement("webview")
             wv.id = options.view_id
@@ -297,6 +299,12 @@ function execute(opts){
             }
 
             document.getElementById("content").appendChild(wv)
+
+            // if(options.slide){
+            //     // Shang's code
+                    
+            // }
+            
             // $( "#content webview" ).draggable({ stack: "#content webview" });
 
             return { "view_id" : wv.id, command : "create" , "status" : "success", 
@@ -555,24 +563,25 @@ function toPixels(options){
                 options =  Math.round(ems * parseFloat(options))   
             }
         }else if(typeof(options) == "object"){
-        
-            if( options.top.indexOf("em") > -1 ){
-                options.top =  Math.round(ems * parseFloat(options.top))
+            if(!options.position){
+                if( options.top && options.top.indexOf("em") > -1 ){
+                    options.top =  Math.round(ems * parseFloat(options.top))
+                }
+
+                if( options.left && options.left.indexOf("em") > -1 ) {
+                    options.left =  Math.round(ems * parseFloat(options.left))
+                }
             }
 
-            if( options.left.indexOf("em") > -1 ) {
-                options.left =  Math.round(ems * parseFloat(options.left))
-            }
-
-            if( options.width.indexOf("em") > -1 ) {
+            if( options.width && options.width.indexOf("em") > -1 ) {
                 options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
-            }else if( options.width.indexOf("%") > -1 ) {
+            }else if( options.width && options.width.indexOf("%") > -1 ) {
                 options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
             }
 
-            if( options.height.indexOf("em") > -1 ) {
+            if( options.height && options.height.indexOf("em") > -1 ) {
                 options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
-            } else if( options.height.indexOf("%") > -1 ) {
+            } else if( options.height && options.height.indexOf("%") > -1 ) {
                 options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
             } 
         }
