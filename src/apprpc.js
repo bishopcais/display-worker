@@ -10,6 +10,8 @@ let displayWorker
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
 	let displays = electron.screen.getAllDisplays()    
+
+    console.log("screens attached to this display-worker: \n")
     displays.forEach((d) => {
         console.log(d)
     })
@@ -32,7 +34,9 @@ ipcMain.on('view-object-updated', (event, arg) => {
 
 class DisplayWorker {
     constructor(){
-        this.config = io.display
+        console.log("\nDisplay-worker configuration : \n")
+        console.log(io.config.get("display"))
+        this.config = io.config.get("display")
         
         this.screenName = this.config.screenName
         this.appContext = new Set()
@@ -56,7 +60,7 @@ class DisplayWorker {
         }
 
         this.pointing = new BasicPointing(io)
-        console.log("worker server started")
+        console.log("\nworker server started.\n")
     }
 
     close_app_context (context, next) {
