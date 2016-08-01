@@ -299,7 +299,7 @@ function execute(opts){
             document.getElementById("content").appendChild(wv)
             // $( "#content webview" ).draggable({ stack: "#content webview" });
 
-            ipcRenderer.send('view-object-updated', JSON.stringify({
+            ipcRenderer.send('view-object-created', JSON.stringify({
                     type : "viewobjectCreated",
                     details :  options
                 }))

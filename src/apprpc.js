@@ -32,6 +32,10 @@ ipcMain.on('view-object-updated', (event, arg) => {
   io.publishTopic("display.window.viewobject", arg)
 })
 
+ipcMain.on('view-object-createded', (event, arg) => {
+  io.publishTopic("display.window", arg)
+})
+
 class DisplayWorker {
     constructor(){
         console.log("\nDisplay-worker configuration : \n")
@@ -236,6 +240,18 @@ class DisplayWorker {
         }
     }
 
+    getWindowContext(window_id){
+        let ctx = "" 
+        
+        this.appWindows.forEach( (v,k) =>{
+            if(v.indexOf(window_id) > -1){
+                ctx = k
+                break
+            }
+        })
+        return ctx
+    }
+
     process_message ( message, next) {
         // console.log("executing : ", message.content.toString())
         // message = JSON.parse(message.content.toString())
@@ -335,6 +351,8 @@ class DisplayWorker {
                             "command" : "close-all-windows",
                             "status" : "success"
                         }))
+                
+                
                 break;
             case "hide-window":
                 if(message.options.window_id){
@@ -380,16 +398,27 @@ class DisplayWorker {
                                 wv_id.push(k)
                         })
                         wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-
-                        let win_arr = this.appWindows.get(this.activeAppContext)
-                        win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
-                        this.appWindows.set(this.activeAppContext, win_arr)
+                        let w_ctx = this.getWindowContext(b.id)
+                        if(this.appWindows.has(w_ctx)){
+                            let win_arr = this.appWindows.get( w_ctx   )
+                            win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
+                            this.appWindows.set(w_ctx, win_arr)
+                        }
                         b.close()
                         next(JSON.stringify({
                                 "command" : "close-window",
                                 "status" : "success",
-                                "viewObjects" : wv_id
+                                "window_id" : message.options.window_id
                             }))
+
+                        io.publishTopic("display.window", JSON.stringify({
+                            type : "displayWindowClosed",
+                            details : {
+                                appContext : w_ctx,
+                                window_id : message.options.window_id,
+                                screenName : this.screenName
+                            }
+                        }))
                     }else{
                         next(JSON.stringify( new Error( "window_id not present")))
                     } 
