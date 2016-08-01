@@ -45,30 +45,34 @@ class DisplayWorker {
         this.appWindows.set(this.activeAppContext, [])
         this.webviewOwnerStack = new Map()
 
-        this.server = new hapi.Server();
-        this.server.connection( { port : this.config.port })
-        this.server.route({
-            method : 'GET',
-            path : '/ping',
-            handler : ( request, reply) => {
-                this.process_message(null, request.payload, reply)
-            }
-        })
+        // this.server = new hapi.Server();
+        // this.server.connection( { port : this.config.port })
+        // this.server.route({
+        //     method : 'GET',
+        //     path : '/ping',
+        //     handler : ( request, reply) => {
+        //         this.process_message( request.payload, reply)
+        //     }
+        // })
 
-        this.server.route({
-            method : 'POST',
-            path : '/execute',
-            handler : ( request, reply) => {
-                // reply("alive");
-                this.process_message(null, request.payload, reply)
-            }
-        })
+        // this.server.route({
+        //     method : 'POST',
+        //     path : '/execute',
+        //     handler : ( request, reply) => {
+        //         // reply("alive");
+        //         this.process_message(null, request.payload, reply)
+        //     }
+        // })
 
-        io.doCall('display-rpc-queue', msg=>{
-            console.log(msg.toString());
-            return 'default';
-            // return new Error('wrong');
-        }, true, false);
+        io.doCall('display-rpc-queue', (request, reply, ack)=>{
+            try{
+                let msg = JSON.parse(request.content.toString())
+                console.log(msg)
+                this.process_message(msg, reply)
+            }catch(e){
+                reply(JSON.stringify(e))
+            }
+        });
 
 
         // this.server.register( {
@@ -84,21 +88,21 @@ class DisplayWorker {
         // + this.config.displayCoordinator.port)
         // this.id = ""
 
-        this.server.start ( (e) => {
-            if(e) { 
-                console.log(e)
-                app.quit(); 
-            }else {
-                console.log("worker server started")
-                // this.client.connect({}, (err) => {
-                //     if(err) console.log(err)
-                //     else this.register();
-                // })
-            } 
-        });
+        // this.server.start ( (e) => {
+        //     if(e) { 
+        //         console.log(e)
+        //         app.quit(); 
+        //     }else {
+        //         console.log("worker server started")
+        //         // this.client.connect({}, (err) => {
+        //         //     if(err) console.log(err)
+        //         //     else this.register();
+        //         // })
+        //     } 
+        // });
 
         this.pointing = new BasicPointing(io)
-
+        console.log("worker server started")
     }
 
 
@@ -149,17 +153,17 @@ class DisplayWorker {
             }, this)
             this.appWindows.delete(context)
             this.activeAppContext = "default"
-            next({
+            next(JSON.stringify({
                 "status" : "success",
                 "command" : "close-app-context",
                 "message" : context + " : context closed. The active app context is set to default context. Please use setAppContext to bring up the default context or specify an existing or new app context."
-            }) 
+            })) 
         }else{
-            next({
+            next(JSON.stringify({
                 "status" : "warning",
                 "command" : "close-app-context",
                 "message" : context + " : context does not exist"
-            })
+            }))
         }
     }
 
@@ -186,11 +190,11 @@ class DisplayWorker {
             this.appWindows.set(this.activeAppContext, []);
         }
 
-        next({
+        next(JSON.stringify({
             "status" : "success",
             "command" : "set-active-context",
             "message" : this.activeAppContext + " is now active"
-        }) 
+        })) 
     }
 
     create_window( context , options, next){
@@ -206,7 +210,7 @@ class DisplayWorker {
         
         let browser = new BrowserWindow(opts)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
-        //browser.setIgnoreMouseEvents(true)    
+        
         browser.on('closed', () =>{
         })
         if(!this.appWindows.has(context)){
@@ -251,12 +255,12 @@ class DisplayWorker {
                     command: "create-grid"
                 }), next)
             }else{
-                next({
+                next(JSON.stringify({
                     status : "success",
                     window_id : b_id,
                     screenName : this.screenName,
                     appContext : this.activeAppContext
-                })
+                }))
             }
         })
        
@@ -280,24 +284,25 @@ class DisplayWorker {
         let b = BrowserWindow.fromId(options.window_id)
         if(b == undefined) {
             console.log("window_id not found")
-            next({ "error" : "window_id not found", "message" : options })
+            next(JSON.stringify({ "error" : "window_id not found", "message" : options }))
         }else{
             if(b.isReady){
                 b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
                     if(d.command == "close"){
                         this.webviewOwnerStack.delete( d.view_id )
                     }
-                    next(d);
+                    next(JSON.stringify(d))
                 })
             }else{
-                next({ "error" : "dom not ready"})
+                next(JSON.stringify(new Error( "dom not ready")))
             }
 
         }
     }
 
-    process_message (socket, message, next) {
-        console.log("executing : ", message.command)
+    process_message ( message, next) {
+        // console.log("executing : ", message.content.toString())
+        // message = JSON.parse(message.content.toString())
         let ctx = this.activeAppContext
         try{
         switch (message.command){
@@ -328,7 +333,7 @@ class DisplayWorker {
                     "details" : displays
                 }
 
-                next([screens])
+                next(JSON.stringify([screens]))
                 break;
             case "get-active-app-context" :
                 next(this.activeAppContext)
@@ -337,12 +342,34 @@ class DisplayWorker {
                 if(!this.appContext.has(message.options.context)){
                     this.appContext.add(message.options.context)
                 }
+                console.log(this.appContext)
                 this.set_app_context( message.options.context, next)
                 // this.server.publish('/display/' + message.client_id, )
                 io.publishTopic('display.' + message.client_id, JSON.stringify({ type : "app_context", data : "context changed to " + message.options.context}) )
                 break;
+            case "hide-app-context":
+                let b_list  = this.appWindows.get(message.options.context)
+                if(b_list){
+                    b_list.forEach((b_id) => {
+                        let b = BrowserWindow.fromId(b_id)
+                        if(b) b.hide()
+                    }, this)
+                }
+                next(JSON.stringify({
+                            "command" : "hide-app-context",
+                            "status" : "success"
+                        }))
+                break;
             case "close-app-context":
                 this.close_app_context(message.options.context, next)
+                break;
+            case "get-all-contexts":
+                console.log(this.appContext)
+                next(JSON.stringify(Array.from(this.appContext)))
+                break;
+            case "get-all-windows-by-context":
+                let wins = this.appWindows.get(options.context)
+                next(JSON.stringify(wins))
                 break;
             case "create-window":
                 if(message.options.appContext){
@@ -350,24 +377,45 @@ class DisplayWorker {
                 }
                 this.create_window(ctx, message.options, next)
                 break;
+            case "close-all-windows":
+                for( let ctx of this.appContext){
+                    let b_list  = this.appWindows.get(ctx)
+                    if(b_list){
+                        b_list.forEach((b_id) => {
+                            let b = BrowserWindow.fromId(b_id)
+                            if(b) b.close()
+
+                            let wv_id = new Array();
+                            this.webviewOwnerStack.forEach( (v, k) => {
+                                if(v == b_id)
+                                wv_id.push(k)
+                            })
+                            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+
+                        }, this)
+                    }
+                }
+                this.appContext.clear()
+                this.appContext.add("default")
+                next(JSON.stringify({
+                            "command" : "close-all-windows",
+                            "status" : "success"
+                        }))
+                break;
             case "hide-window":
                 if(message.options.window_id){
                     let b = BrowserWindow.fromId(message.options.window_id);
                     if(b){
                         b.hide()
-                        next({
+                        next(JSON.stringify({
                             "command" : "hide-window",
                             "status" : "success"
-                        })
+                        }))
                     }else{
-                        next({
-                            "error" : "window_id not present"
-                        })
+                        next(JSON.stringify( new Error( "window_id not present" ) ))
                     }
                 }else{
-                    next({
-                        "error" : "parameter window_id not present"
-                    })
+                    next(JSON.stringify( new Error( "parameter window_id not present" ) ))
                 }
                     
                 break;
@@ -376,19 +424,15 @@ class DisplayWorker {
                     let b = BrowserWindow.fromId(message.options.window_id);
                     if(b){
                         b.show()
-                        next({
+                        next(JSON.stringify({
                             "command" : "show-window",
                             "status" : "success"
-                        })
+                        }))
                     }else{
-                        next({
-                            "error" : "window_id not present"
-                        })
+                        next(JSON.stringify( new Error( "window_id not present")))
                     }
                 }else{
-                    next({
-                        "error" : "parameter window_id not present"
-                    })
+                    next(JSON.stringify( new Error( "parameter window_id not present" ) ))
                 }
                 break;
             case "close-window":
@@ -407,20 +451,16 @@ class DisplayWorker {
                         win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
                         this.appWindows.set(this.activeAppContext, win_arr)
                         b.close()
-                        next({
+                        next(JSON.stringify({
                                 "command" : "close-window",
                                 "status" : "success",
                                 "viewObjects" : wv_id
-                            })
+                            }))
                     }else{
-                        next({
-                            "error" : "window_id not present"
-                        })
+                        next(JSON.stringify( new Error( "window_id not present")))
                     } 
                  }else{
-                     next({
-                        "error" : "parameter window_id not present"
-                    })
+                     next(JSON.stringify( new Error( "parameter window_id not present" ) ))
                  }
                 break;
             case "window-dev-tools":
@@ -432,7 +472,7 @@ class DisplayWorker {
                     else
                         b.closeDevTools()
                 }
-                next({"status" : "success", "devTools" : message.options.devTools} )
+                next(JSON.stringify({"status" : "success", "devTools" : message.options.devTools} ))
                 break;   
             case "create-viewobj" :
                 if(message.options.appContext){
@@ -447,23 +487,18 @@ class DisplayWorker {
                         message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
                         this.execute_in_displaywindow(message.options , next)
                     }else{
-                        next({
-                            "error" : "View Obj not found.",
-                            "message" : message.options.view_id + " - view object is not found."
-                        })    
+                        next(JSON.stringify(new Error( message.options.view_id + " - view object is not found.")))    
                     }
                 }else if(message.options.window_id){
                      message.options.command = message.command
                     this.execute_in_displaywindow(message.options , next)
                 }else{
-                    next({
-                        "error" : "Command not defined."
-                    })
+                    next(JSON.stringify(new Error( "Command not defined.")))
                 }
         }
         }catch(e){
             console.log(e)
-            next(e)
+            next(JSON.stringify(e))
         }
     }
 }

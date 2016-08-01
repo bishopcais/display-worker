@@ -78,9 +78,22 @@ function getGrid(row, col){
         return grid
 }
 
-function addToGrid(label, bounds){
+function addToGrid(label, bounds, style){
     if(!grid[label]){
         grid[label] = bounds
+        if(style){
+            let div = document.createElement('div')
+            div.id = "bg" + label
+            div.className = "background-div"
+            div.style.top = bounds.top + "px"
+            div.style.left = bounds.left + "px"
+            div.style.width = bounds.width
+            div.style.height = bounds.height
+            for(let k of Object.keys(style)){
+                div.style[k] = style[k]
+            }
+            document.getElementById("background").appendChild(div)
+        }
         return { status : 'success' }
     }else{
         return { status : 'failed' , message : 'Label :  ' + label + ' exists.' }
@@ -130,6 +143,10 @@ function execute(opts){
                 template : options.template
             }
         }else  if(options.command == "get-grid"){
+            return grid
+        }else  if(options.command == "add-to-grid"){
+            let bounds = toPixels(options.bounds)
+            addToGrid(options.label, bounds, options.style)
             return grid
         }else if(options.command == "cell-style"){
             let g = document.getElementById("bg" + options.label)
