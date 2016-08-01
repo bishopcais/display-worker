@@ -10,9 +10,9 @@ let grid = {}
 const {ipcRenderer} = nodeRequire('electron')
 function createGrid(row, col, rowHeight, colWidth, padding){
 
-    let w = parseInt(getComputedStyle(document.body, '').width) 
+    let w = parseInt(getComputedStyle(document.body, '').width)
     let h = parseInt(getComputedStyle(document.body, '').height)
-    
+
     if(!padding)
         padding = 0
 
@@ -57,7 +57,7 @@ function createGrid(row, col, rowHeight, colWidth, padding){
         let cc = 0;
         for(let c = 1; c <= col; c++){
             let key = r + '|' + c
-            
+
             grid[key] = {
                 x : cc + padding,
                 y : rr + padding,
@@ -66,7 +66,7 @@ function createGrid(row, col, rowHeight, colWidth, padding){
                 rx : cc,
                 ry : rr,
                 rw : colWidth[c-1],
-                rh :  rowHeight[r-1]  
+                rh :  rowHeight[r-1]
             }
             cc += colWidth[c-1]
         }
@@ -75,14 +75,14 @@ function createGrid(row, col, rowHeight, colWidth, padding){
 
     grid["center"] = {
         x : Math.round(w/4),
-        y : Math.round(h/4), 
+        y : Math.round(h/4),
         width : Math.round(w/2),
         height : Math.round(h/2)
     }
 
      grid["fullscreen"] = {
         x : 0,
-        y : 0, 
+        y : 0,
         width : w,
         height : h
     }
@@ -139,7 +139,7 @@ function execute(opts){
             if(options.gridBackground){
                 document.getElementById('background').innerHTML = ""
                 for(let key of Object.keys(options.gridBackground)){
-                   
+
                     let g = grid[key]
                     let div = document.createElement('div')
                     div.id = "bg" + key
@@ -181,13 +181,13 @@ function execute(opts){
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
                 })
 
-                return { "status" : "success" } 
+                return { "status" : "success" }
             }else{
-                return { "error" : "cell not found" } 
+                return { "error" : "cell not found" }
             }
 
         }else if(options.command == "set-displaywindow-font-size") {
-            document.body.style.fontSize = options.fontSize 
+            document.body.style.fontSize = options.fontSize
             return { command : "set-displaywindow-font-size" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
             if(options.position){
@@ -201,12 +201,12 @@ function execute(opts){
                     options.top = box.y;
                     options.width =  options.width ?  options.width : box.width;
                     options.height =  options.height ?  options.height : box.height;
-                } 
+                }
             }
             let wv = document.createElement("webview")
             wv.id = options.view_id
             wv.className="ui-widget-content"
-            
+
             toPixels(options)
             wv.style.width = options.width
             wv.style.height = options.height
@@ -231,7 +231,7 @@ function execute(opts){
                     wv.canDrag = true
                     wv.dispatchEvent(new Event("dragHintStart"))
                     wv.insertCSS("body{pointer-events:none;}")
-                    let pointingDiv = document.getElementById(wv.id + "-draghint") 
+                    let pointingDiv = document.getElementById(wv.id + "-draghint")
                     if(pointingDiv == undefined){
                         let pointingDiv = document.createElement("img")
                         pointingDiv.src = "drag.svg"
@@ -251,7 +251,7 @@ function execute(opts){
                     wv.addEventListener("mousedown", wvMouseDownHandler)
                     wv.addEventListener("mouseup", wvMouseUpHandler)
                     dragTimer.set( wv.id, setTimeout(()=>{
-                        
+
                         dragTimer.delete(wv.id)
                         //  document.getElementById("pointing").removeChild(document.getElementById(wv.id + "-draghint"))
                         $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
@@ -263,7 +263,7 @@ function execute(opts){
                         wv.dispatchEvent(new Event("dragHintEnd"))
                     }, 1500) )
                 }
-                
+
             })
             wv.addEventListener("mouseout", (e) => {
                 console.log("mouse out")
@@ -278,37 +278,37 @@ function execute(opts){
                 })
             })
 
-            
 
-            
-            
+
+
+
             if(options.nodeIntegration)
                 wv.nodeintegration = true
             else
                 wv.nodeintegration = false
-            
+
             if(options.cssText){
                 wv.cssText = options.cssText
-                wv.addEventListener('did-finish-load', (evt) => { 
+                wv.addEventListener('did-finish-load', (evt) => {
                     wv.insertCSS(wv.cssText )
                 })
 
-                wv.addEventListener('dom-ready', (evt) => { 
+                wv.addEventListener('dom-ready', (evt) => {
                     wv.insertCSS(wv.cssText)
                 })
             }
 
             document.getElementById("content").appendChild(wv)
 
-            // if(options.slide){
-            //     // Shang's code
-                    
-            // }
-            
+            if(options.slide){
+            //  Shang's code
+
+            }
+
             // $( "#content webview" ).draggable({ stack: "#content webview" });
 
-            return { "view_id" : wv.id, command : "create" , "status" : "success", 
-            "window_id" : options.window_id,"screenName" : options.screenName } 
+            return { "view_id" : wv.id, command : "create" , "status" : "success",
+            "window_id" : options.window_id,"screenName" : options.screenName }
         }else if(options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
             if(wv){
@@ -330,7 +330,7 @@ function execute(opts){
             }else{
                 return {"view_id" : wv.id,  command : "set-url" ,"error" : "view not found" }
             }
-            
+
         }else if(options.command == "reload") {
             let wv = document.getElementById(options.view_id)
             if(wv){
@@ -339,10 +339,10 @@ function execute(opts){
             }else{
                 return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
             }
-            
+
         }else if(options.command == "hide") {
             let wv = document.getElementById(options.view_id)
-            
+
             if(wv){
                 let c = {
                     width : wv.style.width, height : wv.style.height
@@ -358,7 +358,7 @@ function execute(opts){
 
         }else if(options.command == "show") {
             let wv = document.getElementById(options.view_id)
-            
+
             if(wv){
                 let c = previousValue.get(options.view_id)
                 wv.style.width = c.width
@@ -370,7 +370,7 @@ function execute(opts){
             }
         }else if(options.command == "close") {
             let wv = document.getElementById(options.view_id)
-            
+
             if(wv){
                 document.getElementById('content').removeChild(wv)
                 return {"view_id" : wv.id,  command : "close" ,"status" : "success" }
@@ -381,9 +381,9 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 // let c = {top : 0, left: 0, scale : 1}
-                let c = {top : 0, left: 0} 
+                let c = {top : 0, left: 0}
                 let d = {}
-                
+
                 if(lastTransform.has(wv.id)){
                     c = lastTransform.get(wv.id)
                 }
@@ -408,18 +408,18 @@ function execute(opts){
                 // if(options.left || options.top){
                 currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
                 destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
-                    
+
                 // }
 
 
                 if(options.width){
                     currentValue.width = getComputedStyle(wv).width
-                    destValue.width = options.width 
+                    destValue.width = options.width
                 }
 
                 if(options.height){
                     currentValue.height = getComputedStyle(wv).height
-                    destValue.height = options.height 
+                    destValue.height = options.height
                 }
 
                 if(options.zIndex){
@@ -429,7 +429,7 @@ function execute(opts){
                 }
 
                 if(options.opacity){
-                    
+
                     currentValue.opacity = getComputedStyle(wv).opacity
                     destValue.opacity = options.opacity
                 }
@@ -439,12 +439,12 @@ function execute(opts){
                 //     wv.style.transformOrigin = "top left"
                 //     currentValue.transform += " scale(" + c.scale + ")"
                 //     destValue.transform += " scale(" + d.scale + ")"
-                    
+
                 // }else{
                 //     d.scale = c.scale
                 // }
 
-                lastTransform.set(wv.id, d)  
+                lastTransform.set(wv.id, d)
 
                 console.log(lastTransform)
                 console.log(currentValue)
@@ -453,7 +453,7 @@ function execute(opts){
                 wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
                 })
-                
+
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "set-bounds" ,"error" : "view not found" }
@@ -513,12 +513,12 @@ function wvMouseDownHandler(e){
             scroll: false,
             containment: "document.body",
             drag: () => {
-                let pointingDiv = document.getElementById(wv.id + "-draghint") 
+                let pointingDiv = document.getElementById(wv.id + "-draghint")
                 if(pointingDiv){
                     pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
                     pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
-                    
-                }                        
+
+                }
             },
             stop: () => {
                 wv.removeEventListener("mousedown", wvMouseDownHandler)
@@ -554,13 +554,13 @@ function wvMouseUpHandler(e){
 
 function toPixels(options){
     let ems = parseFloat(getComputedStyle(document.body, "").fontSize)
-    let w = parseInt(getComputedStyle(document.body, '').width) 
+    let w = parseInt(getComputedStyle(document.body, '').width)
     let h = parseInt(getComputedStyle(document.body, '').height)
 
     try{
         if(typeof(options) == "string"){
             if(options.indexOf("em") > -1){
-                options =  Math.round(ems * parseFloat(options))   
+                options =  Math.round(ems * parseFloat(options))
             }
         }else if(typeof(options) == "object"){
             if(!options.position){
@@ -583,7 +583,7 @@ function toPixels(options){
                 options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
             } else if( options.height && options.height.indexOf("%") > -1 ) {
                 options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
-            } 
+            }
         }
     }catch(e){
         console.log(e)
