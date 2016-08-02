@@ -246,7 +246,6 @@ class DisplayWorker {
         this.appWindows.forEach( (v,k) =>{
             if(v.indexOf(window_id) > -1){
                 ctx = k
-                break
             }
         })
         return ctx
