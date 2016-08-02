@@ -75,6 +75,7 @@ class DisplayWorker {
         this.appContext.delete(context)
         let b_list  = this.appWindows.get(context)
         if(b_list){
+            let wv_ids = []
             b_list.forEach((b_id) => {
                 let b = BrowserWindow.fromId(b_id)
                 if(b) b.close()
@@ -82,9 +83,12 @@ class DisplayWorker {
                 let wv_id = new Array();
                 this.webviewOwnerStack.forEach( (v, k) => {
                     if(v == b_id)
-                    wv_id.push(k)
+                        wv_id.push(k)
                 })
-                wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+                wv_id.forEach((v) => {
+                    wv_ids.push(v)
+                    this.webviewOwnerStack.delete(v) 
+                })
 
             }, this)
             this.appWindows.delete(context)
@@ -98,7 +102,9 @@ class DisplayWorker {
                 type : "appContextClosed",
                 details : {
                     appContext : context,
-                    newAppContext : this.activeAppContext
+                    newAppContext : this.activeAppContext,
+                    closedWindows : b_list,
+                    closedViewObjects : wv_ids
                 }
             }))
         }else{
@@ -453,7 +459,6 @@ class DisplayWorker {
                         next(JSON.stringify(new Error( message.options.view_id + " - view object is not found.")))    
                     }
                 }else if(message.options.window_id){
-                    console.log("*" , message)
                      message.options.command = message.command
                     this.execute_in_displaywindow(message.options , next)
                 }else{
