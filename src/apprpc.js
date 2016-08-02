@@ -246,7 +246,6 @@ class DisplayWorker {
         this.appWindows.forEach( (v,k) =>{
             if(v.indexOf(window_id) > -1){
                 ctx = k
-                break
             }
         })
         return ctx
@@ -454,6 +453,7 @@ class DisplayWorker {
                         next(JSON.stringify(new Error( message.options.view_id + " - view object is not found.")))    
                     }
                 }else if(message.options.window_id){
+                    console.log("*" , message)
                      message.options.command = message.command
                     this.execute_in_displaywindow(message.options , next)
                 }else{

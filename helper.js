@@ -162,8 +162,8 @@ function execute(opts){
         }else  if(options.command == "uniform-grid-cell-size"){
             return uniformGridCellSize
         }else  if(options.command == "add-to-grid"){
-            let bounds = toPixels(options.bounds)
-            addToGrid(options.label, bounds, options.style)
+            toPixels(options.bounds)
+            addToGrid(options.label, options.bounds, options.style)
             return grid
         }else if(options.command == "cell-style"){
             let g = document.getElementById("bg" + options.label)
@@ -190,8 +190,10 @@ function execute(opts){
         }else if(options.command == "create-viewobj"){
             if(options.position){
                 let pos = options.position
-                if(pos["grid-top"] && pos["grid-left"] ){
-                    pos = pos["grid-top"] + "|" + pos["grid-left"];
+                if( typeof pos == "object" ){
+                    if(pos["grid-top"] && pos["grid-left"] ){
+                        pos = pos["grid-top"] + "|" + pos["grid-left"];
+                    }
                 }
                 let box = grid[pos];
                 if(box){
@@ -483,6 +485,14 @@ function execute(opts){
                 wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
                 })
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "boundsChanged",
+                    details :  {
+                        view_id : wv.id,
+                        oldValue : currentValue,
+                        newValue : destValue 
+                    }
+                }))
                 
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
@@ -500,7 +510,7 @@ function execute(opts){
          }else if(options.command == "forward") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                wv.canGoForward()
+                wv.goForward()
                 return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
