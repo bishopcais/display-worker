@@ -493,7 +493,8 @@ function execute(opts){
                             top : $(wv).offset().top,
                             left : $(wv).offset().left,
                             width : $(wv).width(),
-                            height : $(wv).height()
+                            height : $(wv).height(),
+                            units : "px"
                         }
                     }))
                 })
@@ -569,12 +570,13 @@ function wvMouseDownHandler(e){
                 wv.removeEventListener("mouseup", wvMouseUpHandler)
                 $(wv).draggable( {disabled : true})
                 ipcRenderer.send('view-object-event', JSON.stringify({
-                    type : "positionChanged",
+                    type : "boundsChanged",
                     details : {
                         top : $(wv).offset().top,
                         left : $(wv).offset().left,
                         width : $(wv).width(),
                         height : $(wv).height(),
+                        units : "px",
                         view_id : wv.id
                     }
                 }))
