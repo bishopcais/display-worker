@@ -160,6 +160,7 @@ class DisplayWorker {
             height : options.height,
             frame: false,
             enableLargerThanScreen: true,
+            acceptFirstMouse : true,
             webPreferences : {
                 nodeIntegration : true
             }

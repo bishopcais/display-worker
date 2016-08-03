@@ -482,17 +482,21 @@ function execute(opts){
                 console.log(currentValue)
                 console.log(destValue)
 
-                wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
+                let animate = wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
                     duration : 800, fill: 'forwards', easing: 'ease-in-out'
                 })
-                ipcRenderer.send('view-object-event', JSON.stringify({
-                    type : "boundsChanged",
-                    details :  {
-                        view_id : wv.id,
-                        oldValue : currentValue,
-                        newValue : destValue 
-                    }
-                }))
+                animate.onFinish(() => {
+                    ipcRenderer.send('view-object-event', JSON.stringify({
+                        type : "boundsChanged",
+                        details :  {
+                            view_id : wv.id,
+                            top : $(wv).offset().top,
+                            left : $(wv).offset().left,
+                            width : $(wv).width(),
+                            height : $(wv).height()
+                        }
+                    }))
+                })
                 
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
@@ -567,7 +571,8 @@ function wvMouseDownHandler(e){
                 ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "positionChanged",
                     details : {
-                        newOffset : $(wv).offset(),
+                        top : $(wv).offset().top,
+                        left : $(wv).offset().left,
                         width : $(wv).width(),
                         height : $(wv).height(),
                         view_id : wv.id
