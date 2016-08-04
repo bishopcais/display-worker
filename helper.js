@@ -380,80 +380,7 @@ function execute(opts){
         }else if(options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                // let c = {top : 0, left: 0, scale : 1}
-                let c = {top : 0, left: 0}
-                let d = {}
-
-                if(lastTransform.has(wv.id)){
-                    c = lastTransform.get(wv.id)
-                }
-                console.log(JSON.stringify(options))
-                toPixels(options)
-                console.log(JSON.stringify(options))
-                let currentValue = {transform : ""}
-                let destValue = {transform : ""}
-
-                // if(options.left){
-                d.left = parseInt(options.left) - parseInt(getComputedStyle(wv).left)
-                // }else{
-                    // d.left = c.left
-                // }
-
-                // if(options.top ){
-                d.top = parseInt(options.top) -  parseInt(getComputedStyle(wv).top)
-                // }else{
-                    // d.top = c.top
-                // }
-
-                // if(options.left || options.top){
-                currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
-                destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
-
-                // }
-
-
-                if(options.width){
-                    currentValue.width = getComputedStyle(wv).width
-                    destValue.width = options.width
-                }
-
-                if(options.height){
-                    currentValue.height = getComputedStyle(wv).height
-                    destValue.height = options.height
-                }
-
-                if(options.zIndex){
-                    // currentValue.zIndex = getComputedStyle(wv).zIndex
-                    // destValue.zIndex = options.zIndex
-                    wv.style.zIndex = options.zIndex
-                }
-
-                if(options.opacity){
-
-                    currentValue.opacity = getComputedStyle(wv).opacity
-                    destValue.opacity = options.opacity
-                }
-
-                // if(options.scale){
-                //     d.scale = options.scale
-                //     wv.style.transformOrigin = "top left"
-                //     currentValue.transform += " scale(" + c.scale + ")"
-                //     destValue.transform += " scale(" + d.scale + ")"
-
-                // }else{
-                //     d.scale = c.scale
-                // }
-
-                lastTransform.set(wv.id, d)
-
-                console.log(lastTransform)
-                console.log(currentValue)
-                console.log(destValue)
-
-                wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
-                    duration : 800, fill: 'forwards', easing: 'ease-in-out'
-                })
-
+                setBounds(wv, options)
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "set-bounds" ,"error" : "view not found" }
@@ -492,6 +419,73 @@ function execute(opts){
         console.log(e)
         return {"view_id" : options.view_id,  command : options.command ,"error" : e }
     }
+}
+
+/*
+
+   destBounds =  {
+        "left" : b.x + "px",
+        "top" : b.y + "px",
+        "height" : a.height + "px",
+        "width" : w + "px",
+        "animation_options" : {
+            duration : 1000,
+            fill : 'forwards',
+            easing : 'linear'
+         }
+      }
+
+*/
+
+function setBounds(wv , destBounds) {
+    // let c = {top : 0, left: 0, scale : 1}
+    let c = {top : 0, left: 0}
+    let d = {}
+
+    if(lastTransform.has(wv.id)){
+        c = lastTransform.get(wv.id)
+    }
+    console.log(JSON.stringify(destBounds))
+    toPixels(destBounds)
+    console.log(JSON.stringify(destBounds))
+    let currentValue = {transform : ""}
+    let destValue = {transform : ""}
+
+    d.left = parseInt(destBounds.left) - parseInt(getComputedStyle(wv).left)
+    d.top = parseInt(destBounds.top) -  parseInt(getComputedStyle(wv).top)
+    
+    currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
+    destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
+
+    if(destBounds.width){
+        currentValue.width = getComputedStyle(wv).width
+        destValue.width = destBounds.width
+    }
+
+    if(destBounds.height){
+        currentValue.height = getComputedStyle(wv).height
+        destValue.height = destBounds.height
+    }
+
+    if(destBounds.zIndex){
+        wv.style.zIndex = destBounds.zIndex
+    }
+
+    if(destBounds.opacity){
+
+        currentValue.opacity = getComputedStyle(wv).opacity
+        destValue.opacity = destBounds.opacity
+    }
+
+    lastTransform.set(wv.id, d)
+
+    console.log(lastTransform)
+    console.log(currentValue)
+    console.log(destValue)
+
+    return wv.animate( [currentValue, destValue], options.animation_options? options.animation_options : {
+        duration : 800, fill: 'forwards', easing: 'ease-in-out'
+    })
 }
 
 
