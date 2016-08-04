@@ -6,8 +6,10 @@ let dragTimer = new Map()
 
 let grid = {}
 const {ipcRenderer} = nodeRequire('electron')
+let gridSize  = {}
 function createGrid(row, col, rowHeight, colWidth, padding){
-
+    gridSize.row = row
+    gridSize.col = col
     let w = parseInt(getComputedStyle(document.body, '').width) 
     let h = parseInt(getComputedStyle(document.body, '').height)
     
