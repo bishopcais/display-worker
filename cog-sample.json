@@ -5,8 +5,6 @@
       "password": "c0grabbit"
   },
   "display" : {
-    "host" : "localhost",
-    "port" : 8081,
     "screenName" : "front",
     "hotspot" : {
         "center" : [175.2119, 910.8918, -4263.35],

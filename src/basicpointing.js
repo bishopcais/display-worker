@@ -4,14 +4,15 @@ const {BrowserWindow} = require("electron");
 class BasicPointing {
 
     constructor( io ){
-        this.hotspot = io.createHotspot(io.display.hotspot);
-        this.clickWidth = io.display.hotspot.screen.clickWidth;
-        this.clickSpeed = io.display.hotspot.screen.clickSpeed;
+        let conf = io.config.get("display:hotspot")
+        this.hotspot = io.createHotspot(conf);
+        this.clickWidth = conf.screen.clickWidth;
+        this.clickSpeed = conf.screen.clickSpeed;
 
-        this.ppm = io.display.hotspot.screen.width / io.display.hotspot.width;
+        this.ppm = conf.screen.width / conf.width;
 
-        this.sx = io.display.hotspot.screen.x;
-        this.sy = io.display.hotspot.screen.y;
+        this.sx = conf.screen.x;
+        this.sy = conf.screen.y;
 
         this.downPos = new Map();
         this.absPos = new Map();

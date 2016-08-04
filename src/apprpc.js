@@ -9,16 +9,13 @@ const BasicPointing = require('./basicpointing')
 let displayWorker
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
-	// console.log(process.argv)
-    // setTimeout(()=>{
-        let displays = electron.screen.getAllDisplays()    
-        displays.forEach((d) => {
-            console.log(d)
-        })
+	let displays = electron.screen.getAllDisplays()    
 
-    // }, 2000)
-     
-	displayWorker = new DisplayWorker(process.argv)
+    console.log("screens attached to this display-worker: \n")
+    displays.forEach((d) => {
+        console.log(d)
+    })
+    displayWorker = new DisplayWorker(process.argv)
 });
 
 app.on('quit', () =>{
@@ -27,18 +24,23 @@ app.on('quit', () =>{
 
 app.on('window-all-closed', () => {
     // console.log('all windows closed');
-//   app.quit();
+    // This dummy handler is required to keep display-worker running after closing all browserwindow
 });
 
 
-ipcMain.on('view-object-updated', (event, arg) => {
-  console.log(arg) 
-  io.publishTopic("display.viewObjectUpdated", arg)
+ipcMain.on('view-object-event', (event, arg) => {
+  io.publishTopic("display.window.viewobject", arg)
+})
+
+ipcMain.on('display-window-event', (event, arg) => {
+  io.publishTopic("display.window", arg)
 })
 
 class DisplayWorker {
     constructor(){
-        this.config = io.display
+        console.log("\nDisplay-worker configuration : \n")
+        console.log(io.config.get("display"))
+        this.config = io.config.get("display")
         
         this.screenName = this.config.screenName
         this.appContext = new Set()
@@ -62,7 +64,7 @@ class DisplayWorker {
         }
 
         this.pointing = new BasicPointing(io)
-        console.log("worker server started")
+        console.log("\nworker server started.\n")
     }
 
     close_app_context (context, next) {
@@ -73,6 +75,7 @@ class DisplayWorker {
         this.appContext.delete(context)
         let b_list  = this.appWindows.get(context)
         if(b_list){
+            let wv_ids = []
             b_list.forEach((b_id) => {
                 let b = BrowserWindow.fromId(b_id)
                 if(b) b.close()
@@ -80,9 +83,12 @@ class DisplayWorker {
                 let wv_id = new Array();
                 this.webviewOwnerStack.forEach( (v, k) => {
                     if(v == b_id)
-                    wv_id.push(k)
+                        wv_id.push(k)
                 })
-                wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+                wv_id.forEach((v) => {
+                    wv_ids.push(v)
+                    this.webviewOwnerStack.delete(v) 
+                })
 
             }, this)
             this.appWindows.delete(context)
@@ -92,6 +98,15 @@ class DisplayWorker {
                 "command" : "close-app-context",
                 "message" : context + " : context closed. The active app context is set to default context. Please use setAppContext to bring up the default context or specify an existing or new app context."
             })) 
+            io.publishTopic("display", JSON.stringify({
+                type : "appContextClosed",
+                details : {
+                    appContext : context,
+                    newAppContext : this.activeAppContext,
+                    closedWindows : b_list,
+                    closedViewObjects : wv_ids
+                }
+            }))
         }else{
             next(JSON.stringify({
                 "status" : "warning",
@@ -123,7 +138,12 @@ class DisplayWorker {
         }else{
             this.appWindows.set(this.activeAppContext, []);
         }
-
+        io.publishTopic("display", JSON.stringify({
+            type : "appContextChanged",
+            details : {
+                appContext : this.activeAppContext
+            }
+        }))
         next(JSON.stringify({
             "status" : "success",
             "command" : "set-active-context",
@@ -140,6 +160,7 @@ class DisplayWorker {
             height : options.height,
             frame: false,
             enableLargerThanScreen: true,
+            acceptFirstMouse : true,
             webPreferences : {
                 nodeIntegration : true
             }
@@ -180,6 +201,14 @@ class DisplayWorker {
                     appContext : this.activeAppContext
                 }))
             }
+            io.publishTopic("display.window", JSON.stringify({
+                type : "displayWindowCreated",
+                details : {
+                    appContext : this.activeAppContext,
+                    window_id : b_id,
+                    screenName : this.screenName
+                }
+            }))
         })
        
     }
@@ -216,6 +245,17 @@ class DisplayWorker {
             }
 
         }
+    }
+
+    getWindowContext(window_id){
+        let ctx = "" 
+        
+        this.appWindows.forEach( (v,k) =>{
+            if(v.indexOf(window_id) > -1){
+                ctx = k
+            }
+        })
+        return ctx
     }
 
     process_message ( message, next) {
@@ -262,8 +302,6 @@ class DisplayWorker {
                 }
                 console.log(this.appContext)
                 this.set_app_context( message.options.context, next)
-                // this.server.publish('/display/' + message.client_id, )
-                io.publishTopic('display.' + message.client_id, JSON.stringify({ type : "app_context", details : "context changed to " + message.options.context}) )
                 break;
             case "hide-app-context":
                 let b_list  = this.appWindows.get(message.options.context)
@@ -319,6 +357,8 @@ class DisplayWorker {
                             "command" : "close-all-windows",
                             "status" : "success"
                         }))
+                
+                
                 break;
             case "hide-window":
                 if(message.options.window_id){
@@ -364,16 +404,27 @@ class DisplayWorker {
                                 wv_id.push(k)
                         })
                         wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-
-                        let win_arr = this.appWindows.get(this.activeAppContext)
-                        win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
-                        this.appWindows.set(this.activeAppContext, win_arr)
+                        let w_ctx = this.getWindowContext(b.id)
+                        if(this.appWindows.has(w_ctx)){
+                            let win_arr = this.appWindows.get( w_ctx   )
+                            win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
+                            this.appWindows.set(w_ctx, win_arr)
+                        }
                         b.close()
                         next(JSON.stringify({
                                 "command" : "close-window",
                                 "status" : "success",
-                                "viewObjects" : wv_id
+                                "window_id" : message.options.window_id
                             }))
+
+                        io.publishTopic("display.window", JSON.stringify({
+                            type : "displayWindowClosed",
+                            details : {
+                                appContext : w_ctx,
+                                window_id : message.options.window_id,
+                                screenName : this.screenName
+                            }
+                        }))
                     }else{
                         next(JSON.stringify( new Error( "window_id not present")))
                     } 

@@ -9,6 +9,7 @@ let gridSize={}
 
 
 const {ipcRenderer} = nodeRequire('electron')
+
 /*
 function move_to(id,x1,y1,x2,y2,s1,s2,easing,duration){
 	console.log("id="+id+",x1="+x1+",y1="+y1+",x2="+x2+",y2="+y2);
@@ -30,44 +31,42 @@ function move_to(id,x1,y1,x2,y2,s1,s2,easing,duration){
 }
 */
 function rectangleSelect(selector, x1, y1, x2, y2) {
-	    var elements = [];
-	    jQuery(selector).each(function() {
-	        var $this = jQuery(this);
-	        var offset = $this.offset();
-	        var x = offset.left;
-	        var y = offset.top;
-	        var w = $this.width();
-	        var h = $this.height();
+    var elements = [];
+    jQuery(selector).each(function() {
+        var $this = jQuery(this);
+        var offset = $this.offset();
+        var x = offset.left;
+        var y = offset.top;
+        var w = $this.width();
+        var h = $this.height();
 
-	        if (x >= x1
-	            && y >= y1
-	            && x + w <= x2
-	            && y + h <= y2) {
-	            // this element fits inside the selection rectangle
-	            elements.push($this.get(0));
-	        }
-	    });
-	    return elements;
-	}
-	function test(x1, y1, x2, y2){
-		// Simple test
-		// Mark all li elements red if they are children of ul#list
-		// and if they fall inside the rectangle with coordinates:
-		// x1=0, y1=0, x2=200, y2=200
-		var elements = rectangleSelect("webview", x1, y1, x2, y2);
-		var itm = elements.length;
-		while(itm--) {
-			//elements[itm].style.color = 'red';
-			console.log(elements[itm]);
-		}
-	}
-
-
+        if (x >= x1
+            && y >= y1
+            && x + w <= x2
+            && y + h <= y2) {
+            // this element fits inside the selection rectangle
+            elements.push($this.get(0));
+        }
+    });
+    return elements;
+}
+function test(x1, y1, x2, y2){
+    // Simple test
+    // Mark all li elements red if they are children of ul#list
+    // and if they fall inside the rectangle with coordinates:
+    // x1=0, y1=0, x2=200, y2=200
+    var elements = rectangleSelect("webview", x1, y1, x2, y2);
+    var itm = elements.length;
+    while(itm--) {
+        //elements[itm].style.color = 'red';
+        console.log(elements[itm]);
+    }
+}
 
 function createGrid(row, col, rowHeight, colWidth, padding){
-	gridSize.row = row
+    gridSize.row = row
     gridSize.col = col
-    let w = parseInt(getComputedStyle(document.body, '').width)
+    let w = parseInt(getComputedStyle(document.body, '').width) 
     let h = parseInt(getComputedStyle(document.body, '').height)
 
     if(!padding)
@@ -221,8 +220,8 @@ function execute(opts){
         }else  if(options.command == "uniform-grid-cell-size"){
             return uniformGridCellSize
         }else  if(options.command == "add-to-grid"){
-            let bounds = toPixels(options.bounds)
-            addToGrid(options.label, bounds, options.style)
+            toPixels(options.bounds)
+            addToGrid(options.label, options.bounds, options.style)
             return grid
         }else if(options.command == "cell-style"){
             let g = document.getElementById("bg" + options.label)
@@ -250,8 +249,10 @@ function execute(opts){
         }else if(options.command == "create-viewobj"){
             if(options.position){
                 let pos = options.position
-                if(pos["grid-top"] && pos["grid-left"] ){
-                    pos = pos["grid-top"] + "|" + pos["grid-left"];
+                if( typeof pos == "object" ){
+                    if(pos["grid-top"] && pos["grid-left"] ){
+                        pos = pos["grid-top"] + "|" + pos["grid-left"];
+                    }
                 }
                 let box = grid[pos];
                 console.log("box="+JSON.stringify(box));
@@ -499,9 +500,13 @@ function execute(opts){
             }
 
             // $( "#content webview" ).draggable({ stack: "#content webview" });
+            ipcRenderer.send('display-window-event', JSON.stringify({
+                    type : "viewobjectCreated",
+                    details :  options
+                }))
 
-            return { "view_id" : wv.id, command : "create" , "status" : "success",
-            "window_id" : options.window_id,"screenName" : options.screenName }
+            return { "view_id" : wv.id, command : "create" , "status" : "success", 
+            "window_id" : options.window_id,"screenName" : options.screenName } 
         }else if(options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
             if(wv){
@@ -519,7 +524,15 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.src = options.url
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "urlChanged",
+                    details :  {
+                        view_id : wv.id,
+                        url : options.url 
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "set-url" ,"status" : "success" }
+                
             }else{
                 return {"view_id" : wv.id,  command : "set-url" ,"error" : "view not found" }
             }
@@ -528,6 +541,13 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.reload()
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "urlReloaded",
+                    details :  {
+                        view_id : wv.id,
+                        url : wv.src 
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
@@ -544,6 +564,12 @@ function execute(opts){
                 wv.className = 'hide'
                 wv.style.width = '0px'
                 wv.style.height = '0px'
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewobjectHidden",
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "hide" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "hide" ,"error" : "view not found" }
@@ -557,6 +583,12 @@ function execute(opts){
                 wv.style.width = c.width
                 wv.style.height = c.height
                 wv.className = ''
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewobjectShown",
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "show" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "show" ,"error" : "view not found" }
@@ -566,6 +598,12 @@ function execute(opts){
 
             if(wv){
                 document.getElementById('content').removeChild(wv)
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewobjectClosed",
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
                 return {"view_id" : wv.id,  command : "close" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "close" ,"error" : "view not found" }
@@ -573,7 +611,21 @@ function execute(opts){
         }else if(options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                setBounds(wv, options)
+                let animate = setBounds(wv, options)
+                animate.onFinish(() => {
+                    ipcRenderer.send('view-object-event', JSON.stringify({
+                        type : "boundsChanged",
+                        details :  {
+                            view_id : wv.id,
+                            top : $(wv).offset().top,
+                            left : $(wv).offset().left,
+                            width : $(wv).width(),
+                            height : $(wv).height(),
+                            units : "px"
+                        }
+                    }))
+                })
+                
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "set-bounds" ,"error" : "view not found" }
@@ -590,7 +642,7 @@ function execute(opts){
          }else if(options.command == "forward") {
             let wv = document.getElementById(options.view_id)
             if(wv){
-                wv.canGoForward()
+                wv.goForward()
                 return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
@@ -711,12 +763,14 @@ function wvMouseDownHandler(e){
                 wv.removeEventListener("mousedown", wvMouseDownHandler)
                 wv.removeEventListener("mouseup", wvMouseUpHandler)
                 $(wv).draggable( {disabled : true})
-                ipcRenderer.send('view-object-updated', JSON.stringify({
-                    type : "viewObjectPositionChanged",
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "boundsChanged",
                     details : {
-                        newOffset : $(wv).offset(),
+                        top : $(wv).offset().top,
+                        left : $(wv).offset().left,
                         width : $(wv).width(),
                         height : $(wv).height(),
+                        units : "px",
                         view_id : wv.id
                     }
                 }))
