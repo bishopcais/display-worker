@@ -27,6 +27,16 @@
             pointer-events: none;
         }
 
+        .indicator{
+            width : 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            z-index: 5;
+            pointer-events:none;
+        }
+
         .cursor{
             position : absolute;
         }
@@ -82,6 +92,9 @@
     <div id="pointing" class="pointing">
         
     </div>
+    <!--<div id="indicator" class="indicator">
+        <div style = "width:100px;height:200px;background:red; left:20px;top : 30px;position:absolute;pointer-events:all" onclick="console.log('clicked')"> </div>
+    </div>-->
     <div id="content" class="content">
         
     </div>

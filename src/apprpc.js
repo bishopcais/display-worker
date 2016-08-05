@@ -9,7 +9,10 @@ const BasicPointing = require('./basicpointing')
 let displayWorker
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
-	let displays = electron.screen.getAllDisplays()    
+
+    process.setMaxListeners(0);
+	let displays = electron.screen.getAllDisplays()
+
 
     console.log("screens attached to this display-worker: \n")
     displays.forEach((d) => {
@@ -41,12 +44,12 @@ class DisplayWorker {
         console.log("\nDisplay-worker configuration : \n")
         console.log(io.config.get("display"))
         this.config = io.config.get("display")
-        
+
         this.screenName = this.config.screenName
         this.appContext = new Set()
         this.appContext.add("default")
         this.activeAppContext = "default"
-        
+
         this.appWindows = new Map()
         this.appWindows.set(this.activeAppContext, [])
         this.webviewOwnerStack = new Map()
@@ -87,7 +90,7 @@ class DisplayWorker {
                 })
                 wv_id.forEach((v) => {
                     wv_ids.push(v)
-                    this.webviewOwnerStack.delete(v) 
+                    this.webviewOwnerStack.delete(v)
                 })
 
             }, this)
@@ -97,7 +100,7 @@ class DisplayWorker {
                 "status" : "success",
                 "command" : "close-app-context",
                 "message" : context + " : context closed. The active app context is set to default context. Please use setAppContext to bring up the default context or specify an existing or new app context."
-            })) 
+            }))
             io.publishTopic("display", JSON.stringify({
                 type : "appContextClosed",
                 details : {
@@ -148,7 +151,7 @@ class DisplayWorker {
             "status" : "success",
             "command" : "set-active-context",
             "message" : this.activeAppContext + " is now active"
-        })) 
+        }))
     }
 
     create_window( context , options, next){
@@ -165,11 +168,11 @@ class DisplayWorker {
                 nodeIntegration : true
             }
         }
-        
+
         let browser = new BrowserWindow(opts)
         console.log("loading template : ", "file://" + process.env.PWD + "/" + options.template)
         browser.loadURL("file://" + process.env.PWD + "/" + options.template)
-        
+
         browser.on('closed', () =>{
         })
         if(!this.appWindows.has(context)){
@@ -177,7 +180,7 @@ class DisplayWorker {
         }
         this.appWindows.get( context ).push( browser.id )
         let b_list = this.appWindows.get( context )
-        b_id = b_list[b_list.length -1];    
+        b_id = b_list[b_list.length -1];
 
         browser.on('blur', () => {
             browser.webContents.executeJavaScript("clearAllCursors()")
@@ -210,14 +213,14 @@ class DisplayWorker {
                 }
             }))
         })
-       
+
     }
 
 
     create_viewobj( ctx, options, next){
         let view_id = uuid.v1()
         this.webviewOwnerStack.set(view_id, options.window_id)
-        
+
         this.execute_in_displaywindow(Object.assign(options, {
             window_id : options.window_id,
             screenName : options.screenName,
@@ -248,8 +251,8 @@ class DisplayWorker {
     }
 
     getWindowContext(window_id){
-        let ctx = "" 
-        
+        let ctx = ""
+
         this.appWindows.forEach( (v,k) =>{
             if(v.indexOf(window_id) > -1){
                 ctx = k
@@ -265,8 +268,8 @@ class DisplayWorker {
         try{
         switch (message.command){
             case "get-screens" :
-                let displays = electron.screen.getAllDisplays()    
-            
+                let displays = electron.screen.getAllDisplays()
+
                 let bound = { x : 0, y : 0, right : 0, bottom : 0 }
                 displays.forEach( (disp) => {
                     //bounds: { x: 0, y: 0, width: 1920, height: 1200 }
@@ -357,8 +360,8 @@ class DisplayWorker {
                             "command" : "close-all-windows",
                             "status" : "success"
                         }))
-                
-                
+
+
                 break;
             case "hide-window":
                 if(message.options.window_id){
@@ -375,7 +378,7 @@ class DisplayWorker {
                 }else{
                     next(JSON.stringify( new Error( "parameter window_id not present" ) ))
                 }
-                    
+
                 break;
             case "show-window":
                  if(message.options.window_id){
@@ -397,7 +400,7 @@ class DisplayWorker {
                  if(message.options.window_id){
                     let b = BrowserWindow.fromId(message.options.window_id)
                     if(b){
-                       
+
                         let wv_id = new Array();
                         this.webviewOwnerStack.forEach( (v, k) => {
                             if(v == message.options.window_id)
@@ -427,13 +430,13 @@ class DisplayWorker {
                         }))
                     }else{
                         next(JSON.stringify( new Error( "window_id not present")))
-                    } 
+                    }
                  }else{
                      next(JSON.stringify( new Error( "parameter window_id not present" ) ))
                  }
                 break;
             case "window-dev-tools":
-               
+
                 let b = BrowserWindow.fromId(message.options.window_id)
                 if(b){
                     if(message.options.devTools)
@@ -442,7 +445,7 @@ class DisplayWorker {
                         b.closeDevTools()
                 }
                 next(JSON.stringify({"status" : "success", "devTools" : message.options.devTools} ))
-                break;   
+                break;
             case "create-viewobj" :
                 if(message.options.appContext){
                     ctx = message.options.context
@@ -457,7 +460,7 @@ class DisplayWorker {
                         message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
                         this.execute_in_displaywindow(message.options , next)
                     }else{
-                        next(JSON.stringify(new Error( message.options.view_id + " - view object is not found.")))    
+                        next(JSON.stringify(new Error( message.options.view_id + " - view object is not found.")))
                     }
                 }else if(message.options.window_id){
                      message.options.command = message.command
