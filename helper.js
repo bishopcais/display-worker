@@ -247,6 +247,12 @@ function execute(opts){
             document.body.style.fontSize = options.fontSize
             return { command : "set-displaywindow-font-size" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
+
+            if(options.slide && options.position){
+                slideContents(options)
+            }
+
+
             if(options.position){
                 let pos = options.position
                 if( typeof pos == "object" ){
@@ -363,141 +369,7 @@ function execute(opts){
 			console.log("before options.slide wv="+JSON.stringify($('webview').offset()))
 			console.log("before options.slide options="+JSON.stringify(options))
 
-            if(options.slide){
-            //  Shang's code
-
-				var max_row_index=gridSize.row;
-				var max_col_index=gridSize.col;
-				var cur_row_index=options['position']['grid-top']
-				var cur_col_index=options['position']['grid-left']
-				var x1,x2;
-				var y1,y2;
-
-				if(options.slide.cascade){
-
-						if(options.slide.direction=="down"){
-							console.log("down")
-							for(let i=(max_row_index-1);i>=1;i--){
-								x1=grid[i+"|"+cur_col_index].rx;
-								y1=grid[i+"|"+cur_col_index].ry;
-								x2=grid[i+"|"+cur_col_index].rx+grid[i+"|"+cur_col_index].rw;
-								y2=grid[i+"|"+cur_col_index].ry+grid[i+"|"+cur_col_index].rh;
-								let eles = rectangleSelect("webview", x1, y1, x2, y2);
-								console.log("eles.length="+eles.length);
-								if(eles.length>1){
-									let next_grid_index=(i+1)+"|"+cur_col_index;
-									let destBounds =  {
-										"left" : grid[next_grid_index].rx + "px",
-										"top" : grid[next_grid_index].ry + "px",
-										"animation_options" : {
-											duration : 1000,
-											fill : 'forwards',
-											easing : 'linear'
-										 }
-									}
-									console.log("destBounds "+destBounds.left+" "+destBounds.top);
-									let index=0
-
-									while (index<=eles.length-2){
-										setBounds(eles[index], destBounds)
-										index++
-									}
-								}
-							}
-						}else if(options.slide.direction=="right"){
-							console.log("right")
-
-							for(let i=(max_col_index-1);i>=1;i--){
-								x1=grid[cur_row_index+"|"+i].rx;
-								y1=grid[cur_row_index+"|"+i].ry;
-								x2=grid[cur_row_index+"|"+i].rx+grid[cur_row_index+"|"+i].rw;
-								y2=grid[cur_row_index+"|"+i].ry+grid[cur_row_index+"|"+i].rh;
-								let eles = rectangleSelect("webview", x1, y1, x2, y2);
-								console.log("eles.length="+eles.length);
-								if(eles.length>1){
-									let next_grid_index=cur_row_index+"|"+(i+1);
-									let destBounds =  {
-										"left" : grid[next_grid_index].rx + "px",
-										"top" : grid[next_grid_index].ry + "px",
-										"animation_options" : {
-											duration : 1000,
-											fill : 'forwards',
-											easing : 'linear'
-										 }
-									}
-									console.log("destBounds "+destBounds.left+" "+destBounds.top);
-									let index=0
-
-									while (index<=eles.length-2){
-										setBounds(eles[index], destBounds)
-										index++
-									}
-								}
-							}
-						}else if(options.slide.direction=="left"){
-
-							console.log("left")
-
-							for(let i=2;i<=cur_col_index;i++){
-								x1=grid[cur_row_index+"|"+i].rx;
-								y1=grid[cur_row_index+"|"+i].ry;
-								x2=grid[cur_row_index+"|"+i].rx+grid[cur_row_index+"|"+i].rw;
-								y2=grid[cur_row_index+"|"+i].ry+grid[cur_row_index+"|"+i].rh;
-								let eles = rectangleSelect("webview", x1, y1, x2, y2);
-								console.log("eles.length="+eles.length);
-								if(eles.length>1){
-									let next_grid_index=cur_row_index+"|"+(i-1);
-									let destBounds =  {
-										"left" : grid[next_grid_index].rx + "px",
-										"top" : grid[next_grid_index].ry + "px",
-										"animation_options" : {
-											duration : 1000,
-											fill : 'forwards',
-											easing : 'linear'
-										 }
-									}
-									console.log("destBounds "+destBounds.left+" "+destBounds.top);
-									let index=0
-
-									while (index<=eles.length-2){
-										setBounds(eles[index], destBounds)
-										index++
-									}
-								}
-							}
-
-						}else{//up
-
-							for(let i=2;i<=cur_row_index;i++){
-								x1=grid[i+"|"+cur_col_index].rx;
-								y1=grid[i+"|"+cur_col_index].ry;
-								x2=grid[i+"|"+cur_col_index].rx+grid[i+"|"+cur_col_index].rw;
-								y2=grid[i+"|"+cur_col_index].ry+grid[i+"|"+cur_col_index].rh;
-								let eles = rectangleSelect("webview", x1, y1, x2, y2);
-								console.log("eles.length="+eles.length);
-								if(eles.length>1){
-									let next_grid_index=(i-1)+"|"+cur_col_index;
-									let destBounds =  {
-										"left" : grid[next_grid_index].rx + "px",
-										"top" : grid[next_grid_index].ry + "px",
-										"animation_options" : {
-											duration : 3000,
-											fill : 'forwards',
-											easing : 'linear'
-										 }
-									}
-									console.log("destBounds "+destBounds.left+" "+destBounds.top);
-									let index=0
-
-									while (index<=eles.length-2){
-										setBounds(eles[index], destBounds)
-										index++
-									}
-								}
-							}
-				  		}
-					}
-            }
+            
 
             // $( "#content webview" ).draggable({ stack: "#content webview" });
             ipcRenderer.send('display-window-event', JSON.stringify({
@@ -669,17 +541,16 @@ function execute(opts){
 /*
 
    destBounds =  {
-        "left" : b.x + "px",
-        "top" : b.y + "px",
-        "height" : a.height + "px",
-        "width" : w + "px",
+        "left" : "100px",
+        "top" : "100px",
+        "height" : "300px",
+        "width" : "400px",
         "animation_options" : {
             duration : 1000,
             fill : 'forwards',
             easing : 'linear'
          }
       }
-
 */
 
 function setBounds(wv , destBounds) {
@@ -733,6 +604,144 @@ function setBounds(wv , destBounds) {
     })
 }
 
+
+function slideContents(options){
+    
+    //  Shang's code
+
+    var max_row_index=gridSize.row;
+    var max_col_index=gridSize.col;
+    var cur_row_index=options['position']['grid-top']
+    var cur_col_index=options['position']['grid-left']
+    var x1,x2;
+    var y1,y2;
+
+    if(options.slide.cascade){
+
+        if(options.slide.direction=="down"){
+            console.log("down")
+            for(let i=(max_row_index-1);i>=cur_row_index;i--){
+                x1=grid[i+"|"+cur_col_index].rx;
+                y1=grid[i+"|"+cur_col_index].ry;
+                x2=grid[i+"|"+cur_col_index].rx+grid[i+"|"+cur_col_index].rw;
+                y2=grid[i+"|"+cur_col_index].ry+grid[i+"|"+cur_col_index].rh;
+                let eles = rectangleSelect("webview", x1, y1, x2, y2);
+                console.log("eles.length="+eles.length);
+                if(eles.length > 0){
+                    let next_grid_index=(i+1)+"|"+cur_col_index;
+                    let destBounds =  {
+                        "left" : grid[next_grid_index].rx + "px",
+                        "top" : grid[next_grid_index].ry + "px",
+                        "animation_options" : {
+                            duration : 800,
+                            fill : 'forwards',
+                            easing : 'linear'
+                            }
+                    }
+                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    let index=0
+
+                    while (index < eles.length){
+                        setBounds(eles[index], destBounds)
+                        index++
+                    }
+                }
+            }
+        }else if(options.slide.direction=="right"){
+            console.log("right")
+
+            for(let i=(max_col_index-1);i>= cur_col_index;i--){
+                x1=grid[cur_row_index+"|"+i].rx;
+                y1=grid[cur_row_index+"|"+i].ry;
+                x2=grid[cur_row_index+"|"+i].rx+grid[cur_row_index+"|"+i].rw;
+                y2=grid[cur_row_index+"|"+i].ry+grid[cur_row_index+"|"+i].rh;
+                let eles = rectangleSelect("webview", x1, y1, x2, y2);
+                console.log("eles.length="+eles.length);
+                if(eles.length>0){
+                    let next_grid_index=cur_row_index+"|"+(i+1);
+                    let destBounds =  {
+                        "left" : grid[next_grid_index].rx + "px",
+                        "top" : grid[next_grid_index].ry + "px",
+                        "animation_options" : {
+                            duration : 800,
+                            fill : 'forwards',
+                            easing : 'linear'
+                            }
+                    }
+                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    let index=0
+
+                    while (index < eles.length){
+                        setBounds(eles[index], destBounds)
+                        index++
+                    }
+                }
+            }
+        }else if(options.slide.direction=="left"){
+
+            console.log("left")
+
+            for(let i=2;i<=cur_col_index;i++){
+                x1=grid[cur_row_index+"|"+i].rx;
+                y1=grid[cur_row_index+"|"+i].ry;
+                x2=grid[cur_row_index+"|"+i].rx+grid[cur_row_index+"|"+i].rw;
+                y2=grid[cur_row_index+"|"+i].ry+grid[cur_row_index+"|"+i].rh;
+                let eles = rectangleSelect("webview", x1, y1, x2, y2);
+                console.log("eles.length="+eles.length);
+                if(eles.length>0){
+                    let next_grid_index=cur_row_index+"|"+(i-1);
+                    let destBounds =  {
+                        "left" : grid[next_grid_index].rx + "px",
+                        "top" : grid[next_grid_index].ry + "px",
+                        "animation_options" : {
+                            duration : 800,
+                            fill : 'forwards',
+                            easing : 'linear'
+                            }
+                    }
+                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    let index=0
+
+                    while (index < eles.length){
+                        setBounds(eles[index], destBounds)
+                        index++
+                    }
+                }
+            }
+
+        }else{//up
+
+            for(let i=2;i<=cur_row_index;i++){
+                x1=grid[i+"|"+cur_col_index].rx;
+                y1=grid[i+"|"+cur_col_index].ry;
+                x2=grid[i+"|"+cur_col_index].rx+grid[i+"|"+cur_col_index].rw;
+                y2=grid[i+"|"+cur_col_index].ry+grid[i+"|"+cur_col_index].rh;
+                let eles = rectangleSelect("webview", x1, y1, x2, y2);
+                console.log("eles.length="+eles.length);
+                if(eles.length>0){
+                    let next_grid_index=(i-1)+"|"+cur_col_index;
+                    let destBounds =  {
+                        "left" : grid[next_grid_index].rx + "px",
+                        "top" : grid[next_grid_index].ry + "px",
+                        "animation_options" : {
+                            duration : 800,
+                            fill : 'forwards',
+                            easing : 'linear'
+                            }
+                    }
+                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    let index=0
+
+                    while (index < eles.length){
+                        setBounds(eles[index], destBounds)
+                        index++
+                    }
+                }
+            }
+        }
+    }
+            
+}
 
 function wvMouseDownHandler(e){
     console.log("mouse down")
@@ -814,17 +823,20 @@ function toPixels(options){
                 }
             }
 
-            if( options.width && options.width.indexOf("em") > -1 ) {
-                options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
-            }else if( options.width && options.width.indexOf("%") > -1 ) {
-                options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
+            if( options.width){
+                if(  options.width.indexOf("em") > -1 ) {
+                    options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
+                }else if( options.width.indexOf("%") > -1 ) {
+                    options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
+                }
             }
-
-            if( options.height && options.height.indexOf("em") > -1 ) {
-                options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
-            } else if( options.height && options.height.indexOf("%") > -1 ) {
-                options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
-            }
+             if( options.height){
+                if( options.height.indexOf("em") > -1 ) {
+                    options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
+                } else if( options.height.indexOf("%") > -1 ) {
+                    options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
+                }
+             }
         }
     }catch(e){
         console.log(e)

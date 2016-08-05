@@ -9,6 +9,7 @@ const BasicPointing = require('./basicpointing')
 let displayWorker
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
+    process.setMaxListeners(0);
 	let displays = electron.screen.getAllDisplays()    
 
     console.log("screens attached to this display-worker: \n")
