@@ -66,7 +66,7 @@ function test(x1, y1, x2, y2){
 function createGrid(row, col, rowHeight, colWidth, padding){
     gridSize.row = row
     gridSize.col = col
-    let w = parseInt(getComputedStyle(document.body, '').width) 
+    let w = parseInt(getComputedStyle(document.body, '').width)
     let h = parseInt(getComputedStyle(document.body, '').height)
 
     if(!padding)
@@ -369,7 +369,6 @@ function execute(opts){
 			console.log("before options.slide wv="+JSON.stringify($('webview').offset()))
 			console.log("before options.slide options="+JSON.stringify(options))
 
-            
 
             // $( "#content webview" ).draggable({ stack: "#content webview" });
             ipcRenderer.send('display-window-event', JSON.stringify({
@@ -377,8 +376,8 @@ function execute(opts){
                     details :  options
                 }))
 
-            return { "view_id" : wv.id, command : "create" , "status" : "success", 
-            "window_id" : options.window_id,"screenName" : options.screenName } 
+            return { "view_id" : wv.id, command : "create" , "status" : "success",
+            "window_id" : options.window_id,"screenName" : options.screenName }
         }else if(options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
             if(wv){
@@ -400,11 +399,11 @@ function execute(opts){
                     type : "urlChanged",
                     details :  {
                         view_id : wv.id,
-                        url : options.url 
+                        url : options.url
                     }
                 }))
                 return {"view_id" : wv.id,  command : "set-url" ,"status" : "success" }
-                
+
             }else{
                 return {"view_id" : wv.id,  command : "set-url" ,"error" : "view not found" }
             }
@@ -417,7 +416,7 @@ function execute(opts){
                     type : "urlReloaded",
                     details :  {
                         view_id : wv.id,
-                        url : wv.src 
+                        url : wv.src
                     }
                 }))
                 return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
@@ -497,7 +496,7 @@ function execute(opts){
                         }
                     }))
                 })
-                
+
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
                 return {"view_id" : wv.id,  command : "set-bounds" ,"error" : "view not found" }
@@ -606,7 +605,7 @@ function setBounds(wv , destBounds) {
 
 
 function slideContents(options){
-    
+
     //  Shang's code
 
     var max_row_index=gridSize.row;
@@ -740,7 +739,7 @@ function slideContents(options){
             }
         }
     }
-            
+
 }
 
 function wvMouseDownHandler(e){
