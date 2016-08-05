@@ -55,7 +55,7 @@ class DisplayWorker {
         this.webviewOwnerStack = new Map()
 
         if(this.config.isPrimaryWorker){
-            io.doCall('display-rpc-queue-shang', (request, reply, ack)=>{
+            io.doCall('display-rpc-queue', (request, reply, ack)=>{
                 try{
                     let msg = JSON.parse(request.content.toString())
                     console.log(msg)

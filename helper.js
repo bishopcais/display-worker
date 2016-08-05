@@ -822,14 +822,14 @@ function toPixels(options){
                 }
             }
 
-            if( options.width){
+            if( options.width && typeof(options.width) == "string"){
                 if(  options.width.indexOf("em") > -1 ) {
                     options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
                 }else if( options.width.indexOf("%") > -1 ) {
                     options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
                 }
             }
-             if( options.height){
+             if( options.height && typeof(options.height) == "string"){
                 if( options.height.indexOf("em") > -1 ) {
                     options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
                 } else if( options.height.indexOf("%") > -1 ) {
