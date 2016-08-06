@@ -282,51 +282,75 @@ function execute(opts){
             wv.style.background = "white"
             wv.src = options.url
 
-            // wv.addEventListener("dragHintStart", (e)=>{
-            //     console.log("drag hint start")
-            // })
+            wv.addEventListener("dragHintStart", (e)=>{
+                console.log("drag hint start")
+            })
 
-            // wv.addEventListener("dragHintEnd", (e)=>{
-            //     console.log("drag hint end")
-            // })
+            wv.addEventListener("dragHintEnd", (e)=>{
+                console.log("drag hint end")
+            })
 
 
             wv.addEventListener("mouseover", (e) => {
-                console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height())
+                console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
                 if(!wv.canDrag){
                     wv.canDrag = true
-                    wv.dispatchEvent(new Event("dragHintStart"))
-                    wv.insertCSS("body{pointer-events:none;}")
+                    wv.dispatchEvent(new Event("dragHintStart"))                    
+                    $(wv).draggable({
+                        disabled : false,
+                        scroll: false,
+                        containment: "document.body",
+                        drag: () => {
+                            wv.isDragging = true
+                            let pointingDiv = document.getElementById(wv.id + "-draghint")
+                            if(pointingDiv){
+                                pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                                pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                            }                           
+                        },
+                        stop: () => {
+                            $(wv).draggable( {disabled : true})
+                            wv.isDragging = false
+                            pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                            pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                            pointingDiv.style.display = "none"
+                            wv.dispatchEvent(new Event("dragHintEnd"))
+                            ipcRenderer.send('view-object-event', JSON.stringify({
+                                type : "boundsChanged",
+                                details : {
+                                    top : $(wv).offset().top,
+                                    left : $(wv).offset().left,
+                                    width : $(wv).width(),
+                                    height : $(wv).height(),
+                                    units : "px",
+                                    view_id : wv.id
+                                }
+                            }))
+                        }
+                    })
+                    
                     let pointingDiv = document.getElementById(wv.id + "-draghint")
+                    
                     if(pointingDiv == undefined){
-                        let pointingDiv = document.createElement("img")
+                        pointingDiv = document.createElement("img")
                         pointingDiv.src = "drag.svg"
+                        pointingDiv.className = "dragcursor"
                         pointingDiv.id = wv.id + "-draghint"
-                        pointingDiv.style.position = "absolute"
-                        pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
-                        pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
-                        pointingDiv.style.width =  Math.round( $(document.body).width() * 0.1)+ "px"
-                        pointingDiv.style.height = Math.round( $(document.body).height() * 0.1) + "px"
                         document.getElementById("pointing").appendChild(pointingDiv)
-                    }else{
-                        pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
-                        pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
-                        pointingDiv.style.width =  Math.round( $(document.body).width() * 0.1)+ "px"
-                        pointingDiv.style.height = Math.round( $(document.body).height() * 0.1) + "px"
                     }
-                    wv.addEventListener("mousedown", wvMouseDownHandler)
-                    wv.addEventListener("mouseup", wvMouseUpHandler)
-                    dragTimer.set( wv.id, setTimeout(()=>{
 
+                    pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                    pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                    pointingDiv.style.display = "block"
+
+                    dragTimer.set( wv.id, setTimeout(()=>{
+                        console.log("drag timeout");
                         dragTimer.delete(wv.id)
-                        //  document.getElementById("pointing").removeChild(document.getElementById(wv.id + "-draghint"))
-                        $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
-                            $("#"+wv.id + "-draghint").remove()
-                        })
-                        wv.insertCSS("body{pointer-events:all;}")
-                        wv.removeEventListener("mousedown", wvMouseDownHandler)
-                        wv.removeEventListener("mouseup", wvMouseUpHandler)
-                        wv.dispatchEvent(new Event("dragHintEnd"))
+                        if(!wv.isDragging){
+                            document.getElementById(wv.id + "-draghint").style.display = "none"
+                            $(wv).draggable({disabled : true});
+                            wv.dispatchEvent(new Event("dragHintEnd"))
+                        }
                     }, 1500) )
                 }
 
@@ -336,17 +360,9 @@ function execute(opts){
                 clearTimeout(dragTimer.get(wv.id))
                 dragTimer.delete(wv.id)
                 wv.canDrag = false
-                $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
-                    $("#"+wv.id + "-draghint").remove()
-                    wv.insertCSS("body{pointer-events:all;}")
-                    wv.removeEventListener("mousedown", wvMouseDownHandler)
-                    wv.removeEventListener("mouseup", wvMouseUpHandler)
-                })
+                $(wv).draggable({disabled : false});
+                document.getElementById(wv.id + "-draghint").style.display = "none"
             })
-
-
-
-
 
             if(options.nodeIntegration)
                 wv.nodeintegration = true
@@ -740,65 +756,6 @@ function slideContents(options){
         }
     }
 
-}
-
-function wvMouseDownHandler(e){
-    console.log("mouse down")
-    let wv = e.target
-    if(wv.canDrag){
-        clearTimeout(dragTimer.get(wv.id))
-        dragTimer.delete(wv.id)
-        let d_top = e.y- $(wv).offset().top
-        let d_left = e.x - $(wv).offset().left
-        if(lastTransform.has(wv.id)){
-            d_top += lastTransform.get(wv.id).top
-            d_left +=  lastTransform.get(wv.id).left
-        }
-        $(wv).draggable({
-            disabled : false,
-            cursorAt: { top: d_top, left: d_left },
-            scroll: false,
-            containment: "document.body",
-            drag: () => {
-                let pointingDiv = document.getElementById(wv.id + "-draghint")
-                if(pointingDiv){
-                    pointingDiv.style.top = $(wv).offset().top + ($(wv).width()/2) - Math.round( $(document.body).width()* 0.1) + "px"
-                    pointingDiv.style.left = $(wv).offset().left + ($(wv).height()/2) -  Math.round( $(document.body).height()* 0.1) + "px"
-
-                }
-            },
-            stop: () => {
-                wv.removeEventListener("mousedown", wvMouseDownHandler)
-                wv.removeEventListener("mouseup", wvMouseUpHandler)
-                $(wv).draggable( {disabled : true})
-                ipcRenderer.send('view-object-event', JSON.stringify({
-                    type : "boundsChanged",
-                    details : {
-                        top : $(wv).offset().top,
-                        left : $(wv).offset().left,
-                        width : $(wv).width(),
-                        height : $(wv).height(),
-                        units : "px",
-                        view_id : wv.id
-                    }
-                }))
-            }
-        })
-    }
-}
-
-function wvMouseUpHandler(e){
-    console.log("mouse down")
-    let wv = e.target
-    if(wv.canDrag){
-        $("#"+wv.id + "-draghint").fadeOut(300, ()=>{
-            $("#"+wv.id + "-draghint").remove()
-            wv.insertCSS("body{pointer-events:all;}")
-            wv.removeEventListener("mousedown", wvMouseDownHandler)
-            wv.removeEventListener("mouseup", wvMouseUpHandler)
-        })
-        wv.canDrag = false
-    }
 }
 
 function toPixels(options){
