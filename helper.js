@@ -645,8 +645,8 @@ function slideContents(options){
                 if(eles.length > 0){
                     let next_grid_index=(i+1)+"|"+cur_col_index;
                     let destBounds =  {
-                        "left" : grid[next_grid_index].rx + "px",
-                        "top" : grid[next_grid_index].ry + "px",
+                        "left" : grid[next_grid_index].x + "px",
+                        "top" : grid[next_grid_index].y + "px",
                         "animation_options" : {
                             duration : 800,
                             fill : 'forwards',
@@ -675,8 +675,8 @@ function slideContents(options){
                 if(eles.length>0){
                     let next_grid_index=cur_row_index+"|"+(i+1);
                     let destBounds =  {
-                        "left" : grid[next_grid_index].rx + "px",
-                        "top" : grid[next_grid_index].ry + "px",
+                        "left" : grid[next_grid_index].x + "px",
+                        "top" : grid[next_grid_index].y + "px",
                         "animation_options" : {
                             duration : 800,
                             fill : 'forwards',
@@ -706,8 +706,8 @@ function slideContents(options){
                 if(eles.length>0){
                     let next_grid_index=cur_row_index+"|"+(i-1);
                     let destBounds =  {
-                        "left" : grid[next_grid_index].rx + "px",
-                        "top" : grid[next_grid_index].ry + "px",
+                        "left" : grid[next_grid_index].x + "px",
+                        "top" : grid[next_grid_index].y + "px",
                         "animation_options" : {
                             duration : 800,
                             fill : 'forwards',
@@ -736,8 +736,8 @@ function slideContents(options){
                 if(eles.length>0){
                     let next_grid_index=(i-1)+"|"+cur_col_index;
                     let destBounds =  {
-                        "left" : grid[next_grid_index].rx + "px",
-                        "top" : grid[next_grid_index].ry + "px",
+                        "left" : grid[next_grid_index].x + "px",
+                        "top" : grid[next_grid_index].y + "px",
                         "animation_options" : {
                             duration : 800,
                             fill : 'forwards',
