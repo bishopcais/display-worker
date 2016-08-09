@@ -280,6 +280,7 @@ function execute(opts){
             wv.style.top = options.top
             wv.style.left = options.left
             wv.style.background = "white"
+            wv.style.zIndex = 0
             wv.src = options.url
 
             // wv.addEventListener("dragHintStart", (e)=>{
@@ -307,6 +308,16 @@ function execute(opts){
                         disabled : false,
                         scroll: false,
                         refreshPositions: true,
+                        start: () => {
+                            let zIndex = 0
+                            let elems = document.getElementsByTagName("webview")
+                            for(let i =0;i < elems.length; i++){
+                                let zi = getComputedStyle(elems[i], "").zIndex
+                                zIndex = zi > zIndex ?  zi : zIndex 
+                            }
+                            console.log(zIndex)
+                            wv.style.zIndex = zIndex + 1
+                        },
                         drag: () => {
                             wv.isDragging = true
                             let pointingDiv = document.getElementById(wv.id + "-draghint")
