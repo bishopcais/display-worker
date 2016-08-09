@@ -13,9 +13,6 @@
   "dependencies": {
     "electron-prebuilt": "^1.2.5",
     "node-uuid": "^1.4.7",
-    "celio": "git+ssh://github.ibm.com/celio/CELIO.git"
-  },
-  "devDependencies": {
-    "electron-prebuilt": "^1.2.6"
+    "celio": "^1.0.0"
   }
 }

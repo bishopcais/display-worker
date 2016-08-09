@@ -1,21 +1,113 @@
 
 const {BrowserWindow} = require("electron");
+const RelativePointing = require('./relative-pointing');
 
-class BasicPointing {
+class Pointing {
 
     constructor( io ){
-        let conf = io.config.get("display:hotspot")
-        this.hotspot = io.createHotspot(conf);
-        this.clickWidth = conf.screen.clickWidth;
-        this.clickSpeed = conf.screen.clickSpeed;
+        let hotspot = io.config.get("display:hotspot")
+        this.hotspot = io.createHotspot(hotspot);
+        this.clickWidth = hotspot.clickWidth;
+        this.clickSpeed = hotspot.clickSpeed;
 
-        this.ppm = conf.screen.width / conf.width;
+        this.io = io;
 
-        this.sx = conf.screen.x;
-        this.sy = conf.screen.y;
+        let bounds = io.config.get("display:bounds")
+        this.ppm = bounds.width / hotspot.width;
+        this.sx = bounds.x;
+        this.sy = bounds.y;
 
         this.downPos = new Map();
         this.absPos = new Map();
+
+        this.relaPointing = new RelativePointing(io);
+
+        this.relaPointing.on('move', pointer => {
+            const w = BrowserWindow.getFocusedWindow();
+
+            if (w) {
+                const contents = w.webContents;
+                if (contents) {
+                    const pos = {state: 'move', x: pointer.x, y: pointer.y, name: pointer.details.name};
+                    const buttonState = this.downPos.get(pos.name);
+                    if(buttonState){
+                        pos.state = "down";
+                    }
+
+                    const evt = {
+                        type : 'mouseMove',
+                        x : pos.x,
+                        y : pos.y
+                    };
+
+                    contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
+
+                    this.sendInputEvent(contents, evt, pointer.details.time_captured, true);
+                }
+            }
+        });
+
+        this.relaPointing.on('down', pointer => {
+            const w = BrowserWindow.getFocusedWindow();
+
+            if (w) {
+                const contents = w.webContents;
+                if (contents) {
+                    const pos = {state: 'down', x: pointer.x, y: pointer.y,
+                        name: pointer.details.name};
+                    this.downPos.set(pos.name, pos);
+
+                    const evt = {
+                        type : 'mouseDown',
+                        x : pos.x,
+                        y : pos.y,
+                        clickCount: 1
+                    };
+
+                    contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
+
+                    this.sendInputEvent(contents, evt, pointer.details.time_captured, true);
+                }
+            }
+        });
+
+        this.relaPointing.on('up', pointer => {
+            const w = BrowserWindow.getFocusedWindow();
+
+            if (w) {
+                const contents = w.webContents;
+                if (contents) {
+                    const pos = {state: 'up', x: pointer.x, y: pointer.y,
+                        name: pointer.details.name};
+                    this.downPos.set(pos.name, pos);
+
+                    const evt = {
+                        type : 'mouseUp',
+                        x : pos.x,
+                        y : pos.y,
+                        clickCount: 1
+                    };
+
+                    this.downPos.delete(pos.name);
+                    contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
+                    this.sendInputEvent(contents, evt, pointer.details.time_captured, true);
+                }
+            }
+        });
+
+        this.relaPointing.on('detach', name => {
+            console.log('Detach', name);
+            const w = BrowserWindow.getFocusedWindow();
+            if (w) {
+                const contents = w.webContents;
+                if(contents){
+                    if (this.downPos.has(name)) {
+                        this.downPos.delete(name);
+                    }
+                    contents.executeJavaScript("removeCursor('"  +  name + "')");
+                }
+            }
+        });
 
         this.hotspot.onPointerMove(msg => {
             // console.log('Move', msg);
@@ -36,14 +128,14 @@ class BasicPointing {
                         x : pos.x,
                         y : pos.y
                     };
-                    
+
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
                     if(buttonState) {
                         if ((Date.now() - buttonState.downTime) > this.clickSpeed) {
-                            contents.sendInputEvent(evt);
+                            this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                         }
                     } else {
-                        contents.sendInputEvent(evt);
+                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                     }
                 }
             }
@@ -67,7 +159,7 @@ class BasicPointing {
                         y : pos.y,
                         clickCount: 1
                     };
-    				contents.sendInputEvent(evt);
+    				this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
@@ -100,7 +192,7 @@ class BasicPointing {
                         console.log('dragged');
                     }
                     this.downPos.delete(pos.name);
-                    contents.sendInputEvent(evt);
+                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
@@ -120,6 +212,13 @@ class BasicPointing {
             
         });
 
+    }
+
+    sendInputEvent(contents, evt, time, logging) {
+        // if (logging) {
+        //     this.io.publishTopic('emulated.mouse', `${evt.type},${evt.x},${evt.y},${time},${new Date().getTime()}\n`);
+        // }
+        contents.sendInputEvent(evt);
     }
 
     getPixelPosition(pointer){
@@ -163,8 +262,6 @@ class BasicPointing {
             return false;
         }
     }
-
-
 }
 
-module.exports = BasicPointing;
+module.exports = Pointing;

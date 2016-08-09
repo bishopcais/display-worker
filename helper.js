@@ -282,13 +282,13 @@ function execute(opts){
             wv.style.background = "white"
             wv.src = options.url
 
-            wv.addEventListener("dragHintStart", (e)=>{
-                console.log("drag hint start")
-            })
+            // wv.addEventListener("dragHintStart", (e)=>{
+            //     console.log("drag hint start")
+            // })
 
-            wv.addEventListener("dragHintEnd", (e)=>{
-                console.log("drag hint end")
-            })
+            // wv.addEventListener("dragHintEnd", (e)=>{
+            //     console.log("drag hint end")
+            // })
 
 
             wv.addEventListener("mouseover", (e) => {
@@ -306,10 +306,7 @@ function execute(opts){
                     $(wv).draggable({
                         disabled : false,
                         scroll: false,
-                        //cursorAt : { top : lastTransform.has(wv.id)? -lastTransform.has(wv.id).top : e.y , left :  lastTransform.has(wv.id)?-lastTransform.get(wv.id).left: e.x},
-
-                        //cursorAt : { top : (e.y) , left :(e.x)},
-                        containment: "document.body",
+                        refreshPositions: true,
                         drag: () => {
                             wv.isDragging = true
                             let pointingDiv = document.getElementById(wv.id + "-draghint")
