@@ -638,6 +638,26 @@ function setBounds(wv , destBounds) {
         wv.style.zIndex = destBounds.zIndex
     }
 
+    if(destBounds.bringToFront){
+        let zIndex = 0
+        let elems = document.getElementsByTagName("webview")
+        for(let i =0;i < elems.length; i++){
+            let zi = getComputedStyle(elems[i], "").zIndex
+            zIndex = zi > zIndex ?  zi : zIndex 
+        }
+        wv.style.zIndex = zIndex + 1
+    }else if(destBounds.sendToBack){
+        let zIndex = 10000
+        let elems = document.getElementsByTagName("webview")
+        for(let i =0;i < elems.length; i++){
+            let zi = getComputedStyle(elems[i], "").zIndex
+            zIndex = zi < zIndex ?  zi : zIndex 
+        }
+        wv.style.zIndex = zIndex - 1
+    }
+
+
+
     if(destBounds.opacity){
 
         currentValue.opacity = getComputedStyle(wv).opacity
