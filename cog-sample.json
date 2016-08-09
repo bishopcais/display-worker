@@ -1,8 +1,8 @@
 {
   "mq": {
-      "url": "cel-production.watson.ibm.com/cel",
-      "username": "cel",
-      "password": "c0grabbit"
+    "url": "url",
+    "username": "",
+    "password": ""
   },
   "display" : {
     "screenName" : "front",
@@ -12,17 +12,9 @@
         "over" : [ 1.0, 0.0, 0.0 ],
         "width" : 4102.0,
         "height" : 2307.0,
-        "screen" : {
-          "x" : 0, "y" : 0 , "width" : 7710, "height" : 4350, "clickWidth" : 15, "clickSpeed" : 100
-        } 
+        "clickWidth" : 200,
+        "clickSpeed" : 200
     },
-    "isPrimaryWorker" : true,
-    "logger" : {
-            "host" : "localhost",
-            "port" : 6379,
-            "container" : "io-server",
-            "messages-cap-length" : 500
-    }
+    "isPrimaryWorker" : true
   }
-
 }
