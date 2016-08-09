@@ -94,7 +94,7 @@ function createGrid(row, col, rowHeight, colWidth, padding){
             colWidth[y] = Math.ceil( colWidth[y] * w )
         }
     }
-
+    uniformGridCellSize.padding = padding
     uniformGridCellSize.width = 0
     for(let x = 0; x < colWidth.length; x++){
         uniformGridCellSize.width += colWidth[x]
@@ -282,13 +282,13 @@ function execute(opts){
             wv.style.background = "white"
             wv.src = options.url
 
-            wv.addEventListener("dragHintStart", (e)=>{
-                console.log("drag hint start")
-            })
+            // wv.addEventListener("dragHintStart", (e)=>{
+            //     console.log("drag hint start")
+            // })
 
-            wv.addEventListener("dragHintEnd", (e)=>{
-                console.log("drag hint end")
-            })
+            // wv.addEventListener("dragHintEnd", (e)=>{
+            //     console.log("drag hint end")
+            // })
 
 
             wv.addEventListener("mouseover", (e) => {
@@ -299,7 +299,7 @@ function execute(opts){
                     $(wv).draggable({
                         disabled : false,
                         scroll: false,
-                        containment: "document.body",
+                        refreshPositions: true,
                         drag: () => {
                             wv.isDragging = true
                             let pointingDiv = document.getElementById(wv.id + "-draghint")
