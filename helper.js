@@ -10,26 +10,26 @@ let gridSize={}
 
 const {ipcRenderer} = nodeRequire('electron')
 
-/*
-function move_to(id,x1,y1,x2,y2,s1,s2,easing,duration){
-	console.log("id="+id+",x1="+x1+",y1="+y1+",x2="+x2+",y2="+y2);
-		var t1='translate('+x1+'px, '+y1+'px) scale('+s1+')';
-		var t2='translate('+x2+'px, '+y2+'px) scale('+s2+')';
-		var player = document.getElementById(id).animate(
-		[
-			{ transform: t1},
-			{ transform: t2}
-		],
-		{
-			duration: duration, //milliseconds
-			easing: easing, //'linear', 'ease-in-out' a bezier curve, etc.
-			delay: 0, //milliseconds
-			iterations: 1, //or a number
-			direction: 'normal', //'alternate', 'reverse', etc.
-			fill: 'forwards' //'backwards', 'both', 'none', 'auto'
-		});
+function getClosestGrid(x,y){
+	let min_dist=Number.MAX_VALUE
+	let temp_row_=1,temp_col=1;
+    for(let i=1;i<=gridSize.row;i++){
+		for(let j=1;j<=gridSize.col;j++){
+			let diff_x=grid[i+"|"+j].rx-x
+			let diff_y=grid[i+"|"+j].ry-y
+			let cur_dist=Math.pow(diff_x,2) + Math.pow(diff_y,2) //no need to do sqrt to save time
+			if(cur_dist<min_dist){
+				min_dist=cur_dist
+				temp_row=i;
+				temp_col=j;
+			}
+		}
+	}
+	//console.log("min_dist="+min_dist);
+	let closest={left:grid[temp_row+"|"+temp_col].rx,top:grid[temp_row+"|"+temp_col].ry,sq_dist:min_dist};
+	return closest;
+
 }
-*/
 function rectangleSelect(selector, x1, y1, x2, y2) {
     var elements = [];
     jQuery(selector).each(function() {
@@ -94,7 +94,7 @@ function createGrid(row, col, rowHeight, colWidth, padding){
             colWidth[y] = Math.ceil( colWidth[y] * w )
         }
     }
-
+	uniformGridCellSize.padding = padding
     uniformGridCellSize.width = 0
     for(let x = 0; x < colWidth.length; x++){
         uniformGridCellSize.width += colWidth[x]
@@ -293,12 +293,22 @@ function execute(opts){
 
             wv.addEventListener("mouseover", (e) => {
                 console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
+
+                let closest;
+
+
+
                 if(!wv.canDrag){
                     wv.canDrag = true
-                    wv.dispatchEvent(new Event("dragHintStart"))                    
+                    wv.dispatchEvent(new Event("dragHintStart"))
+
+
                     $(wv).draggable({
                         disabled : false,
                         scroll: false,
+                        //cursorAt : { top : lastTransform.has(wv.id)? -lastTransform.has(wv.id).top : e.y , left :  lastTransform.has(wv.id)?-lastTransform.get(wv.id).left: e.x},
+
+                        //cursorAt : { top : (e.y) , left :(e.x)},
                         containment: "document.body",
                         drag: () => {
                             wv.isDragging = true
@@ -306,7 +316,10 @@ function execute(opts){
                             if(pointingDiv){
                                 pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
-                            }                           
+                            }
+                            //shang
+
+                        	closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
                         },
                         stop: () => {
                             $(wv).draggable( {disabled : true})
@@ -326,11 +339,26 @@ function execute(opts){
                                     view_id : wv.id
                                 }
                             }))
+							//shang
+							let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
+							if(Math.sqrt(closest.sq_dist)<ems/6){
+								let destBounds =  {
+									"left" : closest.left +uniformGridCellSize.padding+ "px",
+									"top" :  closest.top +uniformGridCellSize.padding+ "px",
+									"animation_options" : {
+										duration : 500,
+										fill : 'forwards',
+										easing : 'linear'
+										}
+								}
+								setBounds(wv, destBounds);
+							}
+
                         }
                     })
-                    
+
                     let pointingDiv = document.getElementById(wv.id + "-draghint")
-                    
+
                     if(pointingDiv == undefined){
                         pointingDiv = document.createElement("img")
                         pointingDiv.src = "drag.svg"
@@ -634,14 +662,14 @@ function slideContents(options){
     if(options.slide.cascade){
 
         if(options.slide.direction=="down"){
-            console.log("down")
+            //console.log("down")
             for(let i=(max_row_index-1);i>=cur_row_index;i--){
                 x1=grid[i+"|"+cur_col_index].rx;
                 y1=grid[i+"|"+cur_col_index].ry;
                 x2=grid[i+"|"+cur_col_index].rx+grid[i+"|"+cur_col_index].rw;
                 y2=grid[i+"|"+cur_col_index].ry+grid[i+"|"+cur_col_index].rh;
                 let eles = rectangleSelect("webview", x1, y1, x2, y2);
-                console.log("eles.length="+eles.length);
+                //console.log("eles.length="+eles.length);
                 if(eles.length > 0){
                     let next_grid_index=(i+1)+"|"+cur_col_index;
                     let destBounds =  {
@@ -653,7 +681,7 @@ function slideContents(options){
                             easing : 'linear'
                             }
                     }
-                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    //console.log("destBounds "+destBounds.left+" "+destBounds.top);
                     let index=0
 
                     while (index < eles.length){
@@ -663,7 +691,7 @@ function slideContents(options){
                 }
             }
         }else if(options.slide.direction=="right"){
-            console.log("right")
+            //console.log("right")
 
             for(let i=(max_col_index-1);i>= cur_col_index;i--){
                 x1=grid[cur_row_index+"|"+i].rx;
@@ -671,7 +699,7 @@ function slideContents(options){
                 x2=grid[cur_row_index+"|"+i].rx+grid[cur_row_index+"|"+i].rw;
                 y2=grid[cur_row_index+"|"+i].ry+grid[cur_row_index+"|"+i].rh;
                 let eles = rectangleSelect("webview", x1, y1, x2, y2);
-                console.log("eles.length="+eles.length);
+                //console.log("eles.length="+eles.length);
                 if(eles.length>0){
                     let next_grid_index=cur_row_index+"|"+(i+1);
                     let destBounds =  {
@@ -683,7 +711,7 @@ function slideContents(options){
                             easing : 'linear'
                             }
                     }
-                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    //console.log("destBounds "+destBounds.left+" "+destBounds.top);
                     let index=0
 
                     while (index < eles.length){
@@ -694,7 +722,7 @@ function slideContents(options){
             }
         }else if(options.slide.direction=="left"){
 
-            console.log("left")
+            //console.log("left")
 
             for(let i=2;i<=cur_col_index;i++){
                 x1=grid[cur_row_index+"|"+i].rx;
@@ -702,7 +730,7 @@ function slideContents(options){
                 x2=grid[cur_row_index+"|"+i].rx+grid[cur_row_index+"|"+i].rw;
                 y2=grid[cur_row_index+"|"+i].ry+grid[cur_row_index+"|"+i].rh;
                 let eles = rectangleSelect("webview", x1, y1, x2, y2);
-                console.log("eles.length="+eles.length);
+                //console.log("eles.length="+eles.length);
                 if(eles.length>0){
                     let next_grid_index=cur_row_index+"|"+(i-1);
                     let destBounds =  {
@@ -714,7 +742,7 @@ function slideContents(options){
                             easing : 'linear'
                             }
                     }
-                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    //console.log("destBounds "+destBounds.left+" "+destBounds.top);
                     let index=0
 
                     while (index < eles.length){
@@ -732,7 +760,7 @@ function slideContents(options){
                 x2=grid[i+"|"+cur_col_index].rx+grid[i+"|"+cur_col_index].rw;
                 y2=grid[i+"|"+cur_col_index].ry+grid[i+"|"+cur_col_index].rh;
                 let eles = rectangleSelect("webview", x1, y1, x2, y2);
-                console.log("eles.length="+eles.length);
+                //console.log("eles.length="+eles.length);
                 if(eles.length>0){
                     let next_grid_index=(i-1)+"|"+cur_col_index;
                     let destBounds =  {
@@ -744,7 +772,7 @@ function slideContents(options){
                             easing : 'linear'
                             }
                     }
-                    console.log("destBounds "+destBounds.left+" "+destBounds.top);
+                    //console.log("destBounds "+destBounds.left+" "+destBounds.top);
                     let index=0
 
                     while (index < eles.length){
