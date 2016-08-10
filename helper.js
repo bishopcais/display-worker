@@ -642,7 +642,7 @@ function setBounds(wv , destBounds) {
         let zIndex = 0
         let elems = document.getElementsByTagName("webview")
         for(let i =0;i < elems.length; i++){
-            let zi = getComputedStyle(elems[i], "").zIndex
+            let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
             zIndex = zi > zIndex ?  zi : zIndex 
         }
         wv.style.zIndex = zIndex + 1
@@ -650,7 +650,7 @@ function setBounds(wv , destBounds) {
         let zIndex = 10000
         let elems = document.getElementsByTagName("webview")
         for(let i =0;i < elems.length; i++){
-            let zi = getComputedStyle(elems[i], "").zIndex
+            let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
             zIndex = zi < zIndex ?  zi : zIndex 
         }
         wv.style.zIndex = zIndex - 1
