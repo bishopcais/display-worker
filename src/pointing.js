@@ -37,7 +37,8 @@ class Pointing {
                     const evt = {
                         type : 'mouseMove',
                         x : pos.x,
-                        y : pos.y
+                        y : pos.y,
+                        buttons : pos.state == "down" ? 1 : 0
                     };
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
@@ -126,23 +127,20 @@ class Pointing {
                     let evt = {
                         type : 'mouseMove',
                         x : pos.x,
-                        y : pos.y
+                        y : pos.y,
+                        buttons : pos.state == "down" ? 1 : 0,
+                        eventSource : pos.name
                     };
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
-                    if(buttonState) {
-                        if ((Date.now() - buttonState.downTime) > this.clickSpeed) {
-                            this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
-                        }
-                    } else {
-                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
-                    }
+                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    
                 }
             }
         });
         
         this.hotspot.onPointerDown(msg => {
-            // console.log('Down', msg)
+            console.log('Down', msg)
             const w = BrowserWindow.getFocusedWindow();
 
             if (w) {
@@ -157,7 +155,8 @@ class Pointing {
                         type : 'mouseDown',
                         x : pos.x,
                         y : pos.y,
-                        clickCount: 1
+                        clickCount: 1,
+                        eventSource : pos.name
                     };
     				this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
@@ -179,15 +178,17 @@ class Pointing {
                     const evt = {
                         type : 'mouseUp',
                         x : pos.x,
-                        y : pos.y
+                        y : pos.y,
+                        clickCount: 1,
+                        eventSource : pos.name
                     };
 
                     if(this.isClick(pos)){
                         console.log('clicked');
-                        const dpos = this.downPos.get(pos.name);
-                        evt.x = dpos.x;
-                        evt.y = dpos.y;
-                        evt.clickCount = 1;
+                        // const dpos = this.downPos.get(pos.name);
+                        // evt.x = dpos.x;
+                        // evt.y = dpos.y;
+                        // evt.clickCount = 1;
                     } else {
                         console.log('dragged');
                     }
