@@ -210,6 +210,12 @@ class DisplayWorker {
             browser.webContents.executeJavaScript("clearAllCursors()")
         })
 
+        browser.webContents.on("will-navigate", (e) => {
+            console.log("preventing attempt to navigate browser window content")
+            e.preventDefault()
+            return false
+        })
+
         browser.webContents.on('dom-ready', () => {
             browser.isReady = true
              if(options.contentGrid){

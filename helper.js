@@ -5,27 +5,6 @@ let dragTimer = new Map()
 let grid = {}
 let gridSize={}
 
-let buttonPressed = false
-window.addEventListener("mousedown", (e)=>{
-    buttonPressed = true
-    console.log("mouse down", e.x, e.y)
-})
-
-window.addEventListener("click", (e)=>{
-    console.log("mouse click", e.x, e.y)
-})
-window.addEventListener("mousemove", (e)=>{
-    if(buttonPressed)
-        console.log("mouse move", e)
-})
-
-
-window.addEventListener("mouseup", (e)=>{
-        buttonPressed = false
-
-    console.log("mouse up", e.x, e.y)
-})
-
 const {ipcRenderer} = nodeRequire('electron')
 
 function getClosestGrid(x,y){
@@ -300,6 +279,7 @@ function execute(opts){
             wv.style.background = "white"
             wv.style.zIndex = 0
             wv.src = options.url
+            
 
             // wv.addEventListener("dragHintStart", (e)=>{
             //     console.log("drag hint start")
@@ -308,11 +288,15 @@ function execute(opts){
             // wv.addEventListener("dragHintEnd", (e)=>{
             //     console.log("drag hint end")
             // })
-
+            wv.addEventListener("did-finish-load",(e)=>{
+                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
+                wv.executeJavaScript(se)
+            })
 
             wv.addEventListener("mouseover", (e) => {
-                console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
-
+                // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
+                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
+                wv.executeJavaScript(se)
                 let closest;
 
 
@@ -333,11 +317,14 @@ function execute(opts){
                             let elems = document.getElementsByTagName("webview")
                             for(let i =0;i < elems.length; i++){
                                 let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
+                                console.log(zi)
                                 zIndex = zi > zIndex ?  zi : zIndex 
                             }
-                            console.log(zIndex)
-                            if(wv.style.zIndex < zIndex)
+                            
+                            if(wv.style.zIndex <= zIndex){
                                 wv.style.zIndex = zIndex + 1
+                                console.log(zIndex)
+                            }
                         },
                         drag: (e, ui) => {
                             if(e.eventSource != wv.eventSource)
