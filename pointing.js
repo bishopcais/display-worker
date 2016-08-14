@@ -1,3 +1,5 @@
+let cursors = new Map()
+
 function clearAllCursors(){
     document.getElementById("pointing").innerHTML = ""
 }
@@ -35,6 +37,8 @@ function removeCursor(opts){
 function updateCursorPosition(opts){
     opts = JSON.parse(opts)
     let cursordiv = document.getElementById(opts.name)
+    cursors.set(opts.name, opts)
+
     if(cursordiv){
         // cursordiv.style.transform = "translate( " + opts.x + "px," + opts.y +  "px )"
         cursordiv.style.transform = `translate(calc(${opts.x}px - 0.5vw), calc(${opts.y}px - 0.5vw))`
@@ -49,4 +53,21 @@ function updateCursorPosition(opts){
     }else{
         addCursor(opts)
     }
+}
+
+
+function getClosestDragCursor(x,y){
+    let distance = 1000
+    let closestCursor = ""
+    cursors.forEach( (v,k)=>{
+        if(v.state == "down"){
+            let d = Math.sqrt( Math.pow(v.x - x, 2) + Math.pow(v.y - y, 2) )
+            if(d <= distance){
+                distance = d
+                closestCursor = k
+            }
+        }
+    })
+    console.log(closestCursor , d)
+    return closestCursor
 }

@@ -310,8 +310,9 @@ function execute(opts){
                         disabled : false,
                         scroll: false,
                         refreshPositions: true,
-                        start: (e, ui) => {
+                        start: (e_drag, ui) => {
                             console.log(e.eventSource)
+                            ipcRenderer.send('set-drag-cursor', getClosestDragCursor( e_drag.x, e_drag ) )
                             wv.dragSource = e.eventSource
                             let zIndex = 0
                             let elems = document.getElementsByTagName("webview")
@@ -326,10 +327,7 @@ function execute(opts){
                                 console.log(zIndex)
                             }
                         },
-                        drag: (e, ui) => {
-                            if(e.eventSource != wv.eventSource)
-                                return false
-
+                        drag: () => {
                             wv.isDragging = true
                             let pointingDiv = document.getElementById(wv.id + "-draghint")
                             if(pointingDiv){
@@ -339,9 +337,8 @@ function execute(opts){
                             //shang
                         	closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
                         },
-                        stop: (e, ui) => {
-                            if(e.eventSource != wv.eventSource)
-                                return false
+                        stop: () => {
+                            ipcRenderer.send('set-drag-cursor', "" )                    
                             $(wv).draggable( {disabled : true})
                             wv.isDragging = false
                             pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"

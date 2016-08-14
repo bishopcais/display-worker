@@ -7,6 +7,7 @@ const CELIO = require('celio')
 const io = new CELIO()
 const Pointing = require('./pointing')
 let displayWorker
+let dragCursor = ""
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
 
@@ -37,6 +38,10 @@ ipcMain.on('view-object-event', (event, arg) => {
 
 ipcMain.on('display-window-event', (event, arg) => {
   io.publishTopic("display.window", arg)
+})
+
+ipcMain.on('set-drag-cursor', (event, arg) => {
+    dragCursor = arg
 })
 
 class DisplayWorker {

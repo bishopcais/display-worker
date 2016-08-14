@@ -130,10 +130,11 @@ class Pointing {
                         y : pos.y,
                         buttons : pos.state == "down" ? 1 : 0,
                         eventSource : pos.name
-                    };
+                    }
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
-                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    if(dragCursor == "" || dragCursor == pos.name)
+                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                     
                 }
             }
@@ -157,8 +158,9 @@ class Pointing {
                         y : pos.y,
                         clickCount: 1,
                         eventSource : pos.name
-                    };
-    				this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    }
+                    // if(dragCursor == "" || dragCursor == pos.name)
+    				    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
@@ -181,19 +183,11 @@ class Pointing {
                         y : pos.y,
                         clickCount: 1,
                         eventSource : pos.name
-                    };
-
-                    if(this.isClick(pos)){
-                        console.log('clicked');
-                        // const dpos = this.downPos.get(pos.name);
-                        // evt.x = dpos.x;
-                        // evt.y = dpos.y;
-                        // evt.clickCount = 1;
-                    } else {
-                        console.log('dragged');
                     }
+
                     this.downPos.delete(pos.name);
-                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    // if(dragCursor == "" || dragCursor == pos.name)
+                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
