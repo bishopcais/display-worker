@@ -68,6 +68,6 @@ function getClosestDragCursor(x,y){
             }
         }
     })
-    console.log(closestCursor , d)
+    console.log(closestCursor , distance)
     return closestCursor
 }
