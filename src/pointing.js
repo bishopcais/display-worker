@@ -9,7 +9,7 @@ class Pointing {
         this.hotspot = io.createHotspot(hotspot);
         this.clickWidth = hotspot.clickWidth;
         this.clickSpeed = hotspot.clickSpeed;
-
+	this.dragSource = ""
         this.io = io;
 
         let bounds = io.config.get("display:bounds")
@@ -210,6 +210,7 @@ class Pointing {
     }
 
     setDragCursor(cursorName){
+	console.log("setting drag source ", this.dragCursor, cursorName)
         this.dragCursor = cursorName
     }
 

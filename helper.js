@@ -317,7 +317,7 @@ function execute(opts){
                         refreshPositions: true,
                         start: (e_drag, ui) => {
                             console.log(e.eventSource)
-                            ipcRenderer.send('set-drag-cursor', getClosestDragCursor( e_drag.x, e_drag ) )
+                            ipcRenderer.send('set-drag-cursor', getClosestDragCursor( e_drag.pageX, e_drag.pageY ) )
                             wv.dragSource = e.eventSource
                             let zIndex = 0
                             let elems = document.getElementsByTagName("webview")
