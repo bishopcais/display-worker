@@ -7,6 +7,11 @@ let gridSize={}
 
 const {ipcRenderer} = nodeRequire('electron')
 
+$(document).on('scroll', function() {
+  $(document).scrollLeft(0)
+  $(document).scrollTop(0)
+});
+
 function getClosestGrid(x,y){
 	let min_dist=Number.MAX_VALUE
 	let temp_row_=1,temp_col=1;
