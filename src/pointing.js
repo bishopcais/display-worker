@@ -133,7 +133,7 @@ class Pointing {
                     }
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
-                    if(dragCursor == "" || dragCursor == pos.name)
+                    if(this.dragCursor == "" || this.dragCursor == pos.name)
                         this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                     
                 }
@@ -159,7 +159,7 @@ class Pointing {
                         clickCount: 1,
                         eventSource : pos.name
                     }
-                    // if(dragCursor == "" || dragCursor == pos.name)
+                    // if(dragCursor == "" || this.dragCursor == pos.name)
     				    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
@@ -186,7 +186,7 @@ class Pointing {
                     }
 
                     this.downPos.delete(pos.name);
-                    // if(dragCursor == "" || dragCursor == pos.name)
+                    // if(this.dragCursor == "" || this.dragCursor == pos.name)
                         this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
@@ -207,6 +207,10 @@ class Pointing {
             
         });
 
+    }
+
+    setDragCursor(cursorName){
+        this.dragCursor = cursorName
     }
 
     sendInputEvent(contents, evt, time, logging) {
