@@ -5,10 +5,12 @@ let dragTimer = new Map()
 let grid = {}
 let gridSize={}
 
-
-
-
 const {ipcRenderer} = nodeRequire('electron')
+
+$(document).on('scroll', function() {
+  $(document).scrollLeft(0)
+  $(document).scrollTop(0)
+});
 
 function getClosestGrid(x,y){
 	let min_dist=Number.MAX_VALUE
@@ -282,6 +284,7 @@ function execute(opts){
             wv.style.background = "white"
             wv.style.zIndex = 0
             wv.src = options.url
+            
 
             // wv.addEventListener("dragHintStart", (e)=>{
             //     console.log("drag hint start")
@@ -290,11 +293,15 @@ function execute(opts){
             // wv.addEventListener("dragHintEnd", (e)=>{
             //     console.log("drag hint end")
             // })
-
+            wv.addEventListener("did-finish-load",(e)=>{
+                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
+                wv.executeJavaScript(se)
+            })
 
             wv.addEventListener("mouseover", (e) => {
-                console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
-
+                // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
+                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
+                wv.executeJavaScript(se)
                 let closest;
 
 
@@ -308,15 +315,22 @@ function execute(opts){
                         disabled : false,
                         scroll: false,
                         refreshPositions: true,
-                        start: () => {
+                        start: (e_drag, ui) => {
+                            console.log(e.eventSource)
+                            ipcRenderer.send('set-drag-cursor', getClosestDragCursor( e_drag.pageX, e_drag.pageY ) )
+                            wv.dragSource = e.eventSource
                             let zIndex = 0
                             let elems = document.getElementsByTagName("webview")
                             for(let i =0;i < elems.length; i++){
-                                let zi = getComputedStyle(elems[i], "").zIndex
+                                let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
+                                console.log(zi)
                                 zIndex = zi > zIndex ?  zi : zIndex 
                             }
-                            console.log(zIndex)
-                            wv.style.zIndex = zIndex + 1
+                            
+                            if(wv.style.zIndex <= zIndex){
+                                wv.style.zIndex = zIndex + 1
+                                console.log(zIndex)
+                            }
                         },
                         drag: () => {
                             wv.isDragging = true
@@ -326,10 +340,10 @@ function execute(opts){
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                             }
                             //shang
-
                         	closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
                         },
                         stop: () => {
+                            ipcRenderer.send('set-drag-cursor', "" )                    
                             $(wv).draggable( {disabled : true})
                             wv.isDragging = false
                             pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
@@ -535,19 +549,21 @@ function execute(opts){
             let wv = document.getElementById(options.view_id)
             if(wv){
                 let animate = setBounds(wv, options)
-                animate.onFinish(() => {
-                    ipcRenderer.send('view-object-event', JSON.stringify({
-                        type : "boundsChanged",
-                        details :  {
-                            view_id : wv.id,
-                            top : $(wv).offset().top,
-                            left : $(wv).offset().left,
-                            width : $(wv).width(),
-                            height : $(wv).height(),
-                            units : "px"
-                        }
-                    }))
-                })
+                if(animate){
+                    animate.onFinish(() => {
+                        ipcRenderer.send('view-object-event', JSON.stringify({
+                            type : "boundsChanged",
+                            details :  {
+                                view_id : wv.id,
+                                top : $(wv).offset().top,
+                                left : $(wv).offset().left,
+                                width : $(wv).width(),
+                                height : $(wv).height(),
+                                units : "px"
+                            }
+                        }))
+                    })
+                }
 
                 return {"view_id" : wv.id,  command : "set-bounds" ,"status" : "success" }
             }else{
@@ -605,40 +621,10 @@ function execute(opts){
 */
 
 function setBounds(wv , destBounds) {
-    // let c = {top : 0, left: 0, scale : 1}
-    let c = {top : 0, left: 0}
-    let d = {}
-
-    if(lastTransform.has(wv.id)){
-        c = lastTransform.get(wv.id)
-    }
-    console.log(JSON.stringify(destBounds))
-    toPixels(destBounds)
-    console.log(JSON.stringify(destBounds))
-    let currentValue = {transform : ""}
-    let destValue = {transform : ""}
-
-    d.left = parseInt(destBounds.left) - parseInt(getComputedStyle(wv).left)
-    d.top = parseInt(destBounds.top) -  parseInt(getComputedStyle(wv).top)
-
-    currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
-    destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
-
-    if(destBounds.width){
-        currentValue.width = getComputedStyle(wv).width
-        destValue.width = destBounds.width
-    }
-
-    if(destBounds.height){
-        currentValue.height = getComputedStyle(wv).height
-        destValue.height = destBounds.height
-    }
 
     if(destBounds.zIndex){
         wv.style.zIndex = destBounds.zIndex
-    }
-
-    if(destBounds.bringToFront){
+    }else if(destBounds.bringToFront){
         let zIndex = 0
         let elems = document.getElementsByTagName("webview")
         for(let i =0;i < elems.length; i++){
@@ -656,7 +642,38 @@ function setBounds(wv , destBounds) {
         wv.style.zIndex = zIndex - 1
     }
 
+    toPixels(destBounds)
+    let currentValue = {}
+    let destValue = {}
 
+    if(destBounds.left && destBounds.top){
+        currentValue.transform = ""
+        destValue.transform = ""
+        let c = {top : 0, left: 0}
+        let d = {}
+
+        if(lastTransform.has(wv.id)){
+            c = lastTransform.get(wv.id)
+        }
+
+        d.left = parseInt(destBounds.left) - parseInt(getComputedStyle(wv).left)
+        d.top = parseInt(destBounds.top) -  parseInt(getComputedStyle(wv).top)
+
+        currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
+        destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
+        lastTransform.set(wv.id, d)
+
+    }
+
+    if(destBounds.width){
+        currentValue.width = getComputedStyle(wv).width
+        destValue.width = destBounds.width
+    }
+
+    if(destBounds.height){
+        currentValue.height = getComputedStyle(wv).height
+        destValue.height = destBounds.height
+    }
 
     if(destBounds.opacity){
 
@@ -664,15 +681,14 @@ function setBounds(wv , destBounds) {
         destValue.opacity = destBounds.opacity
     }
 
-    lastTransform.set(wv.id, d)
 
-    console.log(lastTransform)
-    console.log(currentValue)
-    console.log(destValue)
-
-    return wv.animate( [currentValue, destValue], destBounds.animation_options? destBounds.animation_options : {
-        duration : 800, fill: 'forwards', easing: 'ease-in-out'
-    })
+    if(Object.keys(currentValue).length === 0){
+        return false
+    }else{
+        return wv.animate( [currentValue, destValue], destBounds.animation_options? destBounds.animation_options : {
+            duration : 800, fill: 'forwards', easing: 'ease-in-out'
+        })
+    }
 }
 
 

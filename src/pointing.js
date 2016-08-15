@@ -9,7 +9,7 @@ class Pointing {
         this.hotspot = io.createHotspot(hotspot);
         this.clickWidth = hotspot.clickWidth;
         this.clickSpeed = hotspot.clickSpeed;
-
+	this.dragSource = ""
         this.io = io;
 
         let bounds = io.config.get("display:bounds")
@@ -37,7 +37,8 @@ class Pointing {
                     const evt = {
                         type : 'mouseMove',
                         x : pos.x,
-                        y : pos.y
+                        y : pos.y,
+                        buttons : pos.state == "down" ? 1 : 0
                     };
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
@@ -126,23 +127,21 @@ class Pointing {
                     let evt = {
                         type : 'mouseMove',
                         x : pos.x,
-                        y : pos.y
-                    };
+                        y : pos.y,
+                        buttons : pos.state == "down" ? 1 : 0,
+                        eventSource : pos.name
+                    }
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
-                    if(buttonState) {
-                        if ((Date.now() - buttonState.downTime) > this.clickSpeed) {
-                            this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
-                        }
-                    } else {
+                    if(this.dragCursor == "" || this.dragCursor == pos.name)
                         this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
-                    }
+                    
                 }
             }
         });
         
         this.hotspot.onPointerDown(msg => {
-            // console.log('Down', msg)
+            console.log('Down', msg)
             const w = BrowserWindow.getFocusedWindow();
 
             if (w) {
@@ -157,9 +156,11 @@ class Pointing {
                         type : 'mouseDown',
                         x : pos.x,
                         y : pos.y,
-                        clickCount: 1
-                    };
-    				this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                        clickCount: 1,
+                        eventSource : pos.name
+                    }
+                    // if(dragCursor == "" || this.dragCursor == pos.name)
+    				    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
@@ -179,20 +180,14 @@ class Pointing {
                     const evt = {
                         type : 'mouseUp',
                         x : pos.x,
-                        y : pos.y
-                    };
-
-                    if(this.isClick(pos)){
-                        console.log('clicked');
-                        const dpos = this.downPos.get(pos.name);
-                        evt.x = dpos.x;
-                        evt.y = dpos.y;
-                        evt.clickCount = 1;
-                    } else {
-                        console.log('dragged');
+                        y : pos.y,
+                        clickCount: 1,
+                        eventSource : pos.name
                     }
+
                     this.downPos.delete(pos.name);
-                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    // if(this.dragCursor == "" || this.dragCursor == pos.name)
+                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
@@ -212,6 +207,11 @@ class Pointing {
             
         });
 
+    }
+
+    setDragCursor(cursorName){
+	console.log("setting drag source ", this.dragCursor, cursorName)
+        this.dragCursor = cursorName
     }
 
     sendInputEvent(contents, evt, time, logging) {
