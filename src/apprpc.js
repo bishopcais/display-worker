@@ -204,8 +204,8 @@ class DisplayWorker {
         }
         
         let browser = new BrowserWindow(opts)
-        console.log("loading template : ", "file://" + process.env.PWD + "/" + options.template)
-        browser.loadURL("file://" + process.env.PWD + "/" + options.template)
+        console.log("loading template : ", "file://" + process.cwd() + "/" + options.template)
+        browser.loadURL("file://" + process.cwd() + "/" + options.template)
         
         browser.on('closed', () =>{
         })
