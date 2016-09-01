@@ -7,6 +7,7 @@ const CELIO = require('celio')
 const io = new CELIO()
 const Pointing = require('./pointing')
 let displayWorker
+app.commandLine.appendSwitch('disable-http-cache')
 app.setName("CELIO Display Worker")
 app.on('ready', () => {
 
@@ -346,7 +347,7 @@ class DisplayWorker {
                 next(JSON.stringify(Array.from(this.appContext)))
                 break;
             case "get-all-windows-by-context":
-                let wins = this.appWindows.get(options.context)
+                let wins = this.appWindows.get(message.options.context)
                 next(JSON.stringify(wins))
                 break;
             case "create-window":
