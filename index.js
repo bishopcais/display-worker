@@ -10,7 +10,7 @@ proc.on('exit', ()=>process.exit());
 process.stdin.resume();//so the program will not close instantly
 
 function exitHandler(options, err) {
-    if (options.cleanup) {console.log('Existing...'); proc.kill();}
+    if (options.cleanup) {console.log('Exiting...'); proc.kill();}
     if (err) console.log(err.stack);
     if (options.exit) process.exit();
 }
