@@ -4,6 +4,7 @@ let uniformGridCellSize = {}
 let dragTimer = new Map()
 let grid = {}
 let gridSize={}
+let snappingDistance = 100
 
 const {ipcRenderer} = nodeRequire('electron')
 
@@ -267,6 +268,7 @@ function execute(opts){
         }else if(options.command == "set-displaywindow-font-size") {
 			console.log("options.fontSize="+options.fontSize)
             document.body.style.fontSize = options.fontSize
+            snappingDistance = parseInt(options.fontSize) /2
             return { command : "set-displaywindow-font-size" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
 
@@ -383,7 +385,7 @@ function execute(opts){
 							//shang
                             closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
 							let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-							if(Math.sqrt(closest.sq_dist)<ems/6){
+							if(Math.sqrt(closest.sq_dist) < snappingDistance){
 								let destBounds =  {
 									"left" : closest.left + "px",
 									"top" :  closest.top + "px",
