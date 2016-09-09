@@ -14,23 +14,23 @@ $(document).on('scroll', function() {
 
 function getClosestGrid(x,y){
 	let min_dist=Number.MAX_VALUE
-	let temp_row_=1,temp_col=1;
-    for(let i=1;i<=gridSize.row;i++){
-		for(let j=1;j<=gridSize.col;j++){
-			let diff_x=grid[i+"|"+j].rx-x
-			let diff_y=grid[i+"|"+j].ry-y
-			let cur_dist=Math.pow(diff_x,2) + Math.pow(diff_y,2) //no need to do sqrt to save time
-			if(cur_dist<min_dist){
-				min_dist=cur_dist
-				temp_row=i;
-				temp_col=j;
-			}
-		}
-	}
-	//console.log("min_dist="+min_dist);
-	let closest={left:grid[temp_row+"|"+temp_col].rx,top:grid[temp_row+"|"+temp_col].ry,sq_dist:min_dist};
-	return closest;
+    let temp_label = ""
 
+    for(var k in grid){
+       
+        let diff_x=grid[k].rx-x
+		let diff_y=grid[k].ry-y
+        let cur_dist=Math.pow(diff_x,2) + Math.pow(diff_y,2) //no need to do sqrt to save time
+         console.log(k, cur_dist)
+        if(cur_dist<min_dist){
+            min_dist=cur_dist
+            temp_label=k
+        }
+    }
+
+	console.log("min_dist : ", min_dist, "label : ", temp_label)
+	return  { left : grid[temp_label].x, top : grid[temp_label].y, width : grid[temp_label].width, 
+        height : grid[temp_label].height, sq_dist : min_dist}
 }
 function rectangleSelect(selector, x1, y1, x2, y2) {
     var elements = [];
@@ -96,7 +96,10 @@ function createGrid(row, col, rowHeight, colWidth, padding){
             colWidth[y] = Math.ceil( colWidth[y] * w )
         }
     }
-	uniformGridCellSize.padding = padding
+	uniformGridCellSize.padding = 0
+    if(padding)
+        uniformGridCellSize.padding = padding
+
     uniformGridCellSize.width = 0
     for(let x = 0; x < colWidth.length; x++){
         uniformGridCellSize.width += colWidth[x]
@@ -132,17 +135,25 @@ function createGrid(row, col, rowHeight, colWidth, padding){
     }
 
     grid["center"] = {
-        x : Math.round(w/4),
-        y : Math.round(h/4),
-        width : Math.round(w/2),
-        height : Math.round(h/2)
+        rx : Math.round(w/4),
+        ry : Math.round(h/4),
+        rw : Math.round(w/2),
+        rh : Math.round(h/2),
+        x : Math.round(w/4) + padding,
+        y : Math.round(h/4) + padding,
+        width : Math.round(w/2) - 2 * padding,
+        height : Math.round(h/2) - 2 * padding
     }
 
      grid["fullscreen"] = {
-        x : 0,
-        y : 0,
-        width : w,
-        height : h
+        rx : 0,
+        ry : 0,
+        rw : w,
+        rh : h,
+        x : padding,
+        y : padding,
+        width : w - 2 * padding,
+        height : h - 2 * padding
     }
 }
 
@@ -154,25 +165,34 @@ function getGrid(row, col){
 }
 
 function addToGrid(label, bounds, style){
-    if(!grid[label]){
-        grid[label] = bounds
-        if(style){
-            let div = document.createElement('div')
-            div.id = "bg" + label
-            div.className = "background-div"
-            div.style.top = bounds.top + "px"
-            div.style.left = bounds.left + "px"
-            div.style.width = bounds.width
-            div.style.height = bounds.height
-            for(let k of Object.keys(style)){
-                div.style[k] = style[k]
-            }
-            document.getElementById("background").appendChild(div)
-        }
-        return { status : 'success' }
-    }else{
-        return { status : 'failed' , message : 'Label :  ' + label + ' exists.' }
+    // if(!grid[label]){
+    grid[label] = {
+        rx : parseInt(bounds.left),
+        ry : parseInt(bounds.top),
+        rw : parseInt(bounds.width),
+        rh : parseInt(bounds.height),
+        x : parseInt(bounds.left) + uniformGridCellSize.padding,
+        y : parseInt(bounds.top) + uniformGridCellSize.padding,
+        width : parseInt(bounds.width) - 2 * uniformGridCellSize.padding,
+        height : parseInt(bounds.height) - 2 * uniformGridCellSize.padding
     }
+    if(style){
+        let div = document.createElement('div')
+        div.id = "bg" + label
+        div.className = "background-div"
+        div.style.top = bounds.top + "px"
+        div.style.left = bounds.left  + "px"
+        div.style.width = bounds.width
+        div.style.height = bounds.height
+        for(let k of Object.keys(style)){
+            div.style[k] = style[k]
+        }
+        document.getElementById("background").appendChild(div)
+    }
+    return { status : 'success' }
+    // }else{
+    //     return { status : 'failed' , message : 'Label :  ' + label + ' exists.' }
+    // }
 }
 
 function execute(opts){
@@ -189,7 +209,7 @@ function execute(opts){
             if(cont_grid.custom){
                 for( let x = 0; x < cont_grid.length; x++){
                     let g = cont_grid.custom[x]
-                    g = toPixels(g)
+                    toPixels(g)
                     addToGrid ( g.label, { x: g.left, y: g.top, width : g.width, height: g.height  })
                 }
             }
@@ -339,8 +359,7 @@ function execute(opts){
                                 pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                             }
-                            //shang
-                        	closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
+                        	
                         },
                         stop: () => {
                             ipcRenderer.send('set-drag-cursor', "" )                    
@@ -362,11 +381,14 @@ function execute(opts){
                                 }
                             }))
 							//shang
+                            closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
 							let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
 							if(Math.sqrt(closest.sq_dist)<ems/6){
 								let destBounds =  {
-									"left" : closest.left +uniformGridCellSize.padding+ "px",
-									"top" :  closest.top +uniformGridCellSize.padding+ "px",
+									"left" : closest.left + "px",
+									"top" :  closest.top + "px",
+                                    "width" : closest.width + "px",
+                                    "height" : closest.height + "px",
 									"animation_options" : {
 										duration : 500,
 										fill : 'forwards',
@@ -838,33 +860,41 @@ function toPixels(options){
     try{
         if(typeof(options) == "string"){
             if(options.indexOf("em") > -1){
-                options =  Math.round(ems * parseFloat(options))
+                options =  Math.round(ems * parseFloat(options)) + "px"
             }
         }else if(typeof(options) == "object"){
             if(!options.position){
                 if( options.top && options.top.indexOf("em") > -1 ){
-                    options.top =  Math.round(ems * parseFloat(options.top))
+                    options.top =  Math.round(ems * parseFloat(options.top)) + "px"
+                // }else{
+                    // options.top =  Math.round(parseFloat(options.top)) + "px"
                 }
 
                 if( options.left && options.left.indexOf("em") > -1 ) {
-                    options.left =  Math.round(ems * parseFloat(options.left))
+                    options.left =  Math.round(ems * parseFloat(options.left)) + "px"
+                // }else{
+                    // options.left =  Math.round(parseFloat(options.left)) + "px"
                 }
             }
 
-            if( options.width && typeof(options.width) == "string"){
-                if(  options.width.indexOf("em") > -1 ) {
+            if( options.width){
+                if(  typeof(options.width) == "string" && options.width.indexOf("em") > -1 ) {
                     options.width =  Math.round(ems * parseFloat(options.width)) + 'px'
-                }else if( options.width.indexOf("%") > -1 ) {
-                    options.width = Math.round(parseFloat(options.width) * w/100) + 'px'
+                }else if(typeof(options.width) == "number"){
+                    options.width =  Math.round(options.width) + 'px'
+                }else {
+                    options.width =  Math.round(parseFloat(options.width)) + 'px'
                 }
             }
-             if( options.height && typeof(options.height) == "string"){
+            if( options.height){
                 if( options.height.indexOf("em") > -1 ) {
                     options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
-                } else if( options.height.indexOf("%") > -1 ) {
-                    options.height =  Math.round(h/100 * parseFloat(options.height)) + 'px'
+                }else if(typeof(options.height) == "number"){
+                    options.height =  Math.round(options.height) + 'px'
+                }else {
+                    options.height =  Math.round(parseFloat(options.height)) + 'px'
                 }
-             }
+            }
         }
     }catch(e){
         console.log(e)
