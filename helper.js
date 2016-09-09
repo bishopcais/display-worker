@@ -178,6 +178,10 @@ function addToGrid(label, bounds, style){
         height : parseInt(bounds.height) - 2 * uniformGridCellSize.padding
     }
     if(style){
+        let ediv = document.getElementById("bg" + label)
+        if(ediv)
+            document.getElementById("background").removeChild(ediv)
+
         let div = document.createElement('div')
         div.id = "bg" + label
         div.className = "background-div"
@@ -194,6 +198,15 @@ function addToGrid(label, bounds, style){
     // }else{
     //     return { status : 'failed' , message : 'Label :  ' + label + ' exists.' }
     // }
+}
+
+function removeFromGrid(label){
+    let div = document.getElementById("bg" + label)
+    if(div)
+        document.getElementById("background").removeChild(div)
+    
+    delete grid[label]
+    return grid
 }
 
 function execute(opts){
@@ -246,7 +259,17 @@ function execute(opts){
             toPixels(options.bounds)
             addToGrid(options.label, options.bounds, options.style)
             return grid
-        }else if(options.command == "cell-style"){
+        }else  if(options.command == "remove-from-grid"){
+            removeFromGrid(options.label)
+            return grid
+        } else if(options.command == "clear-grid"){
+            document.getElementById('background').innerHTML = ""
+            grid = {}
+            return { "status" : "success" }
+        } else if(options.command == "clear-contents"){
+            document.getElementById('content').innerHTML = ""
+            return { "status" : "success" ,command : "clear-contents" }
+        } else if(options.command == "cell-style"){
             let g = document.getElementById("bg" + options.label)
             if(g){
                 let currentValue = {}

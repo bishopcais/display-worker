@@ -281,6 +281,14 @@ class DisplayWorker {
                 b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
                     if(d.command == "close"){
                         this.webviewOwnerStack.delete( d.view_id )
+                    }else if(d.command == "clear-contents"){
+                        let wv_id = new Array();
+                        this.webviewOwnerStack.forEach( (v, k) => {
+                            if(v == options.window_id)
+                                wv_id.push(k)
+                        })
+                        wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+                        d.viewObjects = wv_id
                     }
                     next(JSON.stringify(d))
                 })
@@ -437,7 +445,8 @@ class DisplayWorker {
                         next(JSON.stringify({
                                 "command" : "close-window",
                                 "status" : "success",
-                                "window_id" : message.options.window_id
+                                "window_id" : message.options.window_id,
+                                "viewObjects" : wv_id
                             }))
 
                         io.publishTopic("display.window", JSON.stringify({
