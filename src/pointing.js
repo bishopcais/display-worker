@@ -111,7 +111,6 @@ class Pointing {
         });
 
         this.hotspot.onPointerMove(msg => {
-            // console.log('Move', msg);
             const w = BrowserWindow.getFocusedWindow();
 
             if (w) {
@@ -128,13 +127,12 @@ class Pointing {
                         type : 'mouseMove',
                         x : pos.x,
                         y : pos.y,
-                        buttons : pos.state == "down" ? 1 : 0,
-                        eventSource : pos.name
+                        buttons : pos.state == "down" ? 1 : 0
                     }
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
-                    if(this.dragCursor == "" || this.dragCursor == pos.name)
-                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    // if(this.dragCursor == "" || this.dragCursor == pos.name)
+                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                     
                 }
             }
@@ -160,7 +158,7 @@ class Pointing {
                         eventSource : pos.name
                     }
                     // if(dragCursor == "" || this.dragCursor == pos.name)
-    				    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+    				this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
         });
@@ -187,7 +185,9 @@ class Pointing {
 
                     this.downPos.delete(pos.name);
                     // if(this.dragCursor == "" || this.dragCursor == pos.name)
-                        this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    
+                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
+                    
                 }
             }
         });
@@ -218,7 +218,11 @@ class Pointing {
         // if (logging) {
         //     this.io.publishTopic('emulated.mouse', `${evt.type},${evt.x},${evt.y},${time},${new Date().getTime()}\n`);
         // }
-        contents.sendInputEvent(evt);
+        try{
+            contents.sendInputEvent(evt)
+        }catch(e){
+            console.log(evt, e)
+        }
     }
 
     getPixelPosition(pointer){
