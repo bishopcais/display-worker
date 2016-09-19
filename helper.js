@@ -18,7 +18,7 @@ function getClosestGrid(x,y){
     let temp_label = ""
 
     for(var k in grid){
-       
+
         let diff_x=grid[k].rx-x
 		let diff_y=grid[k].ry-y
         let cur_dist=Math.pow(diff_x,2) + Math.pow(diff_y,2) //no need to do sqrt to save time
@@ -30,7 +30,7 @@ function getClosestGrid(x,y){
     }
 
 	console.log("min_dist : ", min_dist, "label : ", temp_label)
-	return  { left : grid[temp_label].x, top : grid[temp_label].y, width : grid[temp_label].width, 
+	return  { left : grid[temp_label].x, top : grid[temp_label].y, width : grid[temp_label].width,
         height : grid[temp_label].height, sq_dist : min_dist}
 }
 function rectangleSelect(selector, x1, y1, x2, y2) {
@@ -204,7 +204,7 @@ function removeFromGrid(label){
     let div = document.getElementById("bg" + label)
     if(div)
         document.getElementById("background").removeChild(div)
-    
+
     delete grid[label]
     return grid
 }
@@ -329,7 +329,7 @@ function execute(opts){
             wv.style.background = "white"
             wv.style.zIndex = 0
             wv.src = options.url
-            
+
 
             // wv.addEventListener("dragHintStart", (e)=>{
             //     console.log("drag hint start")
@@ -339,13 +339,13 @@ function execute(opts){
             //     console.log("drag hint end")
             // })
             wv.addEventListener("did-finish-load",(e)=>{
-                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
+                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')"
                 wv.executeJavaScript(se)
             })
 
             wv.addEventListener("mouseover", (e) => {
                 // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
-                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
+                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')"
                 wv.executeJavaScript(se)
                 let closest;
 
@@ -369,9 +369,9 @@ function execute(opts){
                             for(let i =0;i < elems.length; i++){
                                 let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
                                 console.log(zi)
-                                zIndex = zi > zIndex ?  zi : zIndex 
+                                zIndex = zi > zIndex ?  zi : zIndex
                             }
-                            
+
                             if(wv.style.zIndex <= zIndex){
                                 wv.style.zIndex = zIndex + 1
                                 console.log(zIndex)
@@ -384,10 +384,10 @@ function execute(opts){
                                 pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                             }
-                        	
+
                         },
                         stop: () => {
-                            ipcRenderer.send('set-drag-cursor', "" )                    
+                            ipcRenderer.send('set-drag-cursor', "" )
                             $(wv).draggable( {disabled : true})
                             wv.isDragging = false
                             pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
@@ -491,6 +491,16 @@ function execute(opts){
 
             return { "view_id" : wv.id, command : "create" , "status" : "success",
             "window_id" : options.window_id,"screenName" : options.screenName }
+        }else if(options.command) == "webview-execute-javascript") {
+            let wv = document.getElementById(options.view_id)
+            if (wv) {
+                userGesture = (options.userGesture) ? options.userGesture == true : false;
+                wv.executeJavaScript(options.code, userGesture)
+                return {"view_id": wv.id, command: "execute-javascript", "status": "success"};
+            }
+            else {
+                return {"view_id": options.view_id, command: "execute-javascript", "error": "view not found"};
+            }
         }else if(options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
             if(wv){
@@ -676,7 +686,7 @@ function setBounds(wv , destBounds) {
         let elems = document.getElementsByTagName("webview")
         for(let i =0;i < elems.length; i++){
             let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
-            zIndex = zi > zIndex ?  zi : zIndex 
+            zIndex = zi > zIndex ?  zi : zIndex
         }
         wv.style.zIndex = zIndex + 1
     }else if(destBounds.sendToBack){
@@ -684,7 +694,7 @@ function setBounds(wv , destBounds) {
         let elems = document.getElementsByTagName("webview")
         for(let i =0;i < elems.length; i++){
             let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
-            zIndex = zi < zIndex ?  zi : zIndex 
+            zIndex = zi < zIndex ?  zi : zIndex
         }
         wv.style.zIndex = zIndex - 1
     }
