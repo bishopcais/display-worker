@@ -40,11 +40,6 @@ ipcMain.on('display-window-event', (event, arg) => {
   io.publishTopic("display.window", arg)
 })
 
-ipcMain.on('set-drag-cursor', (event, arg) => {
-    if(displayWorker)
-        displayWorker.setDragCursor(arg)
-})
-
 class DisplayWorker {
     constructor(){
         this.displays = electron.screen.getAllDisplays()    
@@ -84,25 +79,18 @@ class DisplayWorker {
         this.appWindows.set(this.activeAppContext, [])
         this.webviewOwnerStack = new Map()
 
-        if(this.config.isPrimaryWorker){
-            io.doCall('display-rpc-queue', (request, reply, ack)=>{
-                try{
-                    let msg = JSON.parse(request.content.toString())
-                    console.log(msg)
-                    this.process_message(msg, reply)
-                }catch(e){
-                    reply(JSON.stringify(e))
-                }
-            })
-        }
+        io.doCall('display-rpc-queue', (request, reply, ack)=>{
+            try{
+                let msg = JSON.parse(request.content.toString())
+                console.log(msg)
+                this.process_message(msg, reply)
+            }catch(e){
+                reply(JSON.stringify(e))
+            }
+        })
 
         this.pointing = new Pointing(io)
         console.log("\nworker server started.\n")
-    }
-
-    setDragCursor(cursorName){
-        if(this.pointing)
-            this.pointing.setDragCursor(cursorName)
     }
 
     close_app_context (context, next) {
@@ -229,7 +217,7 @@ class DisplayWorker {
 
         browser.webContents.on('dom-ready', () => {
             browser.isReady = true
-             if(options.contentGrid){
+            if(options.contentGrid){
                 this.execute_in_displaywindow(Object.assign(options, {
                     window_id: b_id,
                     screenName: this.screenName,

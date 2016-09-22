@@ -5,14 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start" : "node index.js"
+    "start": "node index.js",
+    "rebuild": "npm rebuild --runtime=electron --target=1.4.1 --disturl=https://atom.io/download/atom-shell --abi=50"
   },
   "author": "yedendra shrinivasan",
   "license": "ISC",
   "private": true,
   "dependencies": {
+    "celio": "^1.0.0",
     "electron-prebuilt": "^1.2.5",
     "node-uuid": "^1.4.7",
-    "celio": "^1.0.0"
-  }
+    "robotjs": "^0.4.4"
+  },
+  "devDependencies": {}
 }
