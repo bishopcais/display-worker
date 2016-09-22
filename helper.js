@@ -344,16 +344,9 @@ function execute(opts){
                     wv.insertCSS( "img{ width : 100vw; height: auto;}")
                 })
             }
-            
-            wv.addEventListener("did-finish-load",(e)=>{
-                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')"
-                wv.executeJavaScript(se)
-            })
 
             wv.addEventListener("mouseover", (e) => {
                 // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
-                let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')"
-                wv.executeJavaScript(se)
                 let closest;
                 if(!wv.canDrag){
                     wv.canDrag = true

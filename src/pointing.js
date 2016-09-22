@@ -151,7 +151,9 @@ class Pointing {
             this.controlCursor = null;
             this.dragging = false;
         }
-        this.motorPos.delete(info.name);
+        if (this.motorPos.has(info.name)) {
+            this.motorPos.delete(info.name);
+        }
     }
 
     sendInputEvent(evt) {
@@ -214,7 +216,7 @@ class Pointing {
                         y: pointer.y,
                         mx: pointer.x,
                         my: pointer.y
-                    }
+                    };
 
                     this.motorPos.set(pointer.details.name, lastMotorPos);
                 } else {
@@ -232,11 +234,13 @@ class Pointing {
             } else { // Trackpad is released
                 x = pointer.x;
                 y = pointer.y;
-                this.motorPos.delete(pointer.details.name);
+                if (this.motorPos.has(pointer.details.name)) {
+                    this.motorPos.delete(pointer.details.name);
+                }
             }
         } else {
             if (pointer.eventButton) { // down and up event
-                button = 'left'
+                button = 'left';
             } else if (pointer.details.buttons.length > 0) { // move event
                 button = 'left';
             }
