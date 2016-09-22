@@ -5,7 +5,6 @@ let dragTimer = new Map()
 let grid = {}
 let gridSize={}
 let snappingDistance = 100
-
 const {ipcRenderer} = nodeRequire('electron')
 
 $(document).on('scroll', function() {
@@ -329,6 +328,17 @@ function execute(opts){
             wv.style.background = "white"
             wv.style.zIndex = 0
             wv.src = options.url
+
+            if(options.url.indexOf(".mp4") > -1 && options.url.indexOf("file:///") > -1 ){
+                wv.addEventListener("dom-ready", () => {
+                    wv.insertCSS( "video{ width : 100vw; height: 100vh;}" )
+                })
+            }else if( (options.url.indexOf(".jpg") > -1 || options.url.indexOf(".png")
+                    || options.url.indexOf(".JPG") > -1 || options.url.indexOf(".PNG")   )   && options.url.indexOf("file:///") > -1 ){
+                wv.addEventListener("dom-ready", ()=>{
+                    wv.insertCSS( "img{ width : 100vw; height: auto;}")
+                })
+            }
             
 
             // wv.addEventListener("dragHintStart", (e)=>{
@@ -348,22 +358,14 @@ function execute(opts){
                 let se = " var elems = document.querySelectorAll('*'); var draggable = []; for(var i=0;i<elems.length;i++){ elems[i].draggable=false };console.log('disabled draggables')" 
                 wv.executeJavaScript(se)
                 let closest;
-
-
-
                 if(!wv.canDrag){
                     wv.canDrag = true
                     wv.dispatchEvent(new Event("dragHintStart"))
-
-
                     $(wv).draggable({
                         disabled : false,
                         scroll: false,
                         refreshPositions: true,
                         start: (e_drag, ui) => {
-                            console.log(e.eventSource)
-                            ipcRenderer.send('set-drag-cursor', getClosestDragCursor( e_drag.pageX, e_drag.pageY ) )
-                            wv.dragSource = e.eventSource
                             let zIndex = 0
                             let elems = document.getElementsByTagName("webview")
                             for(let i =0;i < elems.length; i++){
@@ -371,7 +373,6 @@ function execute(opts){
                                 console.log(zi)
                                 zIndex = zi > zIndex ?  zi : zIndex 
                             }
-                            
                             if(wv.style.zIndex <= zIndex){
                                 wv.style.zIndex = zIndex + 1
                                 console.log(zIndex)
@@ -384,7 +385,6 @@ function execute(opts){
                                 pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                             }
-                        	
                         },
                         stop: () => {
                             ipcRenderer.send('set-drag-cursor', "" )                    
@@ -405,23 +405,23 @@ function execute(opts){
                                     view_id : wv.id
                                 }
                             }))
-							//shang
+                            //shang
                             closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
-							let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-							if(Math.sqrt(closest.sq_dist) < snappingDistance){
-								let destBounds =  {
-									"left" : closest.left + "px",
-									"top" :  closest.top + "px",
+                            let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
+                            if(Math.sqrt(closest.sq_dist) < snappingDistance){
+                                let destBounds =  {
+                                    "left" : closest.left + "px",
+                                    "top" :  closest.top + "px",
                                     "width" : closest.width + "px",
                                     "height" : closest.height + "px",
-									"animation_options" : {
-										duration : 500,
-										fill : 'forwards',
-										easing : 'linear'
-										}
-								}
-								setBounds(wv, destBounds);
-							}
+                                    "animation_options" : {
+                                        duration : 500,
+                                        fill : 'forwards',
+                                        easing : 'linear'
+                                        }
+                                }
+                                setBounds(wv, destBounds);
+                            }
 
                         }
                     })
@@ -479,8 +479,8 @@ function execute(opts){
 
             document.getElementById("content").appendChild(wv)
 
-			console.log("before options.slide wv="+JSON.stringify($('webview').offset()))
-			console.log("before options.slide options="+JSON.stringify(options))
+			// console.log("before options.slide wv="+JSON.stringify($('webview').offset()))
+			// console.log("before options.slide options="+JSON.stringify(options))
 
 
             // $( "#content webview" ).draggable({ stack: "#content webview" });
@@ -732,6 +732,8 @@ function setBounds(wv , destBounds) {
     if(Object.keys(currentValue).length === 0){
         return false
     }else{
+        console.log(currentValue)
+        console.log(destValue)
         return wv.animate( [currentValue, destValue], destBounds.animation_options? destBounds.animation_options : {
             duration : 800, fill: 'forwards', easing: 'ease-in-out'
         })

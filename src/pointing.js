@@ -9,7 +9,6 @@ class Pointing {
         this.hotspot = io.createHotspot(hotspot);
         this.clickWidth = hotspot.clickWidth;
         this.clickSpeed = hotspot.clickSpeed;
-	this.dragSource = ""
         this.io = io;
 
         let bounds = io.config.get("display:bounds")
@@ -112,7 +111,7 @@ class Pointing {
 
         this.hotspot.onPointerMove(msg => {
             const w = BrowserWindow.getFocusedWindow();
-
+            
             if (w) {
                 const contents = w.webContents;
                 if (contents) {
@@ -122,7 +121,7 @@ class Pointing {
                     if(buttonState){
                         pos.state = "down";
                     }
-
+                    
                     let evt = {
                         type : 'mouseMove',
                         x : pos.x,
@@ -131,15 +130,13 @@ class Pointing {
                     }
 
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
-                    // if(this.dragCursor == "" || this.dragCursor == pos.name)
-                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
-                    
+                    this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));    
                 }
             }
         });
         
         this.hotspot.onPointerDown(msg => {
-            console.log('Down', msg)
+            console.log('Down', msg, this.downPos)
             const w = BrowserWindow.getFocusedWindow();
 
             if (w) {
@@ -157,7 +154,6 @@ class Pointing {
                         clickCount: 1,
                         eventSource : pos.name
                     }
-                    // if(dragCursor == "" || this.dragCursor == pos.name)
     				this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                 }
             }
@@ -179,13 +175,9 @@ class Pointing {
                         type : 'mouseUp',
                         x : pos.x,
                         y : pos.y,
-                        clickCount: 1,
-                        eventSource : pos.name
+                        clickCount: 1
                     }
-
-                    this.downPos.delete(pos.name);
-                    // if(this.dragCursor == "" || this.dragCursor == pos.name)
-                    
+                    this.downPos.delete(pos.name);                    
                     this.sendInputEvent(contents, evt, msg.details.time_captured, Array.isArray(msg.details.trackpad));
                     
                 }
@@ -203,15 +195,8 @@ class Pointing {
                     }
                     contents.executeJavaScript("removeCursor('"  +  msg + "')");
                 }
-            }
-            
+            } 
         });
-
-    }
-
-    setDragCursor(cursorName){
-	console.log("setting drag source ", this.dragCursor, cursorName)
-        this.dragCursor = cursorName
     }
 
     sendInputEvent(contents, evt, time, logging) {
