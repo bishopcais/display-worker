@@ -489,7 +489,7 @@ function execute(opts){
 
             return { "view_id" : wv.id, command : "create" , "status" : "success",
             "window_id" : options.window_id,"screenName" : options.screenName }
-        }else if(options.command) == "webview-execute-javascript") {
+        }else if(options.command == "webview-execute-javascript") {
             let wv = document.getElementById(options.view_id)
             if (wv) {
                 userGesture = (options.userGesture) ? options.userGesture == true : false;
