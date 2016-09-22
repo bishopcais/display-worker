@@ -1,6 +1,6 @@
 let previousValue = new Map()
 let lastTransform = new Map()
-let uniformGridCellSize = {}
+let uniformGridCellSize = { padding : 0 }
 let dragTimer = new Map()
 let grid = {}
 let gridSize={}
@@ -167,16 +167,22 @@ function getGrid(row, col){
 
 function addToGrid(label, bounds, style){
     // if(!grid[label]){
+    console.log(label, bounds)
+    let pad = 0;
+    if(uniformGridCellSize.padding)
+        pad = uniformGridCellSize.padding
+
     grid[label] = {
         rx : parseInt(bounds.left),
         ry : parseInt(bounds.top),
         rw : parseInt(bounds.width),
         rh : parseInt(bounds.height),
-        x : parseInt(bounds.left) + uniformGridCellSize.padding,
-        y : parseInt(bounds.top) + uniformGridCellSize.padding,
-        width : parseInt(bounds.width) - 2 * uniformGridCellSize.padding,
-        height : parseInt(bounds.height) - 2 * uniformGridCellSize.padding
+        x : parseInt(bounds.left) + pad,
+        y : parseInt(bounds.top) + pad,
+        width : parseInt(bounds.width) - 2 * pad,
+        height : parseInt(bounds.height) - 2 * pad
     }
+    console.log(grid[label])
     if(style){
         let ediv = document.getElementById("bg" + label)
         if(ediv)
@@ -224,7 +230,7 @@ function execute(opts){
                 for( let x = 0; x < cont_grid.length; x++){
                     let g = cont_grid.custom[x]
                     toPixels(g)
-                    addToGrid ( g.label, { x: g.left, y: g.top, width : g.width, height: g.height  })
+                    addToGrid ( g.label, { left: g.left, top: g.top, width : g.width, height: g.height  })
                 }
             }
 
