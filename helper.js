@@ -167,7 +167,6 @@ function getGrid(row, col){
 
 function addToGrid(label, bounds, style){
     // if(!grid[label]){
-    console.log(label, bounds)
     let pad = 0;
     if(uniformGridCellSize.padding)
         pad = uniformGridCellSize.padding
@@ -182,7 +181,6 @@ function addToGrid(label, bounds, style){
         width : parseInt(bounds.width) - 2 * pad,
         height : parseInt(bounds.height) - 2 * pad
     }
-    console.log(grid[label])
     if(style){
         let ediv = document.getElementById("bg" + label)
         if(ediv)
