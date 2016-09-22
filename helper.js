@@ -4,7 +4,8 @@ let uniformGridCellSize = {}
 let dragTimer = new Map()
 let grid = {}
 let gridSize={}
-let snappingDistance = 100
+let snappingDistance = 400
+
 const {ipcRenderer} = nodeRequire('electron')
 
 $(document).on('scroll', function() {
@@ -448,7 +449,7 @@ function execute(opts){
                             $(wv).draggable({disabled : true});
                             wv.dispatchEvent(new Event("dragHintEnd"))
                         }
-                    }, 1500) )
+                    }, 2000) )
                 }
 
             })
