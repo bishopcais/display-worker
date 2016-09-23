@@ -6,15 +6,16 @@ class Pointing {
     constructor( io ){
         this.io = io;
 
-        const hotspot = io.config.get("display:hotspot")
-        const bounds = io.config.get("display:bounds")
-        this.ppm = bounds.width / hotspot.width;
-        this.sx = bounds.x;
-        this.sy = bounds.y;
+        const hotspot = io.config.get("display:hotspot");
+        this.bounds = io.config.get("display:bounds");
+        this.ppm = this.bounds.width / hotspot.width;
+        this.sx = this.bounds.x;
+        this.sy = this.bounds.y;
 
         this.controlCursor = null;
         this.dragging = false; 
         this.motorPos = new Map();
+        this.lastUpdateTime = new Date();
 
         const self = this;
         
@@ -108,7 +109,7 @@ class Pointing {
 
     moveHandler(pointer) {
         const w = BrowserWindow.getFocusedWindow();
-         if (w) {
+        if (w) {
             const contents = w.webContents;
             if (contents) {
                 const pos = {
@@ -121,6 +122,7 @@ class Pointing {
                 if (this.dragging && this.controlCursor === pointer.details.name) {
                     pos.state = "down";
                 }
+
                 contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
             }
         }
@@ -128,7 +130,7 @@ class Pointing {
         if (!this.controlCursor) {
             this.controlCursor = pointer.details.name;
         }
-
+        
         if (this.controlCursor === pointer.details.name) {
             const evt = {
                 type : 'mouseMove',
@@ -136,10 +138,6 @@ class Pointing {
                 button: pointer.button,
                 y : pointer.y
             };
-
-            if (this.dragging) {
-                evt.buttons = 1;
-            }
 
             this.sendInputEvent(evt);
         }
@@ -153,6 +151,14 @@ class Pointing {
         }
         if (this.motorPos.has(info.name)) {
             this.motorPos.delete(info.name);
+        }
+
+        const w = BrowserWindow.getFocusedWindow();
+        if (w) {
+            const contents = w.webContents;
+            if(contents){
+                contents.executeJavaScript("removeCursor('"  +  info.name + "')");
+            }
         }
     }
 
@@ -170,13 +176,18 @@ class Pointing {
             evt.y = 0;
         }
 
+        const now = new Date(); 
         switch (evt.type) {
             case 'mouseMove':
-                if (evt.buttons == 1) {// dragging
-                    robot.dragMouse(evt.x, evt.y);
-                } else {
-                    robot.moveMouse(evt.x, evt.y);
+                if (now - this.lastUpdateTime > 20) {
+                    if (this.dragging) {
+                        robot.dragMouse(evt.x, evt.y);
+                    } else {
+                        robot.moveMouse(evt.x, evt.y);
+                    }
+                    this.lastUpdateTime = now;
                 }
+                
                 break;
             case 'mouseUp':
                 robot.mouseToggle('up', evt.button);
@@ -187,7 +198,7 @@ class Pointing {
         }
     }
 
-    getPixelPosition(pointer){
+    getPixelPosition(pointer) {
         let x, y, lastMotorPos, button;
 
         // lighthouse driver
@@ -241,16 +252,21 @@ class Pointing {
         } else {
             if (pointer.eventButton) { // down and up event
                 button = 'left';
-            } else if (pointer.details.buttons.length > 0) { // move event
-                button = 'left';
             }
             x = pointer.x;
             y = pointer.y;
         }
         
+        x = Math.round(this.sx + x * this.ppm);
+        y = Math.round(this.sy + y * this.ppm);
+
+        if (x < 0 || x > this.bounds.width || y < 0 || y > this.bounds.height) {
+            return null;
+        }
+
         return {
-            x : Math.round(this.sx + x * this.ppm),
-            y : Math.round(this.sy + y * this.ppm),
+            x,
+            y,
             button,
             details : {
                 name: pointer.details.name,
