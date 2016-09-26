@@ -13,9 +13,12 @@ class Pointing {
         this.sy = this.bounds.y;
 
         this.controlCursor = null;
-        this.dragging = false; 
+        this.dragging = false;
+        this.outOfBounds = new Map();
         this.motorPos = new Map();
+        this.padPos = new Map();
         this.lastUpdateTime = new Date();
+        this.trackpadPos = new Map();
 
         const self = this;
         
@@ -30,34 +33,43 @@ class Pointing {
         this.hotspot.onPointerMove(function (pointer) {
             const cursor = self.getPixelPosition(pointer);
             if (cursor) {
-                self.moveHandler(cursor)
+                self.moveHandler(cursor);
+            }
+
+            if (self.controlCursor === pointer.details.name && cursor.scroll && cursor.scroll[1] !== 0) {
+                self.sendInputEvent({
+                    type: 'mouseScroll',
+                    magnitude: cursor.scroll[1], 
+                    direction: cursor.scroll[1] > 0 ? "up" : "down"
+                });
             }
         }.bind(self));
         this.hotspot.onPointerDown(function (pointer) {
             const cursor = self.getPixelPosition(pointer);
             if (cursor) {
-                self.downHandler(cursor)
+                self.downHandler(cursor);
             }
         }.bind(self));
         this.hotspot.onPointerUp(function (pointer) {
             const cursor = self.getPixelPosition(pointer);
             if (cursor) {
-                self.upHandler(cursor)
+                self.upHandler(cursor);
             }
         }.bind(self));
         this.hotspot.onPointerDetach(this.detachHandler.bind(self));
     }
 
     upHandler(pointer) {
-        if (pointer.details.name === this.controlCursor) {
+        if (pointer.button && pointer.details.name === this.controlCursor) {
             const w = BrowserWindow.getFocusedWindow();
             if (w) {
                 const contents = w.webContents;
                 if (contents) {
+                    const windowPos = w.getPosition();
                     const pos = {
                         state: 'up',
-                        x: pointer.x,
-                        y: pointer.y,
+                        x: pointer.x - windowPos[0],
+                        y: pointer.y - windowPos[1],
                         name: pointer.details.name
                     };
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
@@ -77,7 +89,7 @@ class Pointing {
     }
 
     downHandler(pointer) {
-        if (!this.dragging) {
+        if (!this.dragging && pointer.button) {
             this.controlCursor = pointer.details.name;
             this.dragging = true;
 
@@ -85,10 +97,11 @@ class Pointing {
             if (w) {
                 const contents = w.webContents;
                 if (contents) {
+                    const windowPos = w.getPosition();
                     const pos = {
                         state: 'down',
-                        x: pointer.x,
-                        y: pointer.y,
+                        x: pointer.x - windowPos[0],
+                        y: pointer.y - windowPos[1],
                         name: pointer.details.name
                     };
                     contents.executeJavaScript("updateCursorPosition('"  +  JSON.stringify(pos) + "')");
@@ -112,10 +125,11 @@ class Pointing {
         if (w) {
             const contents = w.webContents;
             if (contents) {
+                const windowPos = w.getPosition();
                 const pos = {
                     state: 'move',
-                    x: pointer.x,
-                    y: pointer.y,
+                    x: pointer.x - windowPos[0],
+                    y: pointer.y - windowPos[1],
                     name: pointer.details.name
                 };
 
@@ -163,7 +177,7 @@ class Pointing {
     }
 
     sendInputEvent(evt) {
-        if (!Number.isFinite(evt.x) || !Number.isFinite(evt.y)) {
+        if ((evt.x && !Number.isFinite(evt.x)) || (evt.y && !Number.isFinite(evt.y))) {
             return;
         }
 
@@ -189,6 +203,10 @@ class Pointing {
                 }
                 
                 break;
+            case 'mouseScroll':
+                robot.scrollMouse(evt.magnitude, evt.direction);
+                this.lastUpdateTime = now;
+                break;
             case 'mouseUp':
                 robot.mouseToggle('up', evt.button);
                 break;
@@ -199,7 +217,7 @@ class Pointing {
     }
 
     getPixelPosition(pointer) {
-        let x, y, lastMotorPos, button;
+        let x, y, lastMotorPos, scroll, button;
 
         // lighthouse driver
         if (pointer.details.trackpad) {
@@ -216,11 +234,25 @@ class Pointing {
                         break;
                 }
             }
-        
-            lastMotorPos = this.motorPos.get(pointer.details.name);
-            // Trackpad is touched
+
+            // get trackpad movement
+            const padPos = this.padPos.get(pointer.details.name);
+            // trackpad is touched
             if (pointer.details.trackpad[0] != 0 ||
                 pointer.details.trackpad[1] != 0) {
+                if (padPos) {
+                    scroll = [50 * (pointer.details.trackpad[0] - padPos[0]), 50 * (pointer.details.trackpad[1] - padPos[1])];
+                }
+                this.padPos.set(pointer.details.name, pointer.details.trackpad); 
+            } else { // trackpad is released
+                if (padPos) {
+                    this.padPos.delete(pointer.details.name);
+                }
+            }
+        
+            lastMotorPos = this.motorPos.get(pointer.details.name);
+            // Trigger is pressed
+            if (pointer.details.buttons.indexOf('G') > -1) {
                 if (!lastMotorPos) { // first touch
                     lastMotorPos = {
                         x: pointer.x,
@@ -235,14 +267,14 @@ class Pointing {
                     const dx = pointer.x - lastMotorPos.mx;
                     const dy = pointer.y - lastMotorPos.my;
 
-                    lastMotorPos.x += dx * 0.3;
-                    lastMotorPos.y += dy * 0.3;
+                    lastMotorPos.x += dx * 0.2;
+                    lastMotorPos.y += dy * 0.2;
                     lastMotorPos.mx = pointer.x;
                     lastMotorPos.my = pointer.y;
                 }
                 x = lastMotorPos.x;
                 y = lastMotorPos.y;
-            } else { // Trackpad is released
+            } else { // Trigger is released
                 x = pointer.x;
                 y = pointer.y;
                 if (this.motorPos.has(pointer.details.name)) {
@@ -260,13 +292,10 @@ class Pointing {
         x = Math.round(this.sx + x * this.ppm);
         y = Math.round(this.sy + y * this.ppm);
 
-        if (x < 0 || x > this.bounds.width || y < 0 || y > this.bounds.height) {
-            return null;
-        }
-
         return {
             x,
             y,
+            scroll,
             button,
             details : {
                 name: pointer.details.name,

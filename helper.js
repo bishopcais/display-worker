@@ -346,7 +346,7 @@ function execute(opts){
             }
 
             wv.addEventListener("dom-ready",(e)=>{
-                wv.insertCSS( "body{ cursor: none;}");
+                wv.insertCSS( "body { cursor: none }");
             })
 
             wv.addEventListener("mouseover", (e) => {
