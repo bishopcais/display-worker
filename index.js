@@ -1,7 +1,7 @@
-const electron_path = require('electron-prebuilt');
+const electron_path = require('electron');
 const spawn = require('child_process').spawn;
-
-const proc = spawn(electron_path, ['src/apprpc.js'], {env:{DISPLAY: ':0'}});
+process.env['DISPLAY'] = ':0';
+const proc = spawn(electron_path, ['src/apprpc.js'], {env:process.env});
 
 proc.stdout.on('data', data=>console.log(data.toString()));
 proc.stderr.on('data', data=>console.error(data.toString()));
