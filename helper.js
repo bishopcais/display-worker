@@ -422,8 +422,8 @@ function execute(opts){
                                     let destBounds =  {
                                         "left" : closest.left + "px",
                                         "top" :  closest.top + "px",
-                                        "width" : closest.width + "px",
-                                        "height" : closest.height + "px",
+                                        "width" : ( closest.width > getComputedStyle(wv).width ? closest.width : getComputedStyle(wv).width ) + "px",
+                                        "height" : ( closest.height > getComputedStyle(wv).height ? closest.height : getComputedStyle(wv).height ) + "px",
                                         "animation_options" : {
                                             duration : 500,
                                             fill : 'forwards',
