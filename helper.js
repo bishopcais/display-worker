@@ -373,51 +373,66 @@ function execute(opts){
                                 console.log(zIndex)
                             }
                         },
-                        drag: () => {
+                        drag: (e) => {
                             wv.isDragging = true
                             let pointingDiv = document.getElementById(wv.id + "-draghint")
                             if(pointingDiv){
                                 pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                             }
-                        },
-                        stop: () => {
-                            ipcRenderer.send('set-drag-cursor', "" )
-                            $(wv).draggable( {disabled : true})
-                            wv.isDragging = false
-                            pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
-                            pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
-                            pointingDiv.style.display = "none"
-                            wv.dispatchEvent(new Event("dragHintEnd"))
-                            ipcRenderer.send('view-object-event', JSON.stringify({
-                                type : "boundsChanged",
-                                details : {
-                                    top : $(wv).offset().top,
-                                    left : $(wv).offset().left,
-                                    width : $(wv).width(),
-                                    height : $(wv).height(),
-                                    units : "px",
-                                    view_id : wv.id
-                                }
-                            }))
-                            //shang
-                            closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
-                            let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-                            if(Math.sqrt(closest.sq_dist) < snappingDistance){
-                                let destBounds =  {
-                                    "left" : closest.left + "px",
-                                    "top" :  closest.top + "px",
-                                    "width" : closest.width + "px",
-                                    "height" : closest.height + "px",
-                                    "animation_options" : {
-                                        duration : 500,
-                                        fill : 'forwards',
-                                        easing : 'linear'
-                                        }
-                                }
-                                setBounds(wv, destBounds);
+                            if(e.screenY < 1){
+                                $(wv).draggable( {disabled : true})
+                                wv.isDragging = false
+                                pointingDiv.style.display = "none"
+                                wv.dispatchEvent(new Event("dragHintEnd"))
+                                document.getElementById('content').removeChild(wv)
+                                ipcRenderer.send('view-object-event', JSON.stringify({
+                                    type : "viewobjectClosed",
+                                    details :  {
+                                        view_id : wv.id
+                                    }
+                                }))
                             }
 
+                        },
+                        stop: () => {
+                            if(wv.isDragging){
+                                ipcRenderer.send('set-drag-cursor', "" )
+                                $(wv).draggable( {disabled : true})
+                                wv.isDragging = false
+                                pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                                pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                                pointingDiv.style.display = "none"
+                                wv.dispatchEvent(new Event("dragHintEnd"))
+                                ipcRenderer.send('view-object-event', JSON.stringify({
+                                    type : "boundsChanged",
+                                    details : {
+                                        top : $(wv).offset().top,
+                                        left : $(wv).offset().left,
+                                        width : $(wv).width(),
+                                        height : $(wv).height(),
+                                        units : "px",
+                                        view_id : wv.id
+                                    }
+                                }))
+                                //shang
+                                closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
+                                let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
+                                if(Math.sqrt(closest.sq_dist) < snappingDistance){
+                                    let destBounds =  {
+                                        "left" : closest.left + "px",
+                                        "top" :  closest.top + "px",
+                                        "width" : closest.width + "px",
+                                        "height" : closest.height + "px",
+                                        "animation_options" : {
+                                            duration : 500,
+                                            fill : 'forwards',
+                                            easing : 'linear'
+                                            }
+                                    }
+                                    setBounds(wv, destBounds);
+                                }
+                            }
                         }
                     })
 
@@ -673,6 +688,8 @@ function execute(opts){
 */
 
 function setBounds(wv , destBounds) {
+    if(!wv)
+        return;
 
     if(destBounds.zIndex){
         wv.style.zIndex = destBounds.zIndex
@@ -699,8 +716,7 @@ function setBounds(wv , destBounds) {
     let destValue = {}
 
     if(destBounds.left && destBounds.top){
-        currentValue.transform = ""
-        destValue.transform = ""
+        
         let c = {top : 0, left: 0}
         let d = {}
 
@@ -711,24 +727,25 @@ function setBounds(wv , destBounds) {
         d.left = parseInt(destBounds.left) - parseInt(getComputedStyle(wv).left)
         d.top = parseInt(destBounds.top) -  parseInt(getComputedStyle(wv).top)
 
-        currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
-        destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
-        lastTransform.set(wv.id, d)
+        if(!isNaN(d.left ) && !isNaN(d.top)){
+            currentValue.transform = 'translate(' + c.left + 'px,' + c.top  + 'px)'
+            destValue.transform = 'translate(' + d.left  + 'px,' + d.top + 'px)'
+            lastTransform.set(wv.id, d)
+        }
 
     }
 
-    if(destBounds.width){
+    if(destBounds.width && getComputedStyle(wv).width){
         currentValue.width = getComputedStyle(wv).width
         destValue.width = destBounds.width
     }
 
-    if(destBounds.height){
+    if(destBounds.height && getComputedStyle(wv).height){
         currentValue.height = getComputedStyle(wv).height
         destValue.height = destBounds.height
     }
 
-    if(destBounds.opacity){
-
+    if(destBounds.opacity && getComputedStyle(wv).opacity){
         currentValue.opacity = getComputedStyle(wv).opacity
         destValue.opacity = destBounds.opacity
     }
@@ -919,7 +936,7 @@ function toPixels(options){
                 }
             }
             if( options.height){
-                if( options.height.indexOf("em") > -1 ) {
+                if( typeof(options.height) == "string" && options.height.indexOf("em") > -1 ) {
                     options.height =  Math.round(ems * parseFloat(options.height)) + 'px'
                 }else if(typeof(options.height) == "number"){
                     options.height =  Math.round(options.height) + 'px'
@@ -929,6 +946,6 @@ function toPixels(options){
             }
         }
     }catch(e){
-        console.log(e)
+        console.log(e, options)
     }
 }

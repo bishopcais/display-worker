@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
+    "dev" : "electron src/apprpc.js",
     "postinstall": "npm rebuild --runtime=electron --target=1.4.1 --disturl=https://atom.io/download/atom-shell --abi=50"
   },
   "author": "yedendra shrinivasan",
