@@ -346,6 +346,20 @@ class DisplayWorker {
                 let wins = this.appWindows.get(message.options.context)
                 next(JSON.stringify(wins))
                 break;
+            case "get-focus-window":
+                const w = BrowserWindow.getFocusedWindow()
+                if (w) {
+                    next(JSON.stringify({
+                            "command" : "get-focus-window",
+                            "status" : "success",
+                            "window_id" : w.id,
+                            "screenName" : this.screenName,
+                            "appContext" : this.activeAppContext
+                    }))
+                }else{
+                    next(JSON.stringify( new Error( "No Focus Window found.") ))
+                }
+                break;
             case "create-window":
                 if(message.options.appContext){
                     ctx = message.options.context
