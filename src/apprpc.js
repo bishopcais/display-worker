@@ -357,7 +357,7 @@ class DisplayWorker {
                             "appContext" : this.activeAppContext
                     }))
                 }else{
-                    next(JSON.stringify( new Error( "No Focus Window found.") ))
+                    next(JSON.stringify({}))
                 }
                 break;
             case "create-window":
