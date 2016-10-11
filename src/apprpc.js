@@ -483,6 +483,14 @@ class DisplayWorker {
                 }
                 this.create_viewobj(ctx, message.options, next)
                 break;
+            case "capture-screen":
+                let focw = BrowserWindow.getFocusedWindow()
+                if (focw) {
+                    focw.capturePage(img => {
+                        next(img.toJPEG(80))
+                    })
+                }
+                break;
             default :
                 if(message.options.view_id){
                     message.options.command = message.command
