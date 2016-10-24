@@ -24,6 +24,7 @@ app.on('ready', () => {
 
 app.on('quit', () =>{
     console.log("closing");
+    io.getStore().removeFromHash("display.screens", io.config.get("display:screenName") )
 })
 
 app.on('window-all-closed', () => {
@@ -78,6 +79,9 @@ class DisplayWorker {
         this.appWindows = new Map()
         this.appWindows.set(this.activeAppContext, [])
         this.webviewOwnerStack = new Map()
+
+
+        io.getStore().addToHash("display.screens", this.screenName, JSON.stringify(this.bounds) )
 
         io.doCall('display-rpc-queue', (request, reply, ack)=>{
             try{
