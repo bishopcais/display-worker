@@ -44,28 +44,32 @@ ipcMain.on('display-window-event', (event, arg) => {
 class DisplayWorker {
     constructor(){
         this.displays = electron.screen.getAllDisplays()    
-            
-        const bounds = { x : 0, y : 0, right : 0, bottom : 0 }
-        this.displays.forEach( (disp) => {
-            //bounds: { x: 0, y: 0, width: 1920, height: 1200 }
-            let bl = disp.bounds.x
-            let bt = disp.bounds.y
-            let br = disp.bounds.width + bl
-            let bb = disp.bounds.height + bt
+        
+        if( io.config.get('display:bounds')){
+            this.bounds = io.config.get('display:bounds')
+        }else{
+            const bounds = { x : 0, y : 0, right : 0, bottom : 0 }
+            this.displays.forEach( (disp) => {
+                //bounds: { x: 0, y: 0, width: 1920, height: 1200 }
+                let bl = disp.bounds.x
+                let bt = disp.bounds.y
+                let br = disp.bounds.width + bl
+                let bb = disp.bounds.height + bt
 
-            bounds.x = Math.min(bl, bounds.x)
-            bounds.y = Math.min(bt, bounds.y)
+                bounds.x = Math.min(bl, bounds.x)
+                bounds.y = Math.min(bt, bounds.y)
 
-            bounds.right = Math.max(br, bounds.right)
-            bounds.bottom = Math.max(bb, bounds.bottom)
+                bounds.right = Math.max(br, bounds.right)
+                bounds.bottom = Math.max(bb, bounds.bottom)
 
-            bounds.width = bounds.right - bounds.x
-            bounds.height = bounds.bottom - bounds.y
-        })
+                bounds.width = bounds.right - bounds.x
+                bounds.height = bounds.bottom - bounds.y
+            })
 
-        this.bounds = bounds
+            this.bounds = bounds
 
-        io.config.set('display:bounds', this.bounds)
+            io.config.set('display:bounds', this.bounds)
+        }
 
         console.log("\nDisplay-worker configuration : \n")
         console.log(io.config.get("display"))
@@ -83,7 +87,7 @@ class DisplayWorker {
 
         io.getStore().addToHash("display.screens", this.screenName, JSON.stringify(this.bounds) )
 
-        io.doCall('display-rpc-queue', (request, reply, ack)=>{
+        io.doCall('display-rpc-queue-' + io.config.get("display:screenName"), (request, reply, ack)=>{
             try{
                 let msg = JSON.parse(request.content.toString())
                 console.log(msg)
