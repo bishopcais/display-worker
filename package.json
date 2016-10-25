@@ -1,6 +1,6 @@
 {
   "name": "display-worker",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "description": "Display worker helps to show and manipulate contents on screen",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   "license": "ISC",
   "private": true,
   "dependencies": {
-    "celio": "^1.0.0",
+    "celio": "^2.0.0",
     "electron": "^1.4.1",
     "node-uuid": "^1.4.7",
     "robotjs": "^0.4.4"

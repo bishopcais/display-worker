@@ -41,6 +41,10 @@ ipcMain.on('display-window-event', (event, arg) => {
   io.publishTopic("display.window", arg)
 })
 
+ipcMain.on('launchermenu', (event , arg) => {
+    io.publishTopic('launchermenu', arg)
+})
+
 class DisplayWorker {
     constructor(){
         this.displays = electron.screen.getAllDisplays()    
@@ -94,6 +98,38 @@ class DisplayWorker {
                 this.process_message(msg, reply)
             }catch(e){
                 reply(JSON.stringify(e))
+            }
+        })
+
+        io.onTopic("launchermenu", (e) => {
+            const m = JSON.parse(e.toString())
+            switch (m.command){
+                case "launchApp" :
+                    // set-active context
+                    // update active app context 
+                    break;
+                case "showLauncher" :
+                    let b = BrowserWindow.getFocusedWindow()
+                    if(io.config.get("display:launcherMenu") && b){
+                        let items = io.config.get("display:launcherMenu:apps") ? io.config.get("display:launcherMenu:apps") : []
+                        let pos = io.config.get("display:launcherMenu:position") ? io.config.get("display:launcherMenu:position") : "left"
+                        io.getStore().getSet("appcontexts").then(m => {
+                            Array.from(m).forEach(x => {
+                                items.push({"name" : x } )
+                            })
+                            b.webContents.send("launchermenu", "showmenu", { items : items, position : pos})      
+                        })
+                    }                     
+                    break;
+                case "hideLauncher" :
+                    let bw = BrowserWindow.getFocusedWindow()
+                    if(io.config.get("display:launcherMenu") && bw){
+                        let pos = io.config.get("display:launcherMenu:position") ? io.config.get("display:launcherMenu:position") : "left"
+                        bw.webContents.send("launchermenu", "hidemenu", {position : pos})      
+                    }
+                    break;
+                default :
+
             }
         })
 
@@ -202,7 +238,7 @@ class DisplayWorker {
         
         let browser = new BrowserWindow(opts)
         console.log("loading template : ", "file://" + process.cwd() + "/" + options.template)
-        browser.loadURL("file://" + process.cwd() + "/" + options.template)
+        browser.loadURL("file://" + process.cwd() + "/template/" + options.template)
         
         browser.on('closed', () =>{
         })
@@ -319,6 +355,14 @@ class DisplayWorker {
                     "details" : this.displays
                 }
                 next(JSON.stringify([screens]))
+                break;
+            case "get-bounds" :
+                let bound = {
+                    "screenName" : this.screenName,
+                    "bounds" : this.bounds,
+                    "details" : this.displays
+                }
+                next(JSON.stringify(bound))
                 break;
             case "get-active-app-context" :
                 next(this.activeAppContext)

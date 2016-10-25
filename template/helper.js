@@ -8,6 +8,14 @@ let snappingDistance = 400
 
 const {ipcRenderer} = nodeRequire('electron')
 
+ipcRenderer.on("launchermenu", (event, arg) => {
+    if(event == "showmenu"){
+        showLauncherMenu(arg.items, arg.position)
+    }else if(event == "hidemenu"){
+        hideLauncherMenu( arg.position)
+    }
+})
+
 $(document).on('scroll', function() {
   $(document).scrollLeft(0)
   $(document).scrollTop(0)
