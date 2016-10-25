@@ -4,6 +4,10 @@
     "username": "",
     "password": ""
   },
+  "store" : {
+    "url" : "",
+    "password" : ""
+  },
   "display" : {
     "screenName" : "front",
     "hotspot" : {
