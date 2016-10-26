@@ -101,7 +101,7 @@ class DisplayWorker {
             }
         })
 
-        io.onTopic("launchermenu", (e) => {
+        /*io.onTopic("launchermenu", (e) => {
             const m = JSON.parse(e.toString())
             switch (m.command){
                 case "launchApp" :
@@ -132,6 +132,7 @@ class DisplayWorker {
 
             }
         })
+        */
 
         this.pointing = new Pointing(io)
         console.log("\nworker server started.\n")
@@ -231,6 +232,7 @@ class DisplayWorker {
             frame: false,
             enableLargerThanScreen: true,
             acceptFirstMouse : true,
+            backgroundColor: '#2e2c29',
             webPreferences : {
                 nodeIntegration : true
             }
@@ -251,6 +253,12 @@ class DisplayWorker {
 
         browser.on('blur', () => {
             browser.webContents.executeJavaScript("clearAllCursors()")
+            browser.webContents.executeJavaScript("hideLauncherMenu()")
+            browser.webContents.setAudioMuted(true)
+        })
+
+        browser.on('focus', () => {
+            browser.webContents.setAudioMuted(false)
         })
 
         browser.webContents.on("will-navigate", (e) => {
@@ -261,6 +269,12 @@ class DisplayWorker {
 
         browser.webContents.on('dom-ready', () => {
             browser.isReady = true
+
+            if(io.config.get("display:launcherMenu")){
+                io.getStore().getState("apps").then( m => {
+                    browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + "," + io.config.get("display:launcherMenu:position")  + ")")
+                })
+            }
             if(options.contentGrid){
                 this.execute_in_displaywindow(Object.assign(options, {
                     window_id: b_id,
