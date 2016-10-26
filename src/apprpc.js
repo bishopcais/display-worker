@@ -25,6 +25,7 @@ app.on('ready', () => {
 app.on('quit', () =>{
     console.log("closing");
     io.getStore().removeFromHash("display.screens", io.config.get("display:screenName") )
+    io.publishTopic("display.removed", io.config.get("display:screenName"))
 })
 
 app.on('window-all-closed', () => {
@@ -34,7 +35,7 @@ app.on('window-all-closed', () => {
 
 
 ipcMain.on('view-object-event', (event, arg) => {
-  io.publishTopic("display.window.viewobject", arg)
+  io.publishTopic("display.viewobject", arg)
 })
 
 ipcMain.on('display-window-event', (event, arg) => {
@@ -101,40 +102,8 @@ class DisplayWorker {
             }
         })
 
-        /*io.onTopic("launchermenu", (e) => {
-            const m = JSON.parse(e.toString())
-            switch (m.command){
-                case "launchApp" :
-                    // set-active context
-                    // update active app context 
-                    break;
-                case "showLauncher" :
-                    let b = BrowserWindow.getFocusedWindow()
-                    if(io.config.get("display:launcherMenu") && b){
-                        let items = io.config.get("display:launcherMenu:apps") ? io.config.get("display:launcherMenu:apps") : []
-                        let pos = io.config.get("display:launcherMenu:position") ? io.config.get("display:launcherMenu:position") : "left"
-                        io.getStore().getSet("appcontexts").then(m => {
-                            Array.from(m).forEach(x => {
-                                items.push({"name" : x } )
-                            })
-                            b.webContents.send("launchermenu", "showmenu", { items : items, position : pos})      
-                        })
-                    }                     
-                    break;
-                case "hideLauncher" :
-                    let bw = BrowserWindow.getFocusedWindow()
-                    if(io.config.get("display:launcherMenu") && bw){
-                        let pos = io.config.get("display:launcherMenu:position") ? io.config.get("display:launcherMenu:position") : "left"
-                        bw.webContents.send("launchermenu", "hidemenu", {position : pos})      
-                    }
-                    break;
-                default :
-
-            }
-        })
-        */
-
         this.pointing = new Pointing(io)
+        io.publishTopic("display.added", io.config.get("display:screenName"))
         console.log("\nworker server started.\n")
     }
 
