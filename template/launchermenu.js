@@ -15,6 +15,7 @@ ipcRenderer.on("launchermenu", (event, arg) => {
 
 
 function setupNativeMenuHandler(items, position){
+    console.log("setting up menu ", items, position)
     isNativeMenuHandlerEnabled = true
     lmenuitems = items
     lmenuposition = position
@@ -68,7 +69,7 @@ function showLauncherMenu () {
     }
 
     document.getElementById("pointing").appendChild(menu)
-    menu.animate( [ { left : left }, { left : destleft }],  {
+    menu.animate( [ { "left" : left }, { "left" : destleft }],  {
         duration : 800, fill: 'forwards', easing: 'ease-in-out'
     })
 
@@ -84,7 +85,7 @@ function hideLauncherMenu () {
     }
 
     let menu = document.getElementById("launchermenu1")
-    menu.animate( [ { left : left }, { left : destleft }],  {
+    menu.animate( [ { "left" : left }, { "left" : destleft }],  {
         duration : 800, fill: 'forwards', easing: 'ease-in-out'
     }).onFinish(() => {
         $(menu).remove()

@@ -236,14 +236,19 @@ class DisplayWorker {
             return false
         })
 
-        browser.webContents.on('dom-ready', () => {
-            browser.isReady = true
-
+        browser.webContents.on('did-finish-load', ()=> {
             if(io.config.get("display:launcherMenu")){
                 io.getStore().getState("apps").then( m => {
+                    console.log("setting up menu handler")
                     browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + "," + io.config.get("display:launcherMenu:position")  + ")")
                 })
             }
+            
+        })
+
+        browser.webContents.on('dom-ready', () => {
+            browser.isReady = true
+
             if(options.contentGrid){
                 this.execute_in_displaywindow(Object.assign(options, {
                     window_id: b_id,
