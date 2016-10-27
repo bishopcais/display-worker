@@ -43,6 +43,7 @@ ipcMain.on('display-window-event', (event, arg) => {
 })
 
 ipcMain.on('launchermenu', (event , arg) => {
+    console.log(" launch menu ", arg)
     io.publishTopic('launchmenu.select', arg)
 })
 
