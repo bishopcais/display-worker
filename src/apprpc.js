@@ -445,6 +445,16 @@ class DisplayWorker {
                 }
                     
                 break;
+            case "hide-all-windows":
+                let bs = BrowserWindow.getAllWindows()
+                for( var i = 0; i < bs.length ;i++)
+                    bs[i].hide()
+
+                next(JSON.stringify({
+                    "command" : "hide-all-windows",
+                    "status" : "success"
+                }))
+                break;
             case "show-window":
                  if(message.options.window_id){
                     let b = BrowserWindow.fromId(message.options.window_id);
