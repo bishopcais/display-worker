@@ -85,7 +85,7 @@ function hideLauncherMenu () {
     
 
     let menu = document.getElementById("launchermenu1")
-    if(menu){
+    if(menu && isShowingMenu){
         let left = getComputedStyle(menu).left;
         console.log(left)
         let destleft = "-40vw"
