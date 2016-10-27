@@ -240,7 +240,7 @@ class DisplayWorker {
             if(io.config.get("display:launcherMenu")){
                 io.getStore().getState("apps").then( m => {
                     console.log("setting up menu handler")
-                    browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + "," + io.config.get("display:launcherMenu:position")  + ")")
+                    browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + ", '" + io.config.get("display:launcherMenu:position")  + "')")
                 })
             }
             

@@ -19,7 +19,8 @@ function setupNativeMenuHandler(items, position){
     isNativeMenuHandlerEnabled = true
     lmenuitems = items
     lmenuposition = position
-    window.addEventListener('mouseenter', nativeMenuHandle)
+    document.addEventListener('mouseenter', nativeMenuHandle)
+    document.addEventListener('mouseleave', hideLauncherMenu)
 }
 
 function nativeMenuHandle(e){
@@ -37,7 +38,7 @@ function nativeMenuHandle(e){
 function disableNativeMenuHandler(){
     if(isNativeMenuHandlerEnabled){
         isNativeMenuHandlerEnabled = false
-        window.removeEventListener('mouseenter', nativeMenuHandle)
+        document.removeEventListener('mouseenter', nativeMenuHandle)
     }
 }
 
@@ -49,7 +50,7 @@ function showLauncherMenu () {
 
     $(".launchermenu").remove()
     
-    let left = "-20vw";
+    let left = "-40vw";
     let destleft = "0vw"
     
     if(lmenuposition == "right"){
@@ -63,8 +64,8 @@ function showLauncherMenu () {
     menu.left = left
 
     for( var i = 0; i < lmenuitems.length; i++){
-        let it = document.createElement("div")
-        div.innerHTML = lmenuitems[i].name 
+        let div = document.createElement("div")
+        div.innerHTML = lmenuitems[i].label 
         menu.appendChild(div)
     }
 
@@ -73,23 +74,31 @@ function showLauncherMenu () {
         duration : 800, fill: 'forwards', easing: 'ease-in-out'
     })
 
-    setTimeout(hideLauncherMenu , 3800)
+    menu.addEventListener("mouseleave", ()=>{
+       setTimeout( hideLauncherMenu, 500)
+    })
+
+    // setTimeout(hideLauncherMenu , 3800)
 }
 
 function hideLauncherMenu () {
-    let left = "0vw";
-    let destleft = "-20vw"
-    if(lmenuposition == "right"){
-        left = "80vw"
-        destleft = "100vw"
-    }
+    
 
     let menu = document.getElementById("launchermenu1")
-    menu.animate( [ { "left" : left }, { "left" : destleft }],  {
-        duration : 800, fill: 'forwards', easing: 'ease-in-out'
-    }).onFinish(() => {
-        $(menu).remove()
+    if(menu){
+        let left = getComputedStyle(menu).left;
+        console.log(left)
+        let destleft = "-40vw"
+        if(lmenuposition == "right"){
+            left = "80vw"
+            destleft = "100vw"
+        }
+        menu.animate(   [ { "left" : left }, { "left" : destleft }],  {
+            duration : 800, fill: 'forwards', easing: 'ease-in-out'
+        })
+        
         isShowingMenu = false
-    })
+    
+    }
      
 }
