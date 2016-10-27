@@ -66,6 +66,11 @@ function showLauncherMenu () {
     for( var i = 0; i < lmenuitems.length; i++){
         let div = document.createElement("div")
         div.innerHTML = lmenuitems[i].label 
+        div.addEventListener("mousedown", (e) => {
+            var obj = lmenuitems.filter( x => x.label == e.target.innerHTML )[0]
+            ipcRenderer.send('launchermenu', JSON.stringify({ obj }))
+            hideLauncherMenu()
+        })
         menu.appendChild(div)
     }
 

@@ -43,7 +43,7 @@ ipcMain.on('display-window-event', (event, arg) => {
 })
 
 ipcMain.on('launchermenu', (event , arg) => {
-    io.publishTopic('launchermenu', arg)
+    io.publishTopic('menu-select', arg)
 })
 
 class DisplayWorker {
