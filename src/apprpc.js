@@ -82,12 +82,12 @@ class DisplayWorker {
         this.config = io.config.get("display")
         
         this.screenName = this.config.screenName
-        this.appContext = new Set()
-        this.appContext.add("default")
-        this.activeAppContext = "default"
+        this.displayContext = new Set()
+        this.displayContext.add("default")
+        this.activeDisplayContext = "default"
         
-        this.appWindows = new Map()
-        this.appWindows.set(this.activeAppContext, [])
+        this.dcWindows = new Map()
+        this.dcWindows.set(this.activeDisplayContext, [])
         this.webviewOwnerStack = new Map()
 
 
@@ -108,13 +108,13 @@ class DisplayWorker {
         console.log("\nworker server started.\n")
     }
 
-    close_app_context (context, next) {
+    close_display_context (context, next) {
         if(context == "default"){
             next(JSON.stringify( new Error("Cannot close default context")))
             return
         }
-        this.appContext.delete(context)
-        let b_list  = this.appWindows.get(context)
+        this.displayContext.delete(context)
+        let b_list  = this.dcWindows.get(context)
         if(b_list){
             let wv_ids = []
             b_list.forEach((b_id) => {
@@ -132,18 +132,18 @@ class DisplayWorker {
                 })
 
             }, this)
-            this.appWindows.delete(context)
-            this.activeAppContext = "default"
+            this.dcWindows.delete(context)
+            this.activeDisplayContext = "default"
             next(JSON.stringify({
                 "status" : "success",
-                "command" : "close-app-context",
-                "message" : context + " : context closed. The active app context is set to default context. Please use setAppContext to bring up the default context or specify an existing or new app context."
+                "command" : "close-display-context",
+                "message" : context + " : context closed. The active display context is set to default context. Please use setDisplayContext to bring up the default context or specify an existing or new display context."
             })) 
             io.publishTopic("display", JSON.stringify({
-                type : "appContextClosed",
+                type : "displayContextClosed",
                 details : {
-                    appContext : context,
-                    newAppContext : this.activeAppContext,
+                    oldDisplayContext : context,
+                    newDisplayContext : this.activeDisplayContext,
                     closedWindows : b_list,
                     closedViewObjects : wv_ids
                 }
@@ -151,15 +151,15 @@ class DisplayWorker {
         }else{
             next(JSON.stringify({
                 "status" : "warning",
-                "command" : "close-app-context",
+                "command" : "close-display-context",
                 "message" : context + " : context does not exist"
             }))
         }
     }
 
-    set_app_context(context, next) {
-        if( this.activeAppContext != context ){
-            let b_list  = this.appWindows.get(this.activeAppContext)
+    set_display_context(context, next) {
+        if( this.activeDisplayContext != context ){
+            let b_list  = this.dcWindows.get(this.activeDisplayContext)
             if(b_list){
                 b_list.forEach((element) => {
                     let b = BrowserWindow.fromId(element)
@@ -169,26 +169,26 @@ class DisplayWorker {
                 }, this);
             }
         }
-        this.activeAppContext = context
-        if(this.appWindows.has(this.activeAppContext)){
-            let b_list  = this.appWindows.get(this.activeAppContext)
+        this.activeDisplayContext = context
+        if(this.dcWindows.has(this.activeDisplayContext)){
+            let b_list  = this.dcWindows.get(this.activeDisplayContext)
             b_list.forEach((element) => {
                 let b = BrowserWindow.fromId(element)
                 if(b) b.show()
             }, this)
         }else{
-            this.appWindows.set(this.activeAppContext, []);
+            this.dcWindows.set(this.activeDisplayContext, []);
         }
         io.publishTopic("display", JSON.stringify({
-            type : "appContextChanged",
+            type : "displayContextChanged",
             details : {
-                appContext : this.activeAppContext
+                displayContext : this.activeDisplayContext
             }
         }))
         next(JSON.stringify({
             "status" : "success",
             "command" : "set-active-context",
-            "message" : this.activeAppContext + " is now active"
+            "message" : this.activeDisplayContext + " is now active"
         })) 
     }
 
@@ -214,11 +214,11 @@ class DisplayWorker {
         
         browser.on('closed', () =>{
         })
-        if(!this.appWindows.has(context)){
-            this.appWindows.set(context, [])
+        if(!this.dcWindows.has(context)){
+            this.dcWindows.set(context, [])
         }
-        this.appWindows.get( context ).push( browser.id )
-        let b_list = this.appWindows.get( context )
+        this.dcWindows.get( context ).push( browser.id )
+        let b_list = this.dcWindows.get( context )
         b_id = b_list[b_list.length -1];    
 
         browser.on('blur', () => {
@@ -254,22 +254,32 @@ class DisplayWorker {
                 this.execute_in_displaywindow(Object.assign(options, {
                     window_id: b_id,
                     screenName: this.screenName,
-                    appContext: this.activeAppContext,
+                    displayContext: this.activeDisplayContext,
+                    windowName : options.windowName,
                     template: options.template,
+                    x : options.x,
+                    y : options.y,
+                    width : options.width,
+                    height : options.height,
                     command: "create-grid"
                 }), next)
             }else{
                 next(JSON.stringify({
                     status : "success",
                     window_id : b_id,
+                    x : options.x,
+                    y : options.y,
+                    width : options.width,
+                    height : options.height,
                     screenName : this.screenName,
-                    appContext : this.activeAppContext
+                    displayContext : this.activeDisplayContext,
+                    windowName : options.windowName
                 }))
             }
             io.publishTopic("display.window", JSON.stringify({
                 type : "displayWindowCreated",
                 details : {
-                    appContext : this.activeAppContext,
+                    displayContext : this.activeDisplayContext,
                     window_id : b_id,
                     screenName : this.screenName
                 }
@@ -286,7 +296,8 @@ class DisplayWorker {
         this.execute_in_displaywindow(Object.assign(options, {
             window_id : options.window_id,
             screenName : options.screenName,
-            appContext : ctx,
+            windowName : options.windowName,
+            displayContext : ctx,
             command: "create-viewobj",
             view_id : view_id
         }), next)
@@ -323,7 +334,7 @@ class DisplayWorker {
     getWindowContext(window_id){
         let ctx = "" 
         
-        this.appWindows.forEach( (v,k) =>{
+        this.dcWindows.forEach( (v,k) =>{
             if(v.indexOf(window_id) > -1){
                 ctx = k
             }
@@ -334,7 +345,7 @@ class DisplayWorker {
     process_message ( message, next) {
         // console.log("executing : ", message.content.toString())
         // message = JSON.parse(message.content.toString())
-        let ctx = this.activeAppContext
+        let ctx = this.activeDisplayContext
         try{
         switch (message.command){
             case "get-screens" :
@@ -353,18 +364,18 @@ class DisplayWorker {
                 }
                 next(JSON.stringify(bound))
                 break;
-            case "get-active-app-context" :
-                next(this.activeAppContext)
+            case "get-active-display-context" :
+                next(this.activeDisplayContext)
                 break;
-            case "set-app-context":
-                if(!this.appContext.has(message.options.context)){
-                    this.appContext.add(message.options.context)
+            case "set-display-context":
+                if(!this.displayContext.has(message.options.context)){
+                    this.displayContext.add(message.options.context)
                 }
-                console.log(this.appContext)
-                this.set_app_context( message.options.context, next)
+                console.log(this.displayContext)
+                this.set_display_context( message.options.context, next)
                 break;
-            case "hide-app-context":
-                let b_list  = this.appWindows.get(message.options.context)
+            case "hide-display-context":
+                let b_list  = this.dcWindows.get(message.options.context)
                 if(b_list){
                     b_list.forEach((b_id) => {
                         let b = BrowserWindow.fromId(b_id)
@@ -372,19 +383,19 @@ class DisplayWorker {
                     }, this)
                 }
                 next(JSON.stringify({
-                            "command" : "hide-app-context",
+                            "command" : "hide-display-context",
                             "status" : "success"
                         }))
                 break;
-            case "close-app-context":
-                this.close_app_context(message.options.context, next)
+            case "close-display-context":
+                this.close_display_context(message.options.context, next)
                 break;
             case "get-all-contexts":
-                console.log(this.appContext)
-                next(JSON.stringify(Array.from(this.appContext)))
+                console.log(this.displayContext)
+                next(JSON.stringify(Array.from(this.displayContext)))
                 break;
             case "get-all-windows-by-context":
-                let wins = this.appWindows.get(message.options.context)
+                let wins = this.dcWindows.get(message.options.context)
                 next(JSON.stringify(wins))
                 break;
             case "get-focus-window":
@@ -395,21 +406,21 @@ class DisplayWorker {
                             "status" : "success",
                             "window_id" : w.id,
                             "screenName" : this.screenName,
-                            "appContext" : this.activeAppContext
+                            "displayContext" : this.activeDisplayContext
                     }))
                 }else{
                     next(JSON.stringify({}))
                 }
                 break;
             case "create-window":
-                if(message.options.appContext){
+                if(message.options.displayContext){
                     ctx = message.options.context
                 }
                 this.create_window(ctx, message.options, next)
                 break;
             case "close-all-windows":
-                for( let ctx of this.appContext){
-                    let b_list  = this.appWindows.get(ctx)
+                for( let ctx of this.displayContext){
+                    let b_list  = this.dcWindows.get(ctx)
                     if(b_list){
                         b_list.forEach((b_id) => {
                             let b = BrowserWindow.fromId(b_id)
@@ -425,8 +436,8 @@ class DisplayWorker {
                         }, this)
                     }
                 }
-                this.appContext.clear()
-                this.appContext.add("default")
+                this.displayContext.clear()
+                this.displayContext.add("default")
                 next(JSON.stringify({
                             "command" : "close-all-windows",
                             "status" : "success"
@@ -489,10 +500,10 @@ class DisplayWorker {
                         })
                         wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
                         let w_ctx = this.getWindowContext(b.id)
-                        if(this.appWindows.has(w_ctx)){
-                            let win_arr = this.appWindows.get( w_ctx   )
+                        if(this.dcWindows.has(w_ctx)){
+                            let win_arr = this.dcWindows.get( w_ctx   )
                             win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
-                            this.appWindows.set(w_ctx, win_arr)
+                            this.dcWindows.set(w_ctx, win_arr)
                         }
                         b.close()
                         next(JSON.stringify({
@@ -505,7 +516,7 @@ class DisplayWorker {
                         io.publishTopic("display.window", JSON.stringify({
                             type : "displayWindowClosed",
                             details : {
-                                appContext : w_ctx,
+                                displayContext : w_ctx,
                                 window_id : message.options.window_id,
                                 screenName : this.screenName
                             }
@@ -529,17 +540,19 @@ class DisplayWorker {
                 next(JSON.stringify({"status" : "success", "devTools" : message.options.devTools} ))
                 break;   
             case "create-viewobj" :
-                if(message.options.appContext){
+                if(message.options.displayContext){
                     ctx = message.options.context
                 }
                 this.create_viewobj(ctx, message.options, next)
                 break;
-            case "capture-screen":
-                let focw = BrowserWindow.getFocusedWindow()
+            case "capture-window":
+                let focw = BrowserWindow.fromId(message.options.window_id)
                 if (focw) {
                     focw.capturePage(img => {
                         next(img.toJPEG(80))
                     })
+                }else{
+                    next ( JSON.stringify( new Error(`Window ${message.options.window_id} not found`) ))
                 }
                 break;
             default :

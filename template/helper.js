@@ -30,8 +30,11 @@ function getClosestGrid(x,y){
     }
 
 	console.log("min_dist : ", min_dist, "label : ", temp_label)
-	return  { left : grid[temp_label].x, top : grid[temp_label].y, width : grid[temp_label].width,
-        height : grid[temp_label].height, sq_dist : min_dist}
+    if(temp_label == "")
+        return false
+    else
+	    return  { left : grid[temp_label].x, top : grid[temp_label].y, width : grid[temp_label].width,
+            height : grid[temp_label].height, sq_dist : min_dist}
 }
 function rectangleSelect(selector, x1, y1, x2, y2) {
     var elements = [];
@@ -252,7 +255,12 @@ function execute(opts){
             return {
                 window_id : options.window_id,
                 screenName : options.screenName,
-                appContext : options.appContext,
+                displayContext : options.displayContext,
+                windowName : options.windowName,
+                x : options.x,
+                y : options.y,
+                width : options.width,
+                height : options.height,
                 template : options.template
             }
         }else  if(options.command == "get-grid"){
@@ -334,6 +342,10 @@ function execute(opts){
             wv.style.zIndex = 0
             wv.src = options.url
 
+            if(options.deviceEmulation){
+                wv.getWebContents().enableDeviceEmulation(options.deviceEmulation)
+            }
+
             if(options.url.indexOf(".mp4") > -1 && options.url.indexOf("file:///") > -1 ){
                 wv.addEventListener("dom-ready", () => {
                     wv.insertCSS( "video{ width : 100vw; height: 100vh;}" )
@@ -404,21 +416,20 @@ function execute(opts){
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                                 pointingDiv.style.display = "none"
                                 wv.dispatchEvent(new Event("dragHintEnd"))
-                                ipcRenderer.send('view-object-event', JSON.stringify({
-                                    type : "boundsChanged",
-                                    details : {
-                                        top : $(wv).offset().top,
-                                        left : $(wv).offset().left,
-                                        width : $(wv).width(),
-                                        height : $(wv).height(),
-                                        units : "px",
-                                        view_id : wv.id
-                                    }
-                                }))
+                                
+                                let _d = {
+                                    top : $(wv).offset().top,
+                                    left : $(wv).offset().left,
+                                    width : $(wv).width(),
+                                    height : $(wv).height(),
+                                    units : "px",
+                                    view_id : wv.id
+                                }
+
                                 //shang
-                                closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
+                                closest = getClosestGrid($(wv).offset().left,$(wv).offset().top);
                                 let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-                                if(Math.sqrt(closest.sq_dist) < snappingDistance){
+                                if(closest && Math.sqrt(closest.sq_dist) < snappingDistance){
                                     let destBounds =  {
                                         "left" : closest.left + "px",
                                         "top" :  closest.top + "px",
@@ -430,8 +441,28 @@ function execute(opts){
                                             easing : 'linear'
                                             }
                                     }
-                                    setBounds(wv, destBounds);
+                                    _d.top = closest.top
+                                    _d.left = closest.left
+                                    _d.width = parseInt(destBounds.width)
+                                    _d.height = parseInt(destBounds.height)
+
+                                    let animate = setBounds(wv, destBounds)
+                                    if(animate){
+                                        animate.onFinish(() => {
+                                            ipcRenderer.send('view-object-event', JSON.stringify({
+                                                type : "boundsChanged",
+                                                details :  _d
+                                            }))
+                                        })
+                                    }
+                                }else{
+                                    ipcRenderer.send('view-object-event', JSON.stringify({
+                                        type : "boundsChanged",
+                                        details : _d
+                                    }))
                                 }
+
+                                
                             }
                         }
                     })
@@ -500,7 +531,7 @@ function execute(opts){
                 }))
 
             return { "view_id" : wv.id, command : "create" , "status" : "success",
-            "window_id" : options.window_id,"screenName" : options.screenName }
+            "window_id" : options.window_id,"screenName" : options.screenName , "windowName" : options.windowName }
         }else if(options.command == "webview-execute-javascript") {
             let wv = document.getElementById(options.view_id)
             if (wv) {
@@ -539,6 +570,14 @@ function execute(opts){
 
             }else{
                 return {"view_id" : wv.id,  command : "set-url" ,"error" : "view not found" }
+            }
+
+        }else if(options.command == "get-url") {
+            let wv = document.getElementById(options.view_id)
+            if(wv){
+                return {"view_id" : wv.id,  command : "get-url" ,"status" : "success" , "url" : wv.src }
+            }else{
+                return {"view_id" : wv.id,  command : "get-url" ,"error" : "view not found" }
             }
 
         }else if(options.command == "reload") {
@@ -637,21 +676,51 @@ function execute(opts){
                 return {"view_id" : wv.id,  command : "set-bounds" ,"error" : "view not found" }
             }
 
+        }else if(options.command == "get-bounds") {
+            let wv = document.getElementById(options.view_id)
+            if(wv){
+                let _d = {}
+                _d.left = getComputedStyle(wv).left
+                _d.top = getComputedStyle(wv).top
+                _d.width = getComputedStyle(wv).width
+                _d.height = getComputedStyle(wv).height
+
+                return {"view_id" : wv.id,  command : "get-bounds" ,"status" : "success", "bounds" : _d }
+            }else{
+                return {"view_id" : wv.id,  command : "get-bounds" ,"error" : "view not found" }
+            }
+
         }else if(options.command == "back") {
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.goBack()
-                return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
+                return {"view_id" : wv.id,  command : "back" ,"status" : "success" }
             }else{
-                return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
+                return {"view_id" : wv.id,  command : "back" ,"error" : "view not found" }
             }
          }else if(options.command == "forward") {
             let wv = document.getElementById(options.view_id)
             if(wv){
                 wv.goForward()
-                return {"view_id" : wv.id,  command : "reload" ,"status" : "success" }
+                return {"view_id" : wv.id,  command : "forward" ,"status" : "success" }
             }else{
-                return {"view_id" : wv.id,  command : "reload" ,"error" : "view not found" }
+                return {"view_id" : wv.id,  command : "forward" ,"error" : "view not found" }
+            }
+        }else if(options.command == "enable-device-emulation") {
+            let wv = document.getElementById(options.view_id)
+            if(wv){
+                wv.getWebContents().enableDeviceEmulation(options.parameters)
+                return {"view_id" : wv.id,  command : "enable-device-emulation" ,"status" : "success" }
+            }else{
+                return {"view_id" : wv.id,  command : "enable-device-emulation" ,"error" : "view not found" }
+            }
+        }else if(options.command == "disable-device-emulation") {
+            let wv = document.getElementById(options.view_id)
+            if(wv){
+                wv.getWebContents().disableDeviceEmulation()
+                return {"view_id" : wv.id,  command : "disable-device-emulation" ,"status" : "success" }
+            }else{
+                return {"view_id" : wv.id,  command : "disable-device-emulation" ,"error" : "view not found" }
             }
         }else if(options.command == 'view-object-dev-tools'){
             let vb = document.getElementById(options.view_id)
