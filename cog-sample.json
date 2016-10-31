@@ -5,7 +5,7 @@
     "password": ""
   },
   "display" : {
-    "screenName" : "front",
+    "displayName" : "front",
     "hotspot" : {
         "center" : [175.2119, 910.8918, -4263.35],
         "normal" : [ 0.0, 0.0, -1.0 ],

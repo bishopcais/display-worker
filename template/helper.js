@@ -254,7 +254,7 @@ function execute(opts){
 
             return {
                 window_id : options.window_id,
-                screenName : options.screenName,
+                displayName : options.displayName,
                 displayContext : options.displayContext,
                 windowName : options.windowName,
                 x : options.x,
@@ -531,7 +531,7 @@ function execute(opts){
                 }))
 
             return { "view_id" : wv.id, command : "create" , "status" : "success",
-            "window_id" : options.window_id,"screenName" : options.screenName , "windowName" : options.windowName }
+            "window_id" : options.window_id,"displayName" : options.displayName , "windowName" : options.windowName }
         }else if(options.command == "webview-execute-javascript") {
             let wv = document.getElementById(options.view_id)
             if (wv) {

@@ -15,7 +15,7 @@ app.on('ready', () => {
 	let displays = electron.screen.getAllDisplays()
 
 
-    console.log("screens attached to this display-worker: \n")
+    console.log("Displays attached to this display-worker: \n")
     displays.forEach((d) => {
         console.log(d)
     })
@@ -24,8 +24,8 @@ app.on('ready', () => {
 
 app.on('quit', () =>{
     console.log("closing");
-    io.getStore().removeFromHash("display.screens", io.config.get("display:screenName") )
-    io.publishTopic("display.removed", io.config.get("display:screenName"))
+    io.getStore().removeFromHash("display.displays", io.config.get("display:displayName") )
+    io.publishTopic("display.removed", io.config.get("display:displayName"))
 })
 
 app.on('window-all-closed', () => {
@@ -71,7 +71,7 @@ class DisplayWorker {
                 bounds.width = bounds.right - bounds.x
                 bounds.height = bounds.bottom - bounds.y
             })
-
+            bounds.details = this.displays
             this.bounds = bounds
 
             io.config.set('display:bounds', this.bounds)
@@ -81,7 +81,7 @@ class DisplayWorker {
         console.log(io.config.get("display"))
         this.config = io.config.get("display")
         
-        this.screenName = this.config.screenName
+        this.displayName = this.config.displayName
         this.displayContext = new Set()
         this.displayContext.add("default")
         this.activeDisplayContext = "default"
@@ -91,9 +91,10 @@ class DisplayWorker {
         this.webviewOwnerStack = new Map()
 
 
-        io.getStore().addToHash("display.screens", this.screenName, JSON.stringify(this.bounds) )
 
-        io.doCall('display-rpc-queue-' + io.config.get("display:screenName"), (request, reply, ack)=>{
+        io.getStore().addToHash("display.displays", this.displayName, JSON.stringify(this.bounds) )
+
+        io.doCall('display-rpc-queue-' + io.config.get("display:displayName"), (request, reply, ack)=>{
             try{
                 let msg = JSON.parse(request.content.toString())
                 console.log(msg)
@@ -104,7 +105,7 @@ class DisplayWorker {
         })
 
         this.pointing = new Pointing(io)
-        io.publishTopic("display.added", io.config.get("display:screenName"))
+        io.publishTopic("display.added", io.config.get("display:displayName"))
         console.log("\nworker server started.\n")
     }
 
@@ -253,7 +254,7 @@ class DisplayWorker {
             if(options.contentGrid){
                 this.execute_in_displaywindow(Object.assign(options, {
                     window_id: b_id,
-                    screenName: this.screenName,
+                    displayName: this.displayName,
                     displayContext: this.activeDisplayContext,
                     windowName : options.windowName,
                     template: options.template,
@@ -271,7 +272,7 @@ class DisplayWorker {
                     y : options.y,
                     width : options.width,
                     height : options.height,
-                    screenName : this.screenName,
+                    displayName : this.displayName,
                     displayContext : this.activeDisplayContext,
                     windowName : options.windowName
                 }))
@@ -281,7 +282,7 @@ class DisplayWorker {
                 details : {
                     displayContext : this.activeDisplayContext,
                     window_id : b_id,
-                    screenName : this.screenName
+                    displayName : this.displayName
                 }
             }))
         })
@@ -295,7 +296,7 @@ class DisplayWorker {
         
         this.execute_in_displaywindow(Object.assign(options, {
             window_id : options.window_id,
-            screenName : options.screenName,
+            displayName : options.displayName,
             windowName : options.windowName,
             displayContext : ctx,
             command: "create-viewobj",
@@ -348,17 +349,9 @@ class DisplayWorker {
         let ctx = this.activeDisplayContext
         try{
         switch (message.command){
-            case "get-screens" :
-                let screens = {
-                    "screenName" : this.screenName,
-                    "bounds" : this.bounds,
-                    "details" : this.displays
-                }
-                next(JSON.stringify([screens]))
-                break;
             case "get-bounds" :
                 let bound = {
-                    "screenName" : this.screenName,
+                    "displayName" : this.displayName,
                     "bounds" : this.bounds,
                     "details" : this.displays
                 }
@@ -401,12 +394,18 @@ class DisplayWorker {
             case "get-focus-window":
                 const w = BrowserWindow.getFocusedWindow()
                 if (w) {
+                    let _dc = "default"
+                    for( let [k, v] of this.dcWindows){
+                        if(v.indexOf( w.id) > -1){
+                            _dc = k
+                        }
+                    }
                     next(JSON.stringify({
                             "command" : "get-focus-window",
                             "status" : "success",
                             "window_id" : w.id,
-                            "screenName" : this.screenName,
-                            "displayContext" : this.activeDisplayContext
+                            "displayName" : this.displayName,
+                            "displayContext" : _dc
                     }))
                 }else{
                     next(JSON.stringify({}))
@@ -518,7 +517,7 @@ class DisplayWorker {
                             details : {
                                 displayContext : w_ctx,
                                 window_id : message.options.window_id,
-                                screenName : this.screenName
+                                displayName : this.displayName
                             }
                         }))
                     }else{
