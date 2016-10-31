@@ -408,7 +408,7 @@ class DisplayWorker {
                             "displayContext" : _dc
                     }))
                 }else{
-                    next(JSON.stringify({}))
+                    next(JSON.stringify(new Error("none of the  display windows are in focus")))
                 }
                 break;
             case "create-window":

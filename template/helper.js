@@ -342,10 +342,6 @@ function execute(opts){
             wv.style.zIndex = 0
             wv.src = options.url
 
-            if(options.deviceEmulation){
-                wv.getWebContents().enableDeviceEmulation(options.deviceEmulation)
-            }
-
             if(options.url.indexOf(".mp4") > -1 && options.url.indexOf("file:///") > -1 ){
                 wv.addEventListener("dom-ready", () => {
                     wv.insertCSS( "video{ width : 100vw; height: 100vh;}" )
@@ -359,6 +355,9 @@ function execute(opts){
 
             wv.addEventListener("dom-ready",(e)=>{
                 wv.insertCSS( "body { cursor: none }");
+                 if(options.deviceEmulation){
+                    wv.getWebContents().enableDeviceEmulation(options.deviceEmulation)
+                }
             })
 
             wv.addEventListener("mouseover", (e) => {
@@ -485,7 +484,9 @@ function execute(opts){
                         console.log("drag timeout");
                         dragTimer.delete(wv.id)
                         if(!wv.isDragging){
-                            document.getElementById(wv.id + "-draghint").style.display = "none"
+                            if(document.getElementById(wv.id + "-draghint"))
+                                document.getElementById(wv.id + "-draghint").style.display = "none"
+
                             $(wv).draggable({disabled : true});
                             wv.dispatchEvent(new Event("dragHintEnd"))
                         }
@@ -499,7 +500,8 @@ function execute(opts){
                 dragTimer.delete(wv.id)
                 wv.canDrag = false
                 $(wv).draggable({disabled : false});
-                document.getElementById(wv.id + "-draghint").style.display = "none"
+                if(document.getElementById(wv.id + "-draghint"))
+                    document.getElementById(wv.id + "-draghint").style.display = "none"
             })
 
             if(options.nodeIntegration)
