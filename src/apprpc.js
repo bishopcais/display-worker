@@ -116,6 +116,7 @@ class DisplayWorker {
         }
         this.displayContext.delete(context)
         let b_list  = this.dcWindows.get(context)
+        console.log( context, b_list)
         if(b_list){
             let wv_ids = []
             b_list.forEach((b_id) => {
@@ -277,15 +278,16 @@ class DisplayWorker {
                     windowName : options.windowName
                 }))
             }
-            io.publishTopic("display.window", JSON.stringify({
-                type : "displayWindowCreated",
-                details : {
-                    displayContext : this.activeDisplayContext,
-                    window_id : b_id,
-                    displayName : this.displayName
-                }
-            }))
         })
+
+         io.publishTopic("display.window", JSON.stringify({
+            type : "displayWindowCreated",
+            details : {
+                displayContext : this.activeDisplayContext,
+                window_id : b_id,
+                displayName : this.displayName
+            }
+        }))
        
     }
 
@@ -413,7 +415,7 @@ class DisplayWorker {
                 break;
             case "create-window":
                 if(message.options.displayContext){
-                    ctx = message.options.context
+                    ctx = message.options.displayContext
                 }
                 this.create_window(ctx, message.options, next)
                 break;
