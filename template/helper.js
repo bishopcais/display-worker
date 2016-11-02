@@ -5,6 +5,7 @@ let dragTimer = new Map()
 let grid = {}
 let gridSize={}
 let snappingDistance = 400
+let displayContext = ""
 
 const {ipcRenderer} = nodeRequire('electron')
 
@@ -12,6 +13,10 @@ $(document).on('scroll', function() {
   $(document).scrollLeft(0)
   $(document).scrollTop(0)
 });
+
+function setDisplayContext(ctx){
+    displayContext = ctx
+}
 
 function getClosestGrid(x,y){
 	let min_dist=Number.MAX_VALUE
@@ -355,9 +360,39 @@ function execute(opts){
 
             wv.addEventListener("dom-ready",(e)=>{
                 wv.insertCSS( "body { cursor: none }");
-                 if(options.deviceEmulation){
+                if(options.deviceEmulation){
                     wv.getWebContents().enableDeviceEmulation(options.deviceEmulation)
                 }
+            })
+
+            wv.addEventListener("crashed", (e, killed) =>{
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewObjectCrashed",
+                    displayContext : displayContext,
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
+            })
+
+            wv.addEventListener("gpu-crashed", (e) =>{
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewObjectGPUCrashed",
+                    displayContext : displayContext,
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
+            })
+
+            wv.addEventListener("plugin-crashed", (e) =>{
+                ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewObjectPluginCrashed",
+                    displayContext : displayContext,
+                    details :  {
+                        view_id : wv.id
+                    }
+                }))
             })
 
             wv.addEventListener("mouseover", (e) => {
@@ -398,7 +433,8 @@ function execute(opts){
                                 wv.dispatchEvent(new Event("dragHintEnd"))
                                 document.getElementById('content').removeChild(wv)
                                 ipcRenderer.send('view-object-event', JSON.stringify({
-                                    type : "viewobjectClosed",
+                                    type : "viewObjectClosed",
+                                    displayContext : displayContext,
                                     details :  {
                                         view_id : wv.id
                                     }
@@ -450,6 +486,7 @@ function execute(opts){
                                         animate.onFinish(() => {
                                             ipcRenderer.send('view-object-event', JSON.stringify({
                                                 type : "boundsChanged",
+                                                displayContext : displayContext,
                                                 details :  _d
                                             }))
                                         })
@@ -457,6 +494,8 @@ function execute(opts){
                                 }else{
                                     ipcRenderer.send('view-object-event', JSON.stringify({
                                         type : "boundsChanged",
+                                        displayContext : displayContext,
+                                        displayContext : displayContext,
                                         details : _d
                                     }))
                                 }
@@ -527,8 +566,9 @@ function execute(opts){
 
 
             // $( "#content webview" ).draggable({ stack: "#content webview" });
-            ipcRenderer.send('display-window-event', JSON.stringify({
-                    type : "viewobjectCreated",
+            ipcRenderer.send('view-object-event', JSON.stringify({
+                    type : "viewObjectCreated",
+                    displayContext : displayContext,
                     details :  options
                 }))
 
@@ -563,6 +603,7 @@ function execute(opts){
                 wv.src = options.url
                 ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "urlChanged",
+                    displayContext : displayContext,
                     details :  {
                         view_id : wv.id,
                         url : options.url
@@ -588,6 +629,7 @@ function execute(opts){
                 wv.reload()
                 ipcRenderer.send('view-object-event', JSON.stringify({
                     type : "urlReloaded",
+                    displayContext : displayContext,
                     details :  {
                         view_id : wv.id,
                         url : wv.src
@@ -610,7 +652,8 @@ function execute(opts){
                 wv.style.width = '0px'
                 wv.style.height = '0px'
                 ipcRenderer.send('view-object-event', JSON.stringify({
-                    type : "viewobjectHidden",
+                    type : "viewObjectHidden",
+                    displayContext : displayContext,
                     details :  {
                         view_id : wv.id
                     }
@@ -629,7 +672,8 @@ function execute(opts){
                 wv.style.height = c.height
                 wv.className = ''
                 ipcRenderer.send('view-object-event', JSON.stringify({
-                    type : "viewobjectShown",
+                    type : "viewObjectShown",
+                    displayContext : displayContext,
                     details :  {
                         view_id : wv.id
                     }
@@ -644,7 +688,8 @@ function execute(opts){
             if(wv){
                 document.getElementById('content').removeChild(wv)
                 ipcRenderer.send('view-object-event', JSON.stringify({
-                    type : "viewobjectClosed",
+                    type : "viewObjectClosed",
+                    displayContext : displayContext,
                     details :  {
                         view_id : wv.id
                     }
@@ -661,6 +706,7 @@ function execute(opts){
                     animate.onFinish(() => {
                         ipcRenderer.send('view-object-event', JSON.stringify({
                             type : "boundsChanged",
+                            displayContext : displayContext,
                             details :  {
                                 view_id : wv.id,
                                 top : $(wv).offset().top,

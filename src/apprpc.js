@@ -35,11 +35,8 @@ app.on('window-all-closed', () => {
 
 
 ipcMain.on('view-object-event', (event, arg) => {
-  io.publishTopic("display.viewobject", arg)
-})
-
-ipcMain.on('display-window-event', (event, arg) => {
-  io.publishTopic("display.window", arg)
+  if(arg.displayContext && arg.type)  
+    io.publishTopic("display."+ arg.displayContext + "." + arg.type , arg)
 })
 
 ipcMain.on('launchermenu', (event , arg) => {
@@ -243,6 +240,7 @@ class DisplayWorker {
                     browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + ", '" + io.config.get("display:launcherMenu:position")  + "')")
                 })
             }
+            browser.webContents.executeJavaScript("setDisplayContext('" + context  + "')")
             
         })
 
