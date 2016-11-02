@@ -110,10 +110,7 @@ class DisplayWorker {
     }
 
     close_display_context (context, next) {
-        if(context == "default"){
-            next(JSON.stringify( new Error("Cannot close default context")))
-            return
-        }
+        
         this.displayContext.delete(context)
         let b_list  = this.dcWindows.get(context)
         console.log( context, b_list)
@@ -383,7 +380,13 @@ class DisplayWorker {
                         }))
                 break;
             case "close-display-context":
-                this.close_display_context(message.options.context, next)
+                if(message.options.context == "default"){
+                    message.command = "hide-display-context"
+                    this.process_message(message, next)
+                }else{
+                    this.close_display_context(message.options.context, next)
+                }
+                
                 break;
             case "get-all-contexts":
                 console.log(this.displayContext)
