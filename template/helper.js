@@ -18,6 +18,12 @@ function setDisplayContext(ctx){
     displayContext = ctx
 }
 
+function setFontSize(fs){
+    console.log("options.fontSize = ", fs)
+    document.body.style.fontSize = fs
+    snappingDistance = parseInt(fs) /2
+}
+
 function getClosestGrid(x,y){
 	let min_dist=Number.MAX_VALUE
     let temp_label = ""
@@ -306,9 +312,7 @@ function execute(opts){
             }
 
         }else if(options.command == "set-displaywindow-font-size") {
-			console.log("options.fontSize="+options.fontSize)
-            document.body.style.fontSize = options.fontSize
-            snappingDistance = parseInt(options.fontSize) /2
+			setFontSize(options.fontSize)
             return { command : "set-displaywindow-font-size" ,"status" : "success" }
         }else if(options.command == "create-viewobj"){
 
@@ -370,7 +374,8 @@ function execute(opts){
                     type : "viewObjectCrashed",
                     displayContext : displayContext,
                     details :  {
-                        view_id : wv.id
+                        view_id : wv.id,
+                        killed : killed
                     }
                 }))
             })
@@ -573,7 +578,8 @@ function execute(opts){
                 }))
 
             return { "view_id" : wv.id, command : "create" , "status" : "success",
-            "window_id" : options.window_id,"displayName" : options.displayName , "windowName" : options.windowName }
+            "window_id" : options.window_id,"displayName" : options.displayName , "windowName" : options.windowName,
+            "displayContext" : options.displayContext }
         }else if(options.command == "webview-execute-javascript") {
             let wv = document.getElementById(options.view_id)
             if (wv) {

@@ -110,7 +110,7 @@ class DisplayWorker {
         
         this.displayContext.delete(context)
         let b_list  = this.dcWindows.get(context)
-        console.log( context, b_list)
+        console.log( "close dc ", context, b_list)
         if(b_list){
             let wv_ids = []
             b_list.forEach((b_id) => {
@@ -135,11 +135,10 @@ class DisplayWorker {
                 "command" : "close-display-context",
                 "message" : context + " : context closed. The active display context is set to default context. Please use setDisplayContext to bring up the default context or specify an existing or new display context."
             })) 
-            io.publishTopic("display", JSON.stringify({
+            io.publishTopic("display.displayContext.closed", JSON.stringify({
                 type : "displayContextClosed",
                 details : {
-                    oldDisplayContext : context,
-                    newDisplayContext : this.activeDisplayContext,
+                    closedDisplayContext : context,
                     closedWindows : b_list,
                     closedViewObjects : wv_ids
                 }
@@ -154,6 +153,7 @@ class DisplayWorker {
     }
 
     set_display_context(context, next) {
+        let lastContext = this.activeDisplayContext
         if( this.activeDisplayContext != context ){
             let b_list  = this.dcWindows.get(this.activeDisplayContext)
             if(b_list){
@@ -175,10 +175,11 @@ class DisplayWorker {
         }else{
             this.dcWindows.set(this.activeDisplayContext, []);
         }
-        io.publishTopic("display", JSON.stringify({
+        io.publishTopic("display.displayContext.changed", JSON.stringify({
             type : "displayContextChanged",
             details : {
-                displayContext : this.activeDisplayContext
+                displayContext : this.activeDisplayContext,
+                lastDisplayContext : lastContext
             }
         }))
         next(JSON.stringify({
@@ -241,7 +242,9 @@ class DisplayWorker {
                 })
             }
             browser.webContents.executeJavaScript("setDisplayContext('" + context  + "')")
-            
+            if(options.fontSize)
+                browser.webContents.executeJavaScript("setFontSize('" + options.fontSize  + "')")
+
         })
 
         browser.webContents.on('dom-ready', () => {
@@ -543,7 +546,7 @@ class DisplayWorker {
                 break;   
             case "create-viewobj" :
                 if(message.options.displayContext){
-                    ctx = message.options.context
+                    ctx = message.options.displayContext
                 }
                 this.create_viewobj(ctx, message.options, next)
                 break;
