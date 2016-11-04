@@ -36,7 +36,7 @@ app.on('window-all-closed', () => {
 
 ipcMain.on('view-object-event', (event, arg) => {
   if(arg.displayContext && arg.type)  
-    io.publishTopic("display."+ arg.displayContext + "." + arg.type , arg)
+    io.publishTopic("display."+ arg.displayContext + "." + arg.type + "." + arg.details.view_id , arg)
 })
 
 ipcMain.on('launchermenu', (event , arg) => {
@@ -91,7 +91,7 @@ class DisplayWorker {
 
         io.getStore().addToHash("display.displays", this.displayName, JSON.stringify(this.bounds) )
 
-        io.doCall('display-rpc-queue-' + io.config.get("display:displayName"), (request, reply, ack)=>{
+        io.doCall('rpc-display-' + io.config.get("display:displayName"), (request, reply, ack)=>{
             try{
                 let msg = JSON.parse(request.content.toString())
                 console.log(msg)
