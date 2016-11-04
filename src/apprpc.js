@@ -24,7 +24,7 @@ app.on('ready', () => {
 
 app.on('quit', () =>{
     console.log("closing");
-    io.getStore().removeFromHash("display.displays", io.config.get("display:displayName") )
+    io.store.removeFromHash("display:displays", io.config.get("display:displayName") )
     io.publishTopic("display.removed", io.config.get("display:displayName"))
 })
 
@@ -89,7 +89,7 @@ class DisplayWorker {
 
 
 
-        io.getStore().addToHash("display.displays", this.displayName, JSON.stringify(this.bounds) )
+        io.store.addToHash("display:displays", this.displayName, JSON.stringify(this.bounds) )
 
         io.doCall('rpc-display-' + io.config.get("display:displayName"), (request, reply, ack)=>{
             try{
@@ -236,7 +236,7 @@ class DisplayWorker {
 
         browser.webContents.on('did-finish-load', ()=> {
             if(io.config.get("display:launcherMenu")){
-                io.getStore().getState("apps").then( m => {
+                io.store.getState("apps").then( m => {
                     console.log("setting up menu handler")
                     browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + ", '" + io.config.get("display:launcherMenu:position")  + "')")
                 })
