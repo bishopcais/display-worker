@@ -1,7 +1,7 @@
 let cursors = new Map()
 
 function clearAllCursors(){
-    document.getElementById("pointing").innerHTML = ""
+    // document.getElementById("pointing").innerHTML = ""
 }
 
 function addCursor(opts){

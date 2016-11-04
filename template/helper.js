@@ -87,7 +87,7 @@ function createGrid(row, col, rowHeight, colWidth, padding){
     let h = parseInt(getComputedStyle(document.body, '').height)
 
     if(!padding)
-        padding = 0
+        padding = 2
 
     if(!rowHeight){
         rowHeight = []
@@ -400,153 +400,190 @@ function execute(opts){
                 }))
             })
 
-            wv.addEventListener("mouseover", (e) => {
-                // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
-                let closest;
-                if(!wv.canDrag){
-                    wv.canDrag = true
-                    wv.dispatchEvent(new Event("dragHintStart"))
-                    $(wv).draggable({
-                        disabled : false,
-                        scroll: false,
-                        refreshPositions: true,
-                        start: (e_drag, ui) => {
-                            let zIndex = 0
-                            let elems = document.getElementsByTagName("webview")
-                            for(let i =0;i < elems.length; i++){
-                                let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
-                                console.log(zi)
-                                zIndex = zi > zIndex ?  zi : zIndex
-                            }
 
-                            if(wv.style.zIndex <= zIndex){
-                                wv.style.zIndex = zIndex + 1
-                                console.log(zIndex)
-                            }
-                        },
-                        drag: (e) => {
-                            wv.isDragging = true
-                            let pointingDiv = document.getElementById(wv.id + "-draghint")
-                            if(pointingDiv){
-                                pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
-                                pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
-                            }
-                            if(e.screenY < 1){
-                                $(wv).draggable( {disabled : true})
-                                wv.isDragging = false
-                                pointingDiv.style.display = "none"
-                                wv.dispatchEvent(new Event("dragHintEnd"))
-                                document.getElementById('content').removeChild(wv)
-                                ipcRenderer.send('view-object-event', JSON.stringify({
-                                    type : "viewObjectClosed",
-                                    displayContext : displayContext,
-                                    details :  {
+            if(options.uiClosable){
+                let closebtn = document.createElement("div")
+                closebtn.className = "closebtn"
+                closebtn.id = wv.id + "-closehint"
+                closebtn.innerHTML = "x"
+                closebtn.style.left = $(wv).offset().left + 10 + "px"
+                closebtn.style.top = $(wv).offset().top + 30 + "px"
+                closebtn.addEventListener("mousedown", () => {
+                    document.getElementById('pointing').removeChild(closebtn)
+                    document.getElementById('content').removeChild(wv)
+                    ipcRenderer.send('view-object-event', JSON.stringify({
+                        type : "viewObjectClosed",
+                        displayContext : displayContext,
+                        details :  {
+                            view_id : wv.id
+                        }
+                    }))
+                })
+                document.getElementById("pointing").appendChild(closebtn)
+            }
+
+            if(options.uiDraggable){
+                wv.addEventListener("mouseover", (e) => {
+                    // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
+                    let closest;
+                    if(!wv.canDrag){
+                        wv.canDrag = true
+                        wv.dispatchEvent(new Event("dragHintStart"))
+                        $(wv).draggable({
+                            disabled : false,
+                            scroll: false,
+                            refreshPositions: true,
+                            start: (e_drag, ui) => {
+                                let zIndex = 0
+                                let elems = document.getElementsByTagName("webview")
+                                for(let i =0;i < elems.length; i++){
+                                    let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
+                                    console.log(zi)
+                                    zIndex = zi > zIndex ?  zi : zIndex
+                                }
+
+                                if(wv.style.zIndex <= zIndex){
+                                    wv.style.zIndex = zIndex + 1
+                                    console.log(zIndex)
+                                }
+                                let closebtn = document.getElementById(wv.id + "-closehint")
+                                if(closebtn){
+                                    closebtn.style.display = "none"
+                                }
+                            },
+                            drag: (e) => {
+                                wv.isDragging = true
+                                let pointingDiv = document.getElementById(wv.id + "-draghint")
+                                if(pointingDiv){
+                                    pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                                    pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                                }
+                                
+                                // if(e.screenY < 1){
+                                //     $(wv).draggable( {disabled : true})
+                                //     wv.isDragging = false
+                                //     pointingDiv.style.display = "none"
+                                //     wv.dispatchEvent(new Event("dragHintEnd"))
+                                //     document.getElementById('content').removeChild(wv)
+                                //     ipcRenderer.send('view-object-event', JSON.stringify({
+                                //         type : "viewObjectClosed",
+                                //         displayContext : displayContext,
+                                //         details :  {
+                                //             view_id : wv.id
+                                //         }
+                                //     }))
+                                // }
+
+                            },
+                            stop: () => {
+                                if(wv.isDragging){
+                                    ipcRenderer.send('set-drag-cursor', "" )
+                                    $(wv).draggable( {disabled : true})
+                                    wv.isDragging = false
+                                    pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                                    pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                                    pointingDiv.style.display = "none"
+                                    wv.dispatchEvent(new Event("dragHintEnd"))
+                                    let closebtn = document.getElementById(wv.id + "-closehint")
+                                    if(closebtn){
+                                        closebtn.style.display = "block"
+                                        closebtn.style.left = $(wv).offset().left + 10 + "px"
+                                        closebtn.style.top = $(wv).offset().top + 20 + "px"
+                                    }
+                                    let _d = {
+                                        top : $(wv).offset().top,
+                                        left : $(wv).offset().left,
+                                        width : $(wv).width(),
+                                        height : $(wv).height(),
+                                        units : "px",
                                         view_id : wv.id
                                     }
-                                }))
-                            }
 
-                        },
-                        stop: () => {
-                            if(wv.isDragging){
-                                ipcRenderer.send('set-drag-cursor', "" )
-                                $(wv).draggable( {disabled : true})
-                                wv.isDragging = false
-                                pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
-                                pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
-                                pointingDiv.style.display = "none"
-                                wv.dispatchEvent(new Event("dragHintEnd"))
-                                
-                                let _d = {
-                                    top : $(wv).offset().top,
-                                    left : $(wv).offset().left,
-                                    width : $(wv).width(),
-                                    height : $(wv).height(),
-                                    units : "px",
-                                    view_id : wv.id
-                                }
+                                    closest = getClosestGrid($(wv).offset().left,$(wv).offset().top);
+                                    let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
+                                    if(closest && Math.sqrt(closest.sq_dist) < snappingDistance){
+                                        let destBounds =  {
+                                            "left" : closest.left + "px",
+                                            "top" :  closest.top + "px",
+                                            "width" : ( closest.width > getComputedStyle(wv).width ? closest.width : getComputedStyle(wv).width ) + "px",
+                                            "height" : ( closest.height > getComputedStyle(wv).height ? closest.height : getComputedStyle(wv).height ) + "px",
+                                            "animation_options" : {
+                                                duration : 500,
+                                                fill : 'forwards',
+                                                easing : 'linear'
+                                                }
+                                        }
+                                        _d.top = closest.top
+                                        _d.left = closest.left
+                                        _d.width = parseInt(destBounds.width)
+                                        _d.height = parseInt(destBounds.height)
 
-                                //shang
-                                closest = getClosestGrid($(wv).offset().left,$(wv).offset().top);
-                                let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-                                if(closest && Math.sqrt(closest.sq_dist) < snappingDistance){
-                                    let destBounds =  {
-                                        "left" : closest.left + "px",
-                                        "top" :  closest.top + "px",
-                                        "width" : ( closest.width > getComputedStyle(wv).width ? closest.width : getComputedStyle(wv).width ) + "px",
-                                        "height" : ( closest.height > getComputedStyle(wv).height ? closest.height : getComputedStyle(wv).height ) + "px",
-                                        "animation_options" : {
-                                            duration : 500,
-                                            fill : 'forwards',
-                                            easing : 'linear'
-                                            }
+                                        let animate = setBounds(wv, destBounds)
+                                        if(animate){
+                                            animate.onFinish(() => {
+                                                let closebtn1 = document.getElementById(wv.id + "-closehint")
+                                                if(closebtn1){
+                                                    closebtn1.style.left = $(wv).offset().left + 10 + "px"
+                                                    closebtn1.style.top = $(wv).offset().top + 30 + "px"
+                                                }
+                                                ipcRenderer.send('view-object-event', JSON.stringify({
+                                                    type : "boundsChanged",
+                                                    displayContext : displayContext,
+                                                    details :  _d
+                                                }))
+                                            })
+                                        }
+                                    }else{
+                                        ipcRenderer.send('view-object-event', JSON.stringify({
+                                            type : "boundsChanged",
+                                            displayContext : displayContext,
+                                            details : _d
+                                        }))
                                     }
-                                    _d.top = closest.top
-                                    _d.left = closest.left
-                                    _d.width = parseInt(destBounds.width)
-                                    _d.height = parseInt(destBounds.height)
 
-                                    let animate = setBounds(wv, destBounds)
-                                    if(animate){
-                                        animate.onFinish(() => {
-                                            ipcRenderer.send('view-object-event', JSON.stringify({
-                                                type : "boundsChanged",
-                                                displayContext : displayContext,
-                                                details :  _d
-                                            }))
-                                        })
-                                    }
-                                }else{
-                                    ipcRenderer.send('view-object-event', JSON.stringify({
-                                        type : "boundsChanged",
-                                        displayContext : displayContext,
-                                        displayContext : displayContext,
-                                        details : _d
-                                    }))
+                                    
                                 }
-
-                                
                             }
+                        })
+
+                        let pointingDiv = document.getElementById(wv.id + "-draghint")
+
+                        if(pointingDiv == undefined){
+                            pointingDiv = document.createElement("img")
+                            pointingDiv.src = "drag.svg"
+                            pointingDiv.className = "dragcursor"
+                            pointingDiv.id = wv.id + "-draghint"
+                            document.getElementById("pointing").appendChild(pointingDiv)
                         }
-                    })
 
-                    let pointingDiv = document.getElementById(wv.id + "-draghint")
+                        pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
+                        pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
+                        pointingDiv.style.display = "block"
 
-                    if(pointingDiv == undefined){
-                        pointingDiv = document.createElement("img")
-                        pointingDiv.src = "drag.svg"
-                        pointingDiv.className = "dragcursor"
-                        pointingDiv.id = wv.id + "-draghint"
-                        document.getElementById("pointing").appendChild(pointingDiv)
+                        dragTimer.set( wv.id, setTimeout(()=>{
+                            console.log("drag timeout");
+                            dragTimer.delete(wv.id)
+                            if(!wv.isDragging){
+                                if(document.getElementById(wv.id + "-draghint"))
+                                    document.getElementById(wv.id + "-draghint").style.display = "none"
+
+                                $(wv).draggable({disabled : true});
+                                wv.dispatchEvent(new Event("dragHintEnd"))
+                            }
+                        }, 2000) )
                     }
 
-                    pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width()/2 -$(pointingDiv).width()/2) + "px"
-                    pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
-                    pointingDiv.style.display = "block"
-
-                    dragTimer.set( wv.id, setTimeout(()=>{
-                        console.log("drag timeout");
-                        dragTimer.delete(wv.id)
-                        if(!wv.isDragging){
-                            if(document.getElementById(wv.id + "-draghint"))
-                                document.getElementById(wv.id + "-draghint").style.display = "none"
-
-                            $(wv).draggable({disabled : true});
-                            wv.dispatchEvent(new Event("dragHintEnd"))
-                        }
-                    }, 2000) )
-                }
-
-            })
-            wv.addEventListener("mouseout", (e) => {
-                console.log("mouse out")
-                clearTimeout(dragTimer.get(wv.id))
-                dragTimer.delete(wv.id)
-                wv.canDrag = false
-                $(wv).draggable({disabled : false});
-                if(document.getElementById(wv.id + "-draghint"))
-                    document.getElementById(wv.id + "-draghint").style.display = "none"
-            })
+                })
+                wv.addEventListener("mouseout", (e) => {
+                    console.log("mouse out")
+                    clearTimeout(dragTimer.get(wv.id))
+                    dragTimer.delete(wv.id)
+                    wv.canDrag = false
+                    $(wv).draggable({disabled : false});
+                    if(document.getElementById(wv.id + "-draghint"))
+                        document.getElementById(wv.id + "-draghint").style.display = "none"
+                })
+            }
 
             if(options.nodeIntegration)
                 wv.nodeintegration = true
