@@ -404,34 +404,45 @@ function execute(opts){
                                 pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height()/2 - $(pointingDiv).height()/2) + "px"
                                 pointingDiv.style.display = "none"
                                 wv.dispatchEvent(new Event("dragHintEnd"))
-                                ipcRenderer.send('view-object-event', JSON.stringify({
-                                    type : "boundsChanged",
-                                    details : {
-                                        top : $(wv).offset().top,
-                                        left : $(wv).offset().left,
-                                        width : $(wv).width(),
-                                        height : $(wv).height(),
-                                        units : "px",
-                                        view_id : wv.id
-                                    }
-                                }))
+                                
                                 //shang
                                 closest=getClosestGrid($(wv).offset().left,$(wv).offset().top);
                                 let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-                                if(Math.sqrt(closest.sq_dist) < snappingDistance){
-                                    let destBounds =  {
-                                        "left" : closest.left + "px",
-                                        "top" :  closest.top + "px",
-                                        "width" : ( closest.width > getComputedStyle(wv).width ? closest.width : getComputedStyle(wv).width ) + "px",
-                                        "height" : ( closest.height > getComputedStyle(wv).height ? closest.height : getComputedStyle(wv).height ) + "px",
-                                        "animation_options" : {
-                                            duration : 500,
-                                            fill : 'forwards',
-                                            easing : 'linear'
-                                            }
+                                if(closest && Math.sqrt(closest.sq_dist) < snappingDistance){
+                                        let destBounds =  {
+                                            "left" : closest.left + "px",
+                                            "top" :  closest.top + "px",
+                                            "width" : ( closest.width > getComputedStyle(wv).width ? closest.width : getComputedStyle(wv).width ) + "px",
+                                            "height" : ( closest.height > getComputedStyle(wv).height ? closest.height : getComputedStyle(wv).height ) + "px",
+                                            "animation_options" : {
+                                                duration : 500,
+                                                fill : 'forwards',
+                                                easing : 'linear'
+                                                }
+                                        }
+                                        _d.top = closest.top
+                                        _d.left = closest.left
+                                        _d.width = parseInt(destBounds.width)
+                                        _d.height = parseInt(destBounds.height)
+
+                                        let animate = setBounds(wv, destBounds)
+                                        if(animate){
+                                            animate.onFinish(() => {
+                                                ipcRenderer.send('view-object-event', JSON.stringify({
+                                                    type : "boundsChanged",
+                                                    displayContext : displayContext,
+                                                    details :  _d
+                                                }))
+                                            })
+                                        }
+                                    }else{
+                                        ipcRenderer.send('view-object-event', JSON.stringify({
+                                            type : "boundsChanged",
+                                            displayContext : displayContext,
+                                            details : _d
+                                        }))
                                     }
-                                    setBounds(wv, destBounds);
-                                }
+
                             }
                         }
                     })

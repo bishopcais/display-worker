@@ -493,6 +493,8 @@ class DisplayWorker {
                     focw.capturePage(img => {
                         next(img.toJPEG(80))
                     })
+                }else{
+                    next(JSON.stringify(new Error( "Window is not focused.")))
                 }
                 break;
             default :
