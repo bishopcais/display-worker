@@ -205,8 +205,8 @@ function addToGrid(label, bounds, style) {
         let div = document.createElement('div')
         div.id = "bg" + label
         div.className = "background-div"
-        div.style.top = bounds.top + "px"
-        div.style.left = bounds.left + "px"
+        div.style.top = bounds.top 
+        div.style.left = bounds.left 
         div.style.width = bounds.width
         div.style.height = bounds.height
         for (let k of Object.keys(style)) {
