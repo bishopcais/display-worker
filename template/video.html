@@ -1,0 +1,57 @@
+<head>
+  <link href="video-js.css" rel="stylesheet">
+  <style>
+    body{
+        overflow: hidden;
+    }
+    #video-comp{
+        width: 100vw;
+        height: 100vh;
+    }
+
+    .video-js {
+        font-size: 30px;
+    }
+    
+    .vjs-fullscreen-control{
+        display: none;
+    }
+
+  </style>
+   <script src="video.js"></script>
+   <script type="text/javascript">
+    let player
+    function setup(file) {
+        player  = videojs('video-comp')
+        player.src(file)
+        player.play()
+    }
+
+    function play() {
+        player.play()
+    }
+
+    function pause() {
+        player.pause()
+    }
+
+    function setCurrentTime(t) {
+        player.currentTime = t
+    }
+
+    function getCurrentTime() {
+        return player.currentTime
+    }
+
+    function replay() {
+        player.currentTime("0")
+    }
+
+   </script>
+
+</head>
+
+<body onload='setup("WDA_Life_Sciences.mp4")'>
+    <video id="video-comp" class="video-js" controls preload="auto">
+    </video>
+</body>
