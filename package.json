@@ -1,20 +1,20 @@
 {
   "name": "display-worker",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Display worker helps to show and manipulate contents on screen",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev" : "electron src/apprpc.js",
-    "postinstall": "npm rebuild --runtime=electron --target=1.4.1 --disturl=https://atom.io/download/atom-shell --abi=50"
+    "postinstall": "npm rebuild --runtime=electron --target=1.4.5 --disturl=https://atom.io/download/atom-shell --abi=51"
   },
   "author": "yedendra shrinivasan",
   "license": "ISC",
   "private": true,
   "dependencies": {
-    "celio": "^1.0.0",
-    "electron": "^1.4.1",
+    "celio": "^2.0.0",
+    "electron": "^1.4.5",
     "node-uuid": "^1.4.7",
     "robotjs": "^0.4.4"
   },

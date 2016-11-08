@@ -9,16 +9,16 @@
     "password" : ""
   },
   "display" : {
-    "screenName" : "front",
+    "displayName" : "front",
     "hotspot" : {
         "center" : [175.2119, 910.8918, -4263.35],
         "normal" : [ 0.0, 0.0, -1.0 ],
         "over" : [ 1.0, 0.0, 0.0 ],
         "width" : 4102.0,
-        "height" : 2307.0,
-        "clickWidth" : 200,
-        "clickSpeed" : 200
-    },
-    "isPrimaryWorker" : true
+        "height" : 2307.0
+    }
+    //, //optional
+    //"bounds" : { "x" : 0, "y" : 0, "width" : 800, "height" : 600},
+    //"launcherMenu" : { "position" : "left", menuWidth: 100, distanceThreshold: 850 }
   }
 }
