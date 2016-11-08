@@ -87,8 +87,6 @@ class DisplayWorker {
         this.dcWindows.set(this.activeDisplayContext, [])
         this.webviewOwnerStack = new Map()
 
-
-
         io.store.addToHash("display:displays", this.displayName, JSON.stringify(this.bounds) )
 
         io.doCall('rpc-display-' + io.config.get("display:displayName"), (request, reply, ack)=>{
@@ -557,7 +555,11 @@ class DisplayWorker {
                         next(img.toJPEG(80))
                     })
                 }else{
+<<<<<<< HEAD
                     next ( JSON.stringify( new Error(`Window ${message.options.window_id} not found`) ))
+=======
+                    next(JSON.stringify(new Error( "Window is not focused.")))
+>>>>>>> master
                 }
                 break;
             default :
