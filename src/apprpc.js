@@ -555,11 +555,7 @@ class DisplayWorker {
                         next(img.toJPEG(80))
                     })
                 }else{
-<<<<<<< HEAD
                     next ( JSON.stringify( new Error(`Window ${message.options.window_id} not found`) ))
-=======
-                    next(JSON.stringify(new Error( "Window is not focused.")))
->>>>>>> master
                 }
                 break;
             default :
