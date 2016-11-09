@@ -230,6 +230,7 @@ function removeFromGrid(label) {
 } 
 
 function wrapError(err) {
+    console.log("Error : " , err)
     return (new Error(err)).toString();
 }
 
@@ -531,7 +532,7 @@ function execute(opts) {
 
                                         let animate = setBounds(wv, destBounds)
                                         if (animate) {
-                                            animate.onFinish(() => {
+                                            animate.onfinish = () => {
                                                 let closebtn1 = document.getElementById(wv.id + "-closehint")
                                                 if (closebtn1) {
                                                     closebtn1.style.left = $(wv).offset().left + 10 + "px"
@@ -542,7 +543,7 @@ function execute(opts) {
                                                     displayContext: displayContext,
                                                     details: _d
                                                 }))
-                                            })
+                                            }
                                         }
                                     } else {
                                         ipcRenderer.send('view-object-event', JSON.stringify({
@@ -758,7 +759,7 @@ function execute(opts) {
             if (wv) {
                 let animate = setBounds(wv, options)
                 if (animate) {
-                    animate.onFinish(() => {
+                    animate.onfinish = () => {
                         ipcRenderer.send('view-object-event', JSON.stringify({
                             type: "boundsChanged",
                             displayContext: displayContext,
@@ -771,7 +772,7 @@ function execute(opts) {
                                 units: "px"
                             }
                         }))
-                    })
+                    }
                 }
 
                 return { "view_id": wv.id, command: "set-bounds", "status": "success" }
@@ -969,9 +970,9 @@ function setBounds(wv, destBounds) {
     } else {
         console.log(currentValue)
         console.log(destValue)
-        return wv.animate([currentValue, destValue], destBounds.animation_options ? destBounds.animation_options : {
-            duration: 800, fill: 'forwards', easing: 'ease-in-out'
-        })
+            return wv.animate([currentValue, destValue], destBounds.animation_options ? destBounds.animation_options : {
+                duration: 800, fill: 'forwards', easing: 'ease-in-out'
+            })
     }
 }
 
