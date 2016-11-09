@@ -92,7 +92,7 @@ class DisplayWorker {
         io.doCall('rpc-display-' + io.config.get("display:displayName"), (request, reply, ack)=>{
             try{
                 let msg = JSON.parse(request.content.toString())
-                console.log(msg)
+                // console.log(msg)
                 this.process_message(msg, reply)
             }catch(e){
                 reply(JSON.stringify(e))
@@ -131,19 +131,16 @@ class DisplayWorker {
             next(JSON.stringify({
                 "status" : "success",
                 "command" : "close-display-context",
-                "message" : context + " : context closed. The active display context is set to default context. Please use setDisplayContext to bring up the default context or specify an existing or new display context."
-            })) 
-            io.publishTopic("display.displayContext.closed", JSON.stringify({
-                type : "displayContextClosed",
-                details : {
-                    closedDisplayContext : context,
-                    closedWindows : b_list,
-                    closedViewObjects : wv_ids
-                }
-            }))
+                "displayName" : this.displayName,
+                "message" : context + " : context closed. The active display context is set to default context. Please use setDisplayContext to bring up the default context or specify an existing or new display context.",
+                "closedDisplayContext" : context,
+                "closedWindows" : b_list,
+                "closedViewObjects" : wv_ids
+            }))             
         }else{
             next(JSON.stringify({
                 "status" : "warning",
+                "displayName" : this.displayName,
                 "command" : "close-display-context",
                 "message" : context + " : context does not exist"
             }))
@@ -173,16 +170,11 @@ class DisplayWorker {
         }else{
             this.dcWindows.set(this.activeDisplayContext, []);
         }
-        io.publishTopic("display.displayContext.changed", JSON.stringify({
-            type : "displayContextChanged",
-            details : {
-                displayContext : this.activeDisplayContext,
-                lastDisplayContext : lastContext
-            }
-        }))
+        
         next(JSON.stringify({
             "status" : "success",
             "command" : "set-active-context",
+            "displayName" : this.displayName,
             "message" : this.activeDisplayContext + " is now active"
         })) 
     }
@@ -306,7 +298,7 @@ class DisplayWorker {
         let b = BrowserWindow.fromId(options.window_id)
         if(b == undefined) {
             console.log("window_id not found")
-            next(JSON.stringify({ "error" : "window_id not found", "message" : options }))
+            next(JSON.stringify({ "status" : this.wrapError("window_id not found"), "message" : options, "displayName" : this.displayName }))
         }else{
             if(b.isReady){
                 b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
@@ -324,7 +316,7 @@ class DisplayWorker {
                     next(JSON.stringify(d))
                 })
             }else{
-                next(JSON.stringify(new Error( "dom not ready")))
+                next(JSON.stringify({ status : this.wrapError( "dom not ready"), "message" : options, "displayName" : this.displayName}) )
             }
 
         }
@@ -344,240 +336,240 @@ class DisplayWorker {
     process_message ( message, next) {
         // console.log("executing : ", message.content.toString())
         // message = JSON.parse(message.content.toString())
+        console.log("processing " , message.command)
         let ctx = this.activeDisplayContext
         try{
-        switch (message.command){
-            case "get-bounds" :
-                let bound = {
-                    "displayName" : this.displayName,
-                    "bounds" : this.bounds,
-                    "details" : this.displays
-                }
-                next(JSON.stringify(bound))
-                break;
-            case "get-active-display-context" :
-                next(this.activeDisplayContext)
-                break;
-            case "set-display-context":
-                if(!this.displayContext.has(message.options.context)){
-                    this.displayContext.add(message.options.context)
-                }
-                console.log(this.displayContext)
-                this.set_display_context( message.options.context, next)
-                break;
-            case "hide-display-context":
-                let b_list  = this.dcWindows.get(message.options.context)
-                if(b_list){
-                    b_list.forEach((b_id) => {
-                        let b = BrowserWindow.fromId(b_id)
-                        if(b) b.hide()
-                    }, this)
-                }
-                next(JSON.stringify({
-                            "command" : "hide-display-context",
-                            "status" : "success"
-                        }))
-                break;
-            case "close-display-context":
-                if(message.options.context == "default"){
-                    message.command = "hide-display-context"
-                    this.process_message(message, next)
-                }else{
-                    this.close_display_context(message.options.context, next)
-                }
-                
-                break;
-            case "get-all-contexts":
-                console.log(this.displayContext)
-                next(JSON.stringify(Array.from(this.displayContext)))
-                break;
-            case "get-all-windows-by-context":
-                let wins = this.dcWindows.get(message.options.context)
-                next(JSON.stringify(wins))
-                break;
-            case "get-focus-window":
-                const w = BrowserWindow.getFocusedWindow()
-                if (w) {
-                    let _dc = "default"
-                    for( let [k, v] of this.dcWindows){
-                        if(v.indexOf( w.id) > -1){
-                            _dc = k
-                        }
+            switch (message.command){
+                case "get-bounds" :
+                    let bound = {
+                        "displayName" : this.displayName,
+                        "bounds" : this.bounds,
+                        "details" : this.displays
                     }
-                    next(JSON.stringify({
-                            "command" : "get-focus-window",
-                            "status" : "success",
-                            "window_id" : w.id,
-                            "displayName" : this.displayName,
-                            "displayContext" : _dc
-                    }))
-                }else{
-                    next(JSON.stringify(new Error("none of the  display windows are in focus")))
-                }
-                break;
-            case "create-window":
-                if(message.options.displayContext){
-                    ctx = message.options.displayContext
-                }
-                this.create_window(ctx, message.options, next)
-                break;
-            case "close-all-windows":
-                for( let ctx of this.displayContext){
-                    let b_list  = this.dcWindows.get(ctx)
+                    next(JSON.stringify(bound))
+                    break;
+                case "set-display-context":
+                    if(!this.displayContext.has(message.options.context)){
+                        this.displayContext.add(message.options.context)
+                    }
+                    console.log(this.displayContext)
+                    this.set_display_context( message.options.context, next)
+                    break;
+                case "hide-display-context":
+                    let b_list  = this.dcWindows.get(message.options.context)
                     if(b_list){
                         b_list.forEach((b_id) => {
                             let b = BrowserWindow.fromId(b_id)
-                            if(b) b.close()
-
-                            let wv_id = new Array();
-                            this.webviewOwnerStack.forEach( (v, k) => {
-                                if(v == b_id)
-                                wv_id.push(k)
-                            })
-                            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-
+                            if(b) b.hide()
                         }, this)
                     }
-                }
-                this.displayContext.clear()
-                this.displayContext.add("default")
-                next(JSON.stringify({
-                            "command" : "close-all-windows",
-                            "status" : "success"
-                        }))
-                
-                
-                break;
-            case "hide-window":
-                if(message.options.window_id){
-                    let b = BrowserWindow.fromId(message.options.window_id);
-                    if(b){
-                        b.hide()
-                        next(JSON.stringify({
-                            "command" : "hide-window",
-                            "status" : "success"
-                        }))
+                    next(JSON.stringify({
+                                "displayName" : this.displayName,
+                                "command" : "hide-display-context",
+                                "status" : "success"
+                            }))
+                    break;
+                case "close-display-context":
+                    if(message.options.context == "default"){
+                        message.command = "hide-display-context"
+                        this.process_message(message, next)
                     }else{
-                        next(JSON.stringify( new Error( "window_id not present" ) ))
+                        this.close_display_context(message.options.context, next)
                     }
-                }else{
-                    next(JSON.stringify( new Error( "parameter window_id not present" ) ))
-                }
                     
-                break;
-            case "hide-all-windows":
-                let bs = BrowserWindow.getAllWindows()
-                for( var i = 0; i < bs.length ;i++)
-                    bs[i].hide()
-
-                next(JSON.stringify({
-                    "command" : "hide-all-windows",
-                    "status" : "success"
-                }))
-                break;
-            case "show-window":
-                 if(message.options.window_id){
-                    let b = BrowserWindow.fromId(message.options.window_id);
-                    if(b){
-                        b.show()
+                    break;
+                case "get-focus-window":
+                    const w = BrowserWindow.getFocusedWindow()
+                    if (w) {
+                        let _dc = "default"
+                        for( let [k, v] of this.dcWindows){
+                            if(v.indexOf( w.id) > -1){
+                                _dc = k
+                            }
+                        }
                         next(JSON.stringify({
-                            "command" : "show-window",
-                            "status" : "success"
+                                "command" : "get-focus-window",
+                                "status" : "success",
+                                "window_id" : w.id,
+                                "displayName" : this.displayName,
+                                "displayContext" : _dc
                         }))
                     }else{
-                        next(JSON.stringify( new Error( "window_id not present")))
+                        next(JSON.stringify({ status : this.wrapError("none of the  display windows are in focus"), "command" : "get-focus-window",  "displayName" : this.displayName} ))
                     }
-                }else{
-                    next(JSON.stringify( new Error( "parameter window_id not present" ) ))
-                }
-                break;
-            case "close-window":
-                 if(message.options.window_id){
+                    break;
+                case "create-window":
+                    if(message.options.displayContext){
+                        ctx = message.options.displayContext
+                    }
+                    this.create_window(ctx, message.options, next)
+                    break;
+                case "close-all-windows":
+                    for( let ctx of this.displayContext){
+                        let b_list  = this.dcWindows.get(ctx)
+                        if(b_list){
+                            b_list.forEach((b_id) => {
+                                let b = BrowserWindow.fromId(b_id)
+                                if(b) b.close()
+
+                                let wv_id = new Array();
+                                this.webviewOwnerStack.forEach( (v, k) => {
+                                    if(v == b_id)
+                                    wv_id.push(k)
+                                })
+                                wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+
+                            }, this)
+                        }
+                    }
+                    this.displayContext.clear()
+                    this.displayContext.add("default")
+                    next(JSON.stringify({
+                                "displayName" : this.displayName,
+                                "command" : "close-all-windows",
+                                "status" : "success"
+                            }))
+                    
+                    
+                    break;
+                case "hide-window":
+                    if(message.options.window_id){
+                        let b = BrowserWindow.fromId(message.options.window_id);
+                        if(b){
+                            b.hide()
+                            next(JSON.stringify({
+                                "command" : "hide-window",
+                                "status" : "success",
+                                "displayName" : this.displayName
+                            }))
+                        }else{
+                            next(JSON.stringify( { "command" : "hide-window", "status" : this.wrapError( "window_id not present" ),  "displayName" : this.displayName } ))
+                        }
+                    }else{
+                        next(JSON.stringify( { "command" : "hide-window", "status" : this.wrapError( "parameter window_id not present" ),  "displayName" : this.displayName}))
+                    }
+                        
+                    break;
+                case "hide-all-windows":
+                    let bs = BrowserWindow.getAllWindows()
+                    for( var i = 0; i < bs.length ;i++)
+                        bs[i].hide()
+
+                    next(JSON.stringify({
+                        "command" : "hide-all-windows",
+                        "status" : "success",
+                        "displayName" : this.displayName 
+                    }))
+                    break;
+                case "show-window":
+                    if(message.options.window_id){
+                        let b = BrowserWindow.fromId(message.options.window_id);
+                        if(b){
+                            b.show()
+                            next(JSON.stringify({
+                                "command" : "show-window",
+                                "status" : "success",
+                                "displayName" : this.displayName 
+                            }))
+                        }else{
+                            next(JSON.stringify( { "command" : "show-window", "status" : this.wrapError( "window_id not present" ),  "displayName" : this.displayName } ))
+                        }
+                    }else{
+                        next(JSON.stringify( { "command" : "show-window", "status" : this.wrapError( "parameter window_id not present" ),  "displayName" : this.displayName} ))
+                    }
+                    break;
+                case "close-window":
+                    if(message.options.window_id){
+                        let b = BrowserWindow.fromId(message.options.window_id)
+                        if(b){
+                        
+                            let wv_id = new Array();
+                            this.webviewOwnerStack.forEach( (v, k) => {
+                                if(v == message.options.window_id)
+                                    wv_id.push(k)
+                            })
+                            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+                            let w_ctx = this.getWindowContext(b.id)
+                            if(this.dcWindows.has(w_ctx)){
+                                let win_arr = this.dcWindows.get( w_ctx   )
+                                win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
+                                this.dcWindows.set(w_ctx, win_arr)
+                            }
+                            b.close()
+                            next(JSON.stringify({
+                                    "command" : "close-window",
+                                    "status" : "success",
+                                    "window_id" : message.options.window_id,
+                                    "viewObjects" : wv_id,
+                                    "displayName" : this.displayName
+                                }))
+
+                            io.publishTopic("display.window", JSON.stringify({
+                                type : "displayWindowClosed",
+                                details : {
+                                    displayContext : w_ctx,
+                                    window_id : message.options.window_id,
+                                    displayName : this.displayName
+                                }
+                            }))
+                        }else{
+                            next(JSON.stringify( { "command" : "close-window", "status" : this.wrapError( "window_id not present" ),  "displayName" : this.displayName }  ))
+                        } 
+                    }else{
+                        next(JSON.stringify( { "command" : "close-window", "status" : this.wrapError( "parameter window_id not present" ),  "displayName" : this.displayName} ))
+                    }
+                    break;
+                case "window-dev-tools":
+                
                     let b = BrowserWindow.fromId(message.options.window_id)
                     if(b){
-                       
-                        let wv_id = new Array();
-                        this.webviewOwnerStack.forEach( (v, k) => {
-                            if(v == message.options.window_id)
-                                wv_id.push(k)
+                        if(message.options.devTools)
+                            b.openDevTools()
+                        else
+                            b.closeDevTools()
+                    }
+                    next(JSON.stringify({"status" : "success", "devTools" : message.options.devTools,  "displayName" : this.displayName} ))
+                    break;   
+                case "create-viewobj" :
+                    if(message.options.displayContext){
+                        ctx = message.options.displayContext
+                    }
+                    this.create_viewobj(ctx, message.options, next)
+                    break;
+                case "capture-window":
+                    let focw = BrowserWindow.fromId(message.options.window_id)
+                    if (focw) {
+                        focw.capturePage(img => {
+                            next(img.toJPEG(80))
                         })
-                        wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-                        let w_ctx = this.getWindowContext(b.id)
-                        if(this.dcWindows.has(w_ctx)){
-                            let win_arr = this.dcWindows.get( w_ctx   )
-                            win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
-                            this.dcWindows.set(w_ctx, win_arr)
-                        }
-                        b.close()
-                        next(JSON.stringify({
-                                "command" : "close-window",
-                                "status" : "success",
-                                "window_id" : message.options.window_id,
-                                "viewObjects" : wv_id
-                            }))
-
-                        io.publishTopic("display.window", JSON.stringify({
-                            type : "displayWindowClosed",
-                            details : {
-                                displayContext : w_ctx,
-                                window_id : message.options.window_id,
-                                displayName : this.displayName
-                            }
-                        }))
                     }else{
-                        next(JSON.stringify( new Error( "window_id not present")))
-                    } 
-                 }else{
-                     next(JSON.stringify( new Error( "parameter window_id not present" ) ))
-                 }
-                break;
-            case "window-dev-tools":
-               
-                let b = BrowserWindow.fromId(message.options.window_id)
-                if(b){
-                    if(message.options.devTools)
-                        b.openDevTools()
-                    else
-                        b.closeDevTools()
-                }
-                next(JSON.stringify({"status" : "success", "devTools" : message.options.devTools} ))
-                break;   
-            case "create-viewobj" :
-                if(message.options.displayContext){
-                    ctx = message.options.displayContext
-                }
-                this.create_viewobj(ctx, message.options, next)
-                break;
-            case "capture-window":
-                let focw = BrowserWindow.fromId(message.options.window_id)
-                if (focw) {
-                    focw.capturePage(img => {
-                        next(img.toJPEG(80))
-                    })
-                }else{
-                    next ( JSON.stringify( new Error(`Window ${message.options.window_id} not found`) ))
-                }
-                break;
-            default :
-                if(message.options.view_id){
-                    message.options.command = message.command
-                    message.options.client_id = message.client_id
-                    if(this.webviewOwnerStack.has(message.options.view_id) ){
-                        message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
+                        next ( JSON.stringify( {status : this.wrapError(`Window ${message.options.window_id} not found`), "command" : "capture-window", "displayName" : this.displayName} ))
+                    }
+                    break;
+                default :
+                    if(message.options.view_id){
+                        message.options.command = message.command
+                        message.options.client_id = message.client_id
+                        if(this.webviewOwnerStack.has(message.options.view_id) ){
+                            message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
+                            this.execute_in_displaywindow(message.options , next)
+                        }else{
+                            next(JSON.stringify({ status : this.wrapError( message.options.view_id + " - view object is not found."), "displayName" : this.displayName, "message" : message.options } ))    
+                        }
+                    }else if(message.options.window_id){
+                        message.options.command = message.command
                         this.execute_in_displaywindow(message.options , next)
                     }else{
-                        next(JSON.stringify(new Error( message.options.view_id + " - view object is not found.")))    
+                        next(JSON.stringify( { status : this.wrapError( "Command not defined."), "message" : message.options, "displayName" : this.displayName }))
                     }
-                }else if(message.options.window_id){
-                     message.options.command = message.command
-                    this.execute_in_displaywindow(message.options , next)
-                }else{
-                    next(JSON.stringify(new Error( "Command not defined.")))
-                }
-        }
+            }
         }catch(e){
             console.log(e)
-            next(JSON.stringify(e))
+            next(JSON.stringify({ status : e.toString() }))
         }
+    }
+
+    wrapError(err){
+        return (new Error(err)).toString()
     }
 }

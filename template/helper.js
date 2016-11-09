@@ -227,18 +227,10 @@ function removeFromGrid(label) {
 
     delete grid[label]
     return grid
-}
+} 
 
-function executeP(opts) {
-    return new Promise( (resolve, reject) => {
-        let x = execute(opts)
-        console.log("inside promise call")
-        if(x.status === "success"){
-            resolve ( x )
-        }else{
-            reject( x )
-        }
-    })
+function wrapError(err) {
+    return (new Error(err)).toString();
 }
 
 function execute(opts) {
@@ -322,7 +314,7 @@ function execute(opts) {
 
                 return { "command": "cell-style", "status": "success" }
             } else {
-                return { "command": "cell-style", "status": new Error("cell not found") }
+                return { "command": "cell-style", "status": wrapError("cell not found") }
             }
 
         } else if (options.command == "set-displaywindow-font-size") {
@@ -646,7 +638,7 @@ function execute(opts) {
             //         return {"view_id": wv.id, command: "execute-javascript", "status": "success"};
             //     }
             //     else {
-            //         return {"view_id": options.view_id, command: "execute-javascript", "status": new Error("view not found") };
+            //         return {"view_id": options.view_id, command: "execute-javascript", "status": wrapError("view not found") };
             //     }
         } else if (options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
@@ -659,7 +651,7 @@ function execute(opts) {
                 }
                 return { "view_id": wv.id, command: "set-css-style", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "set-css-style", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "set-css-style", "status": wrapError("view not found") }
             }
         } else if (options.command == "set-url") {
             let wv = document.getElementById(options.view_id)
@@ -676,7 +668,7 @@ function execute(opts) {
                 return { "view_id": wv.id, command: "set-url", "status": "success" }
 
             } else {
-                return { "view_id": wv.id, command: "set-url", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "set-url", "status": wrapError("view not found") }
             }
 
         } else if (options.command == "get-url") {
@@ -684,7 +676,7 @@ function execute(opts) {
             if (wv) {
                 return { "view_id": wv.id, command: "get-url", "status": "success", "url": wv.src }
             } else {
-                return { "view_id": wv.id, command: "get-url", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "get-url", "status": wrapError("view not found") }
             }
 
         } else if (options.command == "reload") {
@@ -701,7 +693,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "reload", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "reload", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "reload", "status": wrapError("view not found") }
             }
 
         } else if (options.command == "hide") {
@@ -724,7 +716,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "hide", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "hide", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "hide", "status": wrapError("view not found") }
             }
         } else if (options.command == "show") {
             let wv = document.getElementById(options.view_id)
@@ -743,7 +735,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "show", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "show", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "show", "status": wrapError("view not found") }
             }
         } else if (options.command == "close") {
             let wv = document.getElementById(options.view_id)
@@ -759,7 +751,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "close", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "close", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "close", "status": wrapError("view not found") }
             }
         } else if (options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
@@ -784,7 +776,7 @@ function execute(opts) {
 
                 return { "view_id": wv.id, command: "set-bounds", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "set-bounds", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "set-bounds", "status": wrapError("view not found") }
             }
 
         } else if (options.command == "get-bounds") {
@@ -798,7 +790,7 @@ function execute(opts) {
 
                 return { "view_id": wv.id, command: "get-bounds", "status": "success", "bounds": _d }
             } else {
-                return { "view_id": wv.id, command: "get-bounds", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "get-bounds", "status": wrapError("view not found") }
             }
 
         } else if (options.command == "back") {
@@ -807,7 +799,7 @@ function execute(opts) {
                 wv.goBack()
                 return { "view_id": wv.id, command: "back", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "back", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "back", "status": wrapError("view not found") }
             }
         } else if (options.command == "forward") {
             let wv = document.getElementById(options.view_id)
@@ -815,7 +807,7 @@ function execute(opts) {
                 wv.goForward()
                 return { "view_id": wv.id, command: "forward", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "forward", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "forward", "status": wrapError("view not found") }
             }
         } else if (options.command == "enable-device-emulation") {
             let wv = document.getElementById(options.view_id)
@@ -823,7 +815,7 @@ function execute(opts) {
                 wv.getWebContents().enableDeviceEmulation(options.parameters)
                 return { "view_id": wv.id, command: "enable-device-emulation", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "enable-device-emulation", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "enable-device-emulation", "status": wrapError("view not found") }
             }
         } else if (options.command == "disable-device-emulation") {
             let wv = document.getElementById(options.view_id)
@@ -831,7 +823,7 @@ function execute(opts) {
                 wv.getWebContents().disableDeviceEmulation()
                 return { "view_id": wv.id, command: "disable-device-emulation", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "disable-device-emulation", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "disable-device-emulation", "status": wrapError("view not found") }
             }
         } else if (options.command == 'view-object-dev-tools') {
             let vb = document.getElementById(options.view_id)
@@ -849,7 +841,7 @@ function execute(opts) {
                 vb.executeJavaScript("play()")
                 return { "view_id": wv.id, command: "play-video", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "play-video", "status": new Error("view not found") }
+                return { "view_id": wv.id, command: "play-video", "status": wrapError("view not found") }
             }
         } else if (options.command == 'pause-video') {
             let vb = document.getElementById(options.view_id)
@@ -857,7 +849,7 @@ function execute(opts) {
                 vb.executeJavaScript("pause()")
                 return { "view_id": vb.id, command: "pause-video", "status": "success" }
             } else {
-                return { "view_id": vb.id, command: "pause-video", "status": new Error("view not found") }
+                return { "view_id": vb.id, command: "pause-video", "status": wrapError("view not found") }
             }
         } else if (options.command == 'set-current-video-time') {
             let vb = document.getElementById(options.view_id)
@@ -865,7 +857,7 @@ function execute(opts) {
                 vb.executeJavaScript("setCurrentTime('" + options.time + "')")
                 return { "view_id": vb.id, command: "set-current-video-time", "status": "success" }
             } else {
-                return { "view_id": vb.id, command: "set-current-video-time", "status": new Error("view not found") }
+                return { "view_id": vb.id, command: "set-current-video-time", "status": wrapError("view not found") }
             }
         // } else if (options.command == 'get-current-video-time') {
         //     let vb = document.getElementById(options.view_id)
@@ -874,7 +866,7 @@ function execute(opts) {
         //             return { "view_id": vb.id, command: "get-current-video-time", "time": t, "status": "success" }
         //         })
         //     } else {
-        //         return { "view_id": vb.id, command: "get-current-video-time", "status": new Error("view not found") }
+        //         return { "view_id": vb.id, command: "get-current-video-time", "status": wrapError("view not found") }
         //     }
         } else if (options.command == 'replay-video') {
             let vb = document.getElementById(options.view_id)
@@ -882,10 +874,10 @@ function execute(opts) {
                 vb.executeJavaScript("replay()")
                 return { "view_id": vb.id, command: "replay-video", "status": "success" }
             } else {
-                return { "view_id": vb.id, command: "replay-video", "status": new Error("view not found") }
+                return { "view_id": vb.id, command: "replay-video", "status": wrapError("view not found") }
             }
         } else {
-            return { "view_id": options.view_id, command: options.command, "status": new Error("command not defined") }
+            return { "view_id": options.view_id, command: options.command, "status": wrapError("command not defined") }
         }
     } catch (e) {
         console.log(e)
