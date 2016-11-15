@@ -413,26 +413,26 @@ function execute(opts) {
             })
 
 
-            if (options.uiClosable) {
-                let closebtn = document.createElement("div")
-                closebtn.className = "closebtn"
-                closebtn.id = wv.id + "-closehint"
-                closebtn.innerHTML = "x"
-                closebtn.style.left = $(wv).offset().left + 10 + "px"
-                closebtn.style.top = $(wv).offset().top + 30 + "px"
-                closebtn.addEventListener("mousedown", () => {
-                    document.getElementById('pointing').removeChild(closebtn)
-                    document.getElementById('content').removeChild(wv)
-                    ipcRenderer.send('view-object-event', JSON.stringify({
-                        type: "viewObjectClosed",
-                        displayContext: displayContext,
-                        details: {
-                            view_id: wv.id
-                        }
-                    }))
-                })
-                document.getElementById("pointing").appendChild(closebtn)
-            }
+            // if (options.uiClosable) {
+            //     let closebtn = document.createElement("div")
+            //     closebtn.className = "closebtn"
+            //     closebtn.id = wv.id + "-closehint"
+            //     closebtn.innerHTML = "x"
+            //     closebtn.style.left = parseInt(options.left) + 10 + "px"
+            //     closebtn.style.top = parseInt(options.top) + 30 + "px"
+            //     closebtn.addEventListener("mousedown", () => {
+            //         document.getElementById('pointing').removeChild(closebtn)
+            //         document.getElementById('content').removeChild(wv)
+            //         ipcRenderer.send('view-object-event', JSON.stringify({
+            //             type: "viewObjectClosed",
+            //             displayContext: displayContext,
+            //             details: {
+            //                 view_id: wv.id
+            //             }
+            //         }))
+            //     })
+            //     document.getElementById("pointing").appendChild(closebtn)
+            // }
 
             if (options.uiDraggable) {
                 wv.addEventListener("mouseover", (e) => {
@@ -458,10 +458,10 @@ function execute(opts) {
                                     wv.style.zIndex = zIndex + 1
                                     console.log(zIndex)
                                 }
-                                let closebtn = document.getElementById(wv.id + "-closehint")
-                                if (closebtn) {
-                                    closebtn.style.display = "none"
-                                }
+                                // let closebtn = document.getElementById(wv.id + "-closehint")
+                                // if (closebtn) {
+                                //     closebtn.style.display = "none"
+                                // }
                             },
                             drag: (e) => {
                                 wv.isDragging = true
@@ -471,20 +471,20 @@ function execute(opts) {
                                     pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
                                 }
 
-                                // if(e.screenY < 1){
-                                //     $(wv).draggable( {disabled : true})
-                                //     wv.isDragging = false
-                                //     pointingDiv.style.display = "none"
-                                //     wv.dispatchEvent(new Event("dragHintEnd"))
-                                //     document.getElementById('content').removeChild(wv)
-                                //     ipcRenderer.send('view-object-event', JSON.stringify({
-                                //         type : "viewObjectClosed",
-                                //         displayContext : displayContext,
-                                //         details :  {
-                                //             view_id : wv.id
-                                //         }
-                                //     }))
-                                // }
+                                if(e.screenY < 1 && options.uiClosable){
+                                    $(wv).draggable( {disabled : true})
+                                    wv.isDragging = false
+                                    pointingDiv.style.display = "none"
+                                    wv.dispatchEvent(new Event("dragHintEnd"))
+                                    document.getElementById('content').removeChild(wv)
+                                    ipcRenderer.send('view-object-event', JSON.stringify({
+                                        type : "viewObjectClosed",
+                                        displayContext : displayContext,
+                                        details :  {
+                                            view_id : wv.id
+                                        }
+                                    }))
+                                }
 
                             },
                             stop: () => {
@@ -496,12 +496,12 @@ function execute(opts) {
                                     pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
                                     pointingDiv.style.display = "none"
                                     wv.dispatchEvent(new Event("dragHintEnd"))
-                                    let closebtn = document.getElementById(wv.id + "-closehint")
-                                    if (closebtn) {
-                                        closebtn.style.display = "block"
-                                        closebtn.style.left = $(wv).offset().left + 10 + "px"
-                                        closebtn.style.top = $(wv).offset().top + 20 + "px"
-                                    }
+                                    // let closebtn = document.getElementById(wv.id + "-closehint")
+                                    // if (closebtn) {
+                                    //     closebtn.style.display = "block"
+                                    //     closebtn.style.left = $(wv).offset().left + 10 + "px"
+                                    //     closebtn.style.top = $(wv).offset().top + 20 + "px"
+                                    // }
                                     let _d = {
                                         top: $(wv).offset().top,
                                         left: $(wv).offset().left,
@@ -533,11 +533,11 @@ function execute(opts) {
                                         let animate = setBounds(wv, destBounds)
                                         if (animate) {
                                             animate.onfinish = () => {
-                                                let closebtn1 = document.getElementById(wv.id + "-closehint")
-                                                if (closebtn1) {
-                                                    closebtn1.style.left = $(wv).offset().left + 10 + "px"
-                                                    closebtn1.style.top = $(wv).offset().top + 30 + "px"
-                                                }
+                                                // let closebtn1 = document.getElementById(wv.id + "-closehint")
+                                                // if (closebtn1) {
+                                                //     closebtn1.style.left = $(wv).offset().left + 10 + "px"
+                                                //     closebtn1.style.top = $(wv).offset().top + 30 + "px"
+                                                // }
                                                 ipcRenderer.send('view-object-event', JSON.stringify({
                                                     type: "boundsChanged",
                                                     displayContext: displayContext,
