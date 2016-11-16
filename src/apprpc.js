@@ -3,8 +3,38 @@ const electron = require('electron')
 
 const {app, BrowserWindow, ipcMain} = require("electron")
 const uuid = require('node-uuid')
+
+function fileExists(filePath)
+{
+    try
+    {
+        return fs.statSync(filePath).isFile();
+    }
+    catch (err)
+    {
+        return false;
+    }
+}
+
+let searchPaths = ['./cog.json', '/etc/celio/display-worker-cog.json']
+let cogPath = ''
+searchPaths.some((f) => { if(fileExists(f)){ cogPath = f; return true;} } )
+if(cogPath === ''){
+    console.log( 'Display Worker Configuration not found in any of these locations : ' , searchPaths )
+    process.exit()
+}
+console.log( 'using configuration from ' , cogPath )
 const CELIO = require('celio')
-const io = new CELIO()
+const io = new CELIO(cogPath)
+
+// check if displayName is defined
+try{
+    io.conf.get('display:displayName')
+}catch(e){
+    console.log( 'Unable to start Display Worker. Please specify displayName under display settings in the configuration file.' )
+    process.exit()
+}
+
 const Pointing = require('./pointing')
 const DisplayError = require('./displayerror')
 let displayWorker
@@ -15,11 +45,15 @@ app.on('ready', () => {
     process.setMaxListeners(0);
 	let displays = electron.screen.getAllDisplays()
 
-
     console.log("Displays attached to this display-worker: \n")
     displays.forEach((d) => {
         console.log(d)
     })
+
+    //stores the app details on store
+    if(io.config.get('apps'))
+        io.store.setState('apps', JSON.stringify(io.config.get('apps')) )
+
     displayWorker = new DisplayWorker(process.argv)
 });
 
@@ -40,9 +74,34 @@ ipcMain.on('view-object-event', (event, arg) => {
     io.publishTopic("display."+ arg.displayContext + "." + arg.type + "." + arg.details.view_id , arg)
 })
 
-ipcMain.on('launchermenu', (event , arg) => {
-    console.log(" launch menu ", arg)
-    io.publishTopic('launchmenu.select', arg)
+ipcMain.on('launchermenu', (event , msg) => {
+    console.log(" launch menu ", msg)
+    if(msg.type == 'celio') {
+        io.displayContext.setActive( msg.appname, false );
+        io.store.setState('display:activeAppOnMenu', msg.appname );
+    }else if( msg.type == 'GSpeak') {
+        io.store.setState('display:activeAppOnMenu', msg.appname )
+        io.store.setState('display:activeDisplayContext', msg.appname )
+        io.displayContext.hideAll()
+        io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
+        if(msg['master-reset']){
+            setTimeout( ()=>{
+                io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
+
+             }, 400)    
+        }
+
+        setTimeout( ()=>{
+            io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
+            if(msg['master-reset']){
+                setTimeout( ()=>{
+                    io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
+
+                }, 400)
+            }
+        }, 500)
+
+    }
 })
 
 class DisplayWorker {
