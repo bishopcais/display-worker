@@ -983,7 +983,7 @@ function slideContents(options) {
     var x1, x2;
     var y1, y2;
 
-    if (options.slide.cascade) {
+    
 
         if (options.slide.direction == "down") {
             //console.log("down")
@@ -1106,7 +1106,7 @@ function slideContents(options) {
                 }
             }
         }
-    }
+    
 
 }
 
