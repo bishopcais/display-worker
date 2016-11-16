@@ -6,6 +6,7 @@ const uuid = require('node-uuid')
 const CELIO = require('celio')
 const io = new CELIO()
 const Pointing = require('./pointing')
+const DisplayError = require('./displayerror')
 let displayWorker
 app.commandLine.appendSwitch('disable-http-cache')
 app.setName("CELIO Display Worker")
@@ -95,7 +96,7 @@ class DisplayWorker {
                 // console.log(msg)
                 this.process_message(msg, reply)
             }catch(e){
-                reply(JSON.stringify(e))
+                reply(e)
             }
         })
 
@@ -298,25 +299,31 @@ class DisplayWorker {
         let b = BrowserWindow.fromId(options.window_id)
         if(b == undefined) {
             console.log("window_id not found")
-            next(JSON.stringify({ "status" : this.wrapError("window_id not found"), "message" : options, "displayName" : this.displayName }))
+            options.displayName = this.displayName
+            next(new DisplayError('Display Worker Error', 'Window_id not found', options))
         }else{
             if(b.isReady){
                 b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
-                    if(d.command == "close"){
-                        this.webviewOwnerStack.delete( d.view_id )
-                    }else if(d.command == "clear-contents"){
-                        let wv_id = new Array();
-                        this.webviewOwnerStack.forEach( (v, k) => {
-                            if(v == options.window_id)
-                                wv_id.push(k)
-                        })
-                        wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-                        d.viewObjects = wv_id
+                    if(d.status === 'error'){
+                        next( new DisplayError('ViewObject Command Execution Error', d.error_message, d))
+                    }else{
+                        if(d.command == "close"){
+                            this.webviewOwnerStack.delete( d.view_id )
+                        }else if(d.command == "clear-contents"){
+                            let wv_id = new Array();
+                            this.webviewOwnerStack.forEach( (v, k) => {
+                                if(v == options.window_id)
+                                    wv_id.push(k)
+                            })
+                            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+                            d.viewObjects = wv_id
+                        }
+                        next(JSON.stringify(d))
                     }
-                    next(JSON.stringify(d))
                 })
             }else{
-                next(JSON.stringify({ status : this.wrapError( "dom not ready"), "message" : options, "displayName" : this.displayName}) )
+                options.displayName = this.displayName
+                next(new DisplayError( 'Display Window Error', 'DOM not ready', options) )
             }
 
         }
@@ -395,7 +402,11 @@ class DisplayWorker {
                                 "displayContext" : _dc
                         }))
                     }else{
-                        next(JSON.stringify({ status : this.wrapError("none of the  display windows are in focus"), "command" : "get-focus-window",  "displayName" : this.displayName} ))
+                        let e_details = {
+                            command : 'get-focus-window',
+                            displayName : this.displayName
+                        }
+                        next(new DisplayError('Display Worker Error', 'None of the  display windows are in focus', e_details))
                     }
                     break;
                 case "create-window":
@@ -443,10 +454,18 @@ class DisplayWorker {
                                 "displayName" : this.displayName
                             }))
                         }else{
-                            next(JSON.stringify( { "command" : "hide-window", "status" : this.wrapError( "window_id not present" ),  "displayName" : this.displayName } ))
+                            let e_details = {
+                                command : 'hide-window',
+                                displayName : this.displayName
+                            }
+                            next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
                         }
                     }else{
-                        next(JSON.stringify( { "command" : "hide-window", "status" : this.wrapError( "parameter window_id not present" ),  "displayName" : this.displayName}))
+                        let e_details = {
+                            command : 'hide-window',
+                            displayName : this.displayName
+                        }
+                        next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
                     }
                         
                     break;
@@ -472,10 +491,18 @@ class DisplayWorker {
                                 "displayName" : this.displayName 
                             }))
                         }else{
-                            next(JSON.stringify( { "command" : "show-window", "status" : this.wrapError( "window_id not present" ),  "displayName" : this.displayName } ))
+                            let e_details = {
+                                command : 'show-window',
+                                displayName : this.displayName
+                            }
+                            next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
                         }
                     }else{
-                        next(JSON.stringify( { "command" : "show-window", "status" : this.wrapError( "parameter window_id not present" ),  "displayName" : this.displayName} ))
+                        let e_details = {
+                            command : 'show-window',
+                            displayName : this.displayName
+                        }
+                        next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
                     }
                     break;
                 case "close-window":
@@ -513,10 +540,18 @@ class DisplayWorker {
                                 }
                             }))
                         }else{
-                            next(JSON.stringify( { "command" : "close-window", "status" : this.wrapError( "window_id not present" ),  "displayName" : this.displayName }  ))
+                            let e_details = {
+                                command : 'close-window',
+                                displayName : this.displayName
+                            }
+                            next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
                         } 
                     }else{
-                        next(JSON.stringify( { "command" : "close-window", "status" : this.wrapError( "parameter window_id not present" ),  "displayName" : this.displayName} ))
+                        let e_details = {
+                            command : 'close-window',
+                            displayName : this.displayName
+                        }
+                        next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
                     }
                     break;
                 case "window-dev-tools":
@@ -543,7 +578,12 @@ class DisplayWorker {
                             next(img.toJPEG(80))
                         })
                     }else{
-                        next ( JSON.stringify( {status : this.wrapError(`Window ${message.options.window_id} not found`), "command" : "capture-window", "displayName" : this.displayName} ))
+                        let e_details = {
+                            command : 'capture-window',
+                            displayName : this.displayName
+                        }
+                        console.log('Display Worker Error', `Window ${message.options.window_id} not found`, e_details)
+                        next(new DisplayError('Display Worker Error', `Window ${message.options.window_id} not found`, e_details))
                     }
                     break;
                 default :
@@ -554,22 +594,20 @@ class DisplayWorker {
                             message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
                             this.execute_in_displaywindow(message.options , next)
                         }else{
-                            next(JSON.stringify({ status : this.wrapError( message.options.view_id + " - view object is not found."), "displayName" : this.displayName, "message" : message.options } ))    
+                            message.options.displayName = this.displayName
+                            next(new DisplayError('Display Worker Error', message.options.view_id + ' - view object is not found.' , message.options ))    
                         }
                     }else if(message.options.window_id){
                         message.options.command = message.command
                         this.execute_in_displaywindow(message.options , next)
                     }else{
-                        next(JSON.stringify( { status : this.wrapError( "Command not defined."), "message" : message.options, "displayName" : this.displayName }))
+                        message.options.displayName = this.displayName
+                        next(new DisplayError('Display Worker Error', 'Command not defined' , message.options ))
                     }
             }
         }catch(e){
             console.log(e)
             next(JSON.stringify({ status : e.toString() }))
         }
-    }
-
-    wrapError(err){
-        return (new Error(err)).toString()
     }
 }

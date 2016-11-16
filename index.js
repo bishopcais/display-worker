@@ -1,4 +1,5 @@
 const electron_path = require('electron');
+console.log("Using electron from : ", electron_path)
 const spawn = require('child_process').spawn;
 process.env['DISPLAY'] = ':0';
 const proc = spawn(electron_path, ['src/apprpc.js'], {env:process.env});
