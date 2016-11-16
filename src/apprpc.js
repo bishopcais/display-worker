@@ -104,6 +104,19 @@ ipcMain.on('launchermenu', (event , msg) => {
     }
 })
 
+io.onTopic('pool.*', m =>{
+    let msg = JSON.parse(m.toString())
+    console.log(msg)
+    if(msg.ingests['signal-pool'] && msg.ingests['signal-pool'].indexOf('celio') > -1){
+        
+        io.store.getSet('display:displayContexts').then( c => {
+            if(c.indexOf(msg.ingests.appname) > -1){
+                io.displayContext.setActive( msg.ingests.appname, true )
+            }
+        })    
+    }
+})
+
 class DisplayWorker {
     constructor(){
         this.displays = electron.screen.getAllDisplays()    
