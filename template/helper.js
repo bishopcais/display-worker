@@ -61,8 +61,8 @@ function rectangleSelect(selector, x1, y1, x2, y2) {
 
         if (x >= x1
             && y >= y1
-            && x + w <= x2
-            && y + h <= y2) {
+            && x <= x2
+            && y <= y2) {
             // this element fits inside the selection rectangle
             elements.push($this.get(0));
         }
@@ -229,11 +229,6 @@ function removeFromGrid(label) {
     return grid
 } 
 
-function wrapError(err) {
-    console.log("Error : " , err)
-    return (new Error(err)).toString();
-}
-
 function execute(opts) {
     let options = JSON.parse(opts)
     console.log('Executed command : ', options.command, options)
@@ -315,7 +310,7 @@ function execute(opts) {
 
                 return { "command": "cell-style", "status": "success" }
             } else {
-                return { "command": "cell-style", "status": wrapError("cell not found") }
+                return { "command": "cell-style", "status": "error", "error_message" : "cell not found" }
             }
 
         } else if (options.command == "set-displaywindow-font-size") {
@@ -413,26 +408,26 @@ function execute(opts) {
             })
 
 
-            if (options.uiClosable) {
-                let closebtn = document.createElement("div")
-                closebtn.className = "closebtn"
-                closebtn.id = wv.id + "-closehint"
-                closebtn.innerHTML = "x"
-                closebtn.style.left = $(wv).offset().left + 10 + "px"
-                closebtn.style.top = $(wv).offset().top + 30 + "px"
-                closebtn.addEventListener("mousedown", () => {
-                    document.getElementById('pointing').removeChild(closebtn)
-                    document.getElementById('content').removeChild(wv)
-                    ipcRenderer.send('view-object-event', JSON.stringify({
-                        type: "viewObjectClosed",
-                        displayContext: displayContext,
-                        details: {
-                            view_id: wv.id
-                        }
-                    }))
-                })
-                document.getElementById("pointing").appendChild(closebtn)
-            }
+            // if (options.uiClosable) {
+            //     let closebtn = document.createElement("div")
+            //     closebtn.className = "closebtn"
+            //     closebtn.id = wv.id + "-closehint"
+            //     closebtn.innerHTML = "x"
+            //     closebtn.style.left = parseInt(options.left) + 10 + "px"
+            //     closebtn.style.top = parseInt(options.top) + 30 + "px"
+            //     closebtn.addEventListener("mousedown", () => {
+            //         document.getElementById('pointing').removeChild(closebtn)
+            //         document.getElementById('content').removeChild(wv)
+            //         ipcRenderer.send('view-object-event', JSON.stringify({
+            //             type: "viewObjectClosed",
+            //             displayContext: displayContext,
+            //             details: {
+            //                 view_id: wv.id
+            //             }
+            //         }))
+            //     })
+            //     document.getElementById("pointing").appendChild(closebtn)
+            // }
 
             if (options.uiDraggable) {
                 wv.addEventListener("mouseover", (e) => {
@@ -458,10 +453,10 @@ function execute(opts) {
                                     wv.style.zIndex = zIndex + 1
                                     console.log(zIndex)
                                 }
-                                let closebtn = document.getElementById(wv.id + "-closehint")
-                                if (closebtn) {
-                                    closebtn.style.display = "none"
-                                }
+                                // let closebtn = document.getElementById(wv.id + "-closehint")
+                                // if (closebtn) {
+                                //     closebtn.style.display = "none"
+                                // }
                             },
                             drag: (e) => {
                                 wv.isDragging = true
@@ -471,20 +466,20 @@ function execute(opts) {
                                     pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
                                 }
 
-                                // if(e.screenY < 1){
-                                //     $(wv).draggable( {disabled : true})
-                                //     wv.isDragging = false
-                                //     pointingDiv.style.display = "none"
-                                //     wv.dispatchEvent(new Event("dragHintEnd"))
-                                //     document.getElementById('content').removeChild(wv)
-                                //     ipcRenderer.send('view-object-event', JSON.stringify({
-                                //         type : "viewObjectClosed",
-                                //         displayContext : displayContext,
-                                //         details :  {
-                                //             view_id : wv.id
-                                //         }
-                                //     }))
-                                // }
+                                if(e.screenY < 1 && options.uiClosable){
+                                    $(wv).draggable( {disabled : true})
+                                    wv.isDragging = false
+                                    pointingDiv.style.display = "none"
+                                    wv.dispatchEvent(new Event("dragHintEnd"))
+                                    document.getElementById('content').removeChild(wv)
+                                    ipcRenderer.send('view-object-event', JSON.stringify({
+                                        type : "viewObjectClosed",
+                                        displayContext : displayContext,
+                                        details :  {
+                                            view_id : wv.id
+                                        }
+                                    }))
+                                }
 
                             },
                             stop: () => {
@@ -496,12 +491,12 @@ function execute(opts) {
                                     pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
                                     pointingDiv.style.display = "none"
                                     wv.dispatchEvent(new Event("dragHintEnd"))
-                                    let closebtn = document.getElementById(wv.id + "-closehint")
-                                    if (closebtn) {
-                                        closebtn.style.display = "block"
-                                        closebtn.style.left = $(wv).offset().left + 10 + "px"
-                                        closebtn.style.top = $(wv).offset().top + 20 + "px"
-                                    }
+                                    // let closebtn = document.getElementById(wv.id + "-closehint")
+                                    // if (closebtn) {
+                                    //     closebtn.style.display = "block"
+                                    //     closebtn.style.left = $(wv).offset().left + 10 + "px"
+                                    //     closebtn.style.top = $(wv).offset().top + 20 + "px"
+                                    // }
                                     let _d = {
                                         top: $(wv).offset().top,
                                         left: $(wv).offset().left,
@@ -533,11 +528,11 @@ function execute(opts) {
                                         let animate = setBounds(wv, destBounds)
                                         if (animate) {
                                             animate.onfinish = () => {
-                                                let closebtn1 = document.getElementById(wv.id + "-closehint")
-                                                if (closebtn1) {
-                                                    closebtn1.style.left = $(wv).offset().left + 10 + "px"
-                                                    closebtn1.style.top = $(wv).offset().top + 30 + "px"
-                                                }
+                                                // let closebtn1 = document.getElementById(wv.id + "-closehint")
+                                                // if (closebtn1) {
+                                                //     closebtn1.style.left = $(wv).offset().left + 10 + "px"
+                                                //     closebtn1.style.top = $(wv).offset().top + 30 + "px"
+                                                // }
                                                 ipcRenderer.send('view-object-event', JSON.stringify({
                                                     type: "boundsChanged",
                                                     displayContext: displayContext,
@@ -639,7 +634,7 @@ function execute(opts) {
             //         return {"view_id": wv.id, command: "execute-javascript", "status": "success"};
             //     }
             //     else {
-            //         return {"view_id": options.view_id, command: "execute-javascript", "status": wrapError("view not found") };
+            //         return {"view_id": options.view_id, command: "execute-javascript", "status": "error", "error_message" : "view not found" };
             //     }
         } else if (options.command == "set-webview-css-style") {
             let wv = document.getElementById(options.view_id)
@@ -652,7 +647,7 @@ function execute(opts) {
                 }
                 return { "view_id": wv.id, command: "set-css-style", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "set-css-style", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "set-css-style", "status": "error", "error_message" : "view not found" }
             }
         } else if (options.command == "set-url") {
             let wv = document.getElementById(options.view_id)
@@ -669,7 +664,7 @@ function execute(opts) {
                 return { "view_id": wv.id, command: "set-url", "status": "success" }
 
             } else {
-                return { "view_id": wv.id, command: "set-url", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "set-url", "status": "error", "error_message" : "view not found" }
             }
 
         } else if (options.command == "get-url") {
@@ -677,7 +672,7 @@ function execute(opts) {
             if (wv) {
                 return { "view_id": wv.id, command: "get-url", "status": "success", "url": wv.src }
             } else {
-                return { "view_id": wv.id, command: "get-url", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "get-url", "status": "error", "error_message" : "view not found" }
             }
 
         } else if (options.command == "reload") {
@@ -694,7 +689,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "reload", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "reload", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "reload", "status": "error", "error_message" :"view not found" }
             }
 
         } else if (options.command == "hide") {
@@ -717,7 +712,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "hide", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "hide", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "hide", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == "show") {
             let wv = document.getElementById(options.view_id)
@@ -736,7 +731,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "show", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "show", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "show", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == "close") {
             let wv = document.getElementById(options.view_id)
@@ -752,7 +747,7 @@ function execute(opts) {
                 }))
                 return { "view_id": wv.id, command: "close", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "close", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "close", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == "set-bounds") {
             let wv = document.getElementById(options.view_id)
@@ -777,7 +772,7 @@ function execute(opts) {
 
                 return { "view_id": wv.id, command: "set-bounds", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "set-bounds", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "set-bounds", "status": "error", "error_message" :"view not found" }
             }
 
         } else if (options.command == "get-bounds") {
@@ -791,7 +786,7 @@ function execute(opts) {
 
                 return { "view_id": wv.id, command: "get-bounds", "status": "success", "bounds": _d }
             } else {
-                return { "view_id": wv.id, command: "get-bounds", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "get-bounds", "status": "error", "error_message" :"view not found" }
             }
 
         } else if (options.command == "back") {
@@ -800,7 +795,7 @@ function execute(opts) {
                 wv.goBack()
                 return { "view_id": wv.id, command: "back", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "back", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "back", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == "forward") {
             let wv = document.getElementById(options.view_id)
@@ -808,7 +803,7 @@ function execute(opts) {
                 wv.goForward()
                 return { "view_id": wv.id, command: "forward", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "forward", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "forward", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == "enable-device-emulation") {
             let wv = document.getElementById(options.view_id)
@@ -816,7 +811,7 @@ function execute(opts) {
                 wv.getWebContents().enableDeviceEmulation(options.parameters)
                 return { "view_id": wv.id, command: "enable-device-emulation", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "enable-device-emulation", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "enable-device-emulation", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == "disable-device-emulation") {
             let wv = document.getElementById(options.view_id)
@@ -824,7 +819,7 @@ function execute(opts) {
                 wv.getWebContents().disableDeviceEmulation()
                 return { "view_id": wv.id, command: "disable-device-emulation", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "disable-device-emulation", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "disable-device-emulation", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == 'view-object-dev-tools') {
             let vb = document.getElementById(options.view_id)
@@ -842,7 +837,7 @@ function execute(opts) {
                 vb.executeJavaScript("play()")
                 return { "view_id": wv.id, command: "play-video", "status": "success" }
             } else {
-                return { "view_id": wv.id, command: "play-video", "status": wrapError("view not found") }
+                return { "view_id": wv.id, command: "play-video", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == 'pause-video') {
             let vb = document.getElementById(options.view_id)
@@ -850,7 +845,7 @@ function execute(opts) {
                 vb.executeJavaScript("pause()")
                 return { "view_id": vb.id, command: "pause-video", "status": "success" }
             } else {
-                return { "view_id": vb.id, command: "pause-video", "status": wrapError("view not found") }
+                return { "view_id": vb.id, command: "pause-video", "status": "error", "error_message" :"view not found" }
             }
         } else if (options.command == 'set-current-video-time') {
             let vb = document.getElementById(options.view_id)
@@ -858,7 +853,7 @@ function execute(opts) {
                 vb.executeJavaScript("setCurrentTime('" + options.time + "')")
                 return { "view_id": vb.id, command: "set-current-video-time", "status": "success" }
             } else {
-                return { "view_id": vb.id, command: "set-current-video-time", "status": wrapError("view not found") }
+                return { "view_id": vb.id, command: "set-current-video-time", "status": "error", "error_message" :"view not found" }
             }
         // } else if (options.command == 'get-current-video-time') {
         //     let vb = document.getElementById(options.view_id)
@@ -867,7 +862,7 @@ function execute(opts) {
         //             return { "view_id": vb.id, command: "get-current-video-time", "time": t, "status": "success" }
         //         })
         //     } else {
-        //         return { "view_id": vb.id, command: "get-current-video-time", "status": wrapError("view not found") }
+        //         return { "view_id": vb.id, command: "get-current-video-time", "status": "error", "error_message" :"view not found" }
         //     }
         } else if (options.command == 'replay-video') {
             let vb = document.getElementById(options.view_id)
@@ -875,14 +870,14 @@ function execute(opts) {
                 vb.executeJavaScript("replay()")
                 return { "view_id": vb.id, command: "replay-video", "status": "success" }
             } else {
-                return { "view_id": vb.id, command: "replay-video", "status": wrapError("view not found") }
+                return { "view_id": vb.id, command: "replay-video", "status": "error", "error_message" :"view not found" }
             }
         } else {
-            return { "view_id": options.view_id, command: options.command, "status": wrapError("command not defined") }
+            return { "view_id": options.view_id, command: options.command, "status": "error", "error_message" :"command not defined" }
         }
     } catch (e) {
         console.log(e)
-        return { "view_id": options.view_id, command: options.command, "status": e }
+        return { "view_id": options.view_id, command: options.command, "status": "error", "error_message" : e.toString() }
     }
 }
 
@@ -988,7 +983,7 @@ function slideContents(options) {
     var x1, x2;
     var y1, y2;
 
-    if (options.slide.cascade) {
+    
 
         if (options.slide.direction == "down") {
             //console.log("down")
@@ -1111,7 +1106,7 @@ function slideContents(options) {
                 }
             }
         }
-    }
+    
 
 }
 
