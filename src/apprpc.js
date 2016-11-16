@@ -29,7 +29,7 @@ const io = new CELIO(cogPath)
 
 // check if displayName is defined
 try{
-    io.conf.get('display:displayName')
+    console.log( 'Display Worker Name : ',  io.config.get("display:displayName") )
 }catch(e){
     console.log( 'Unable to start Display Worker. Please specify displayName under display settings in the configuration file.' )
     process.exit()
