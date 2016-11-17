@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev" : "electron src/apprpc.js",
+    "dev": "electron src/apprpc.js",
     "postinstall": "npm rebuild --runtime=electron --target=1.4.7 --disturl=https://atom.io/download/electron --abi=51"
   },
   "author": "yedendra shrinivasan",
@@ -17,7 +17,10 @@
     "celio": "^2.0.0",
     "electron": "^1.4.5",
     "node-uuid": "^1.4.7",
-    "robotjs": "^0.4.4"
+    "robotjs": "^0.4.4",
+    "winston": "^2.3.0",
+    "winston-syslog": "^1.2.4",
+    "winston-syslog-posix": "^2.0.0"
   },
   "devDependencies": {}
 }
