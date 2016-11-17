@@ -75,6 +75,7 @@ ipcMain.on('view-object-event', (event, arg) => {
 })
 
 ipcMain.on('launchermenu', (event , msg) => {
+    msg = JSON.parse(msg)
     console.log(" launch menu ", msg)
     if(msg.type == 'celio') {
         io.displayContext.setActive( msg.appname, false );
@@ -82,25 +83,27 @@ ipcMain.on('launchermenu', (event , msg) => {
     }else if( msg.type == 'GSpeak') {
         io.store.setState('display:activeAppOnMenu', msg.appname )
         io.store.setState('display:activeDisplayContext', msg.appname )
-        io.displayContext.hideAll()
-        io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
-        if(msg['master-reset']){
-            setTimeout( ()=>{
-                io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
-
-             }, 400)    
-        }
-
-        setTimeout( ()=>{
+        io.displayContext.hideAll().then(m =>{
             io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
+            console.log('all display contexts hidden')
             if(msg['master-reset']){
                 setTimeout( ()=>{
                     io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
 
-                }, 400)
+                }, 400)    
             }
-        }, 500)
 
+            setTimeout( ()=>{
+                io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
+                if(msg['master-reset']){
+                    setTimeout( ()=>{
+                        io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
+
+                    }, 400)
+                }
+            }, 500)
+
+        })
     }
 })
 
