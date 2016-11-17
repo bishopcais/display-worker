@@ -158,7 +158,7 @@ class Pointing {
     }
 
     detachHandler(info) {
-        console.log('Detach', info.name);
+        this.io.logger.info('Detach', info.name);
         if (this.controlCursor === info.name) {
             this.controlCursor = null;
             this.dragging = false;
