@@ -521,6 +521,10 @@ class DisplayWorker {
                     console.log(_windowOptions)
                     next(JSON.stringify(_windowOptions))
                     break;
+                case 'get-context-list' :
+                    console.log(this.displayContext)
+                    next(JSON.stringify(this.displayContext))
+                    break;
                 case 'set-display-context':
                     if(!this.displayContext.has(message.options.context)){
                         this.displayContext.add(message.options.context)
