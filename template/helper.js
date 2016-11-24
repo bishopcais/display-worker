@@ -984,7 +984,7 @@ function slideContents(options) {
     var y1, y2;
 
     
-
+    if (options.slide.cascade){
         if (options.slide.direction == "down") {
             //console.log("down")
             for (let i = (max_row_index - 1); i >= cur_row_index; i--) {
@@ -1106,7 +1106,7 @@ function slideContents(options) {
                 }
             }
         }
-    
+    }
 
 }
 
