@@ -8,7 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "electron src/apprpc.js",
-    "postinstall": "npm rebuild --runtime=electron --target=1.4.7 --disturl=https://atom.io/download/electron --abi=51"
+    "postinstall": "npm rebuild --runtime=electron --target=1.4.8 --disturl=https://atom.io/download/electron --abi=51"
   },
   "author": "yedendra shrinivasan",
   "license": "ISC",

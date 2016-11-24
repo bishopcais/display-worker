@@ -72,11 +72,6 @@ app.on('ready', () => {
     displays.forEach((d) => {
         logger.info(d)
     })
-
-    // //stores the app details on store
-    // if(io.config.get('apps'))
-    //     io.store.setState('apps', JSON.stringify(io.config.get('apps')) )
-
     displayWorker = new DisplayWorker(process.argv)
 });
 
@@ -333,10 +328,8 @@ class DisplayWorker {
 
         browser.webContents.on('did-finish-load', ()=> {
             if(io.config.get('display:launcherMenu')){
-                io.store.getState('apps').then( m => {
-                    logger.info('setting up menu handler in new DisplayWindow')
-                    browser.webContents.executeJavaScript("setupNativeMenuHandler(" + m  + ", '" + io.config.get("display:launcherMenu:position")  + "')")
-                })
+                logger.info('setting up menu handler in new DisplayWindow')
+                browser.webContents.executeJavaScript("setupNativeMenuHandler(" + JSON.stringify(io.config.get('apps'))  + ", '" + io.config.get("display:launcherMenu:position")  + "')")
             }
             browser.webContents.executeJavaScript("setDisplayContext('" + context  + "')")
             if(options.fontSize)
