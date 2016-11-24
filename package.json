@@ -14,7 +14,7 @@
   "license": "ISC",
   "private": true,
   "dependencies": {
-    "celio": "^2.0.0",
+    "@cel/celio": "^2.0.0",
     "electron": "^1.4.5",
     "node-uuid": "^1.4.7",
     "robotjs": "^0.4.4",

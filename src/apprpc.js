@@ -32,7 +32,14 @@ function fileExists(filePath)
     }
 }
 
-let searchPaths = ['./cog.json', '/etc/celio/display-worker-cog.json']
+let searchPaths = []
+
+if(process.argv.length > 2 )
+    searchPaths.push(process.argv[2])
+else
+    searchPaths.push('./cog.json')
+
+
 let cogPath = ''
 searchPaths.some((f) => { if(fileExists(f)){ cogPath = f; return true;} } )
 if(cogPath === ''){
@@ -40,7 +47,7 @@ if(cogPath === ''){
     process.exit()
 }
 logger.info( 'using configuration from ' , cogPath )
-const CELIO = require('celio')
+const CELIO = require('@cel/celio')
 const io = new CELIO(cogPath)
 
 // check if displayName is defined
@@ -66,18 +73,23 @@ app.on('ready', () => {
         logger.info(d)
     })
 
-    //stores the app details on store
-    if(io.config.get('apps'))
-        io.store.setState('apps', JSON.stringify(io.config.get('apps')) )
+    // //stores the app details on store
+    // if(io.config.get('apps'))
+    //     io.store.setState('apps', JSON.stringify(io.config.get('apps')) )
 
     displayWorker = new DisplayWorker(process.argv)
 });
 
 app.on('quit', () =>{
     logger.info('closing display worker');
-    io.store.removeFromHash('display:displays', io.config.get('display:displayName') )
+    // io.publishTopic('display.removed', io.config.get('display:displayName'))
+})
+
+app.on('exit', () =>{
+    logger.info('exiting display worker');
     io.publishTopic('display.removed', io.config.get('display:displayName'))
 })
+
 
 app.on('window-all-closed', () => {
     // This dummy handler is required to keep display-worker running after closing all browserwindow
@@ -165,6 +177,7 @@ class DisplayWorker {
 
         logger.info('\nDisplay-worker configuration : \n')
         logger.info(io.config.get('display'))
+        logger.info(io.config.get('display:templateDir'))
         this.config = io.config.get('display')
         
         this.displayName = this.config.displayName
@@ -172,11 +185,11 @@ class DisplayWorker {
         this.displayContext.add('default')
         this.activeDisplayContext = 'default'
         
+        this.windowIdMap = new Map()
+        this.windowOptions = new Map()
         this.dcWindows = new Map()
         this.dcWindows.set(this.activeDisplayContext, [])
         this.webviewOwnerStack = new Map()
-
-        io.store.addToHash('display:displays', this.displayName, JSON.stringify(this.bounds) )
 
         io.doCall('rpc-display-' + io.config.get('display:displayName'), (request, reply, ack)=>{
             try{
@@ -199,8 +212,11 @@ class DisplayWorker {
         if(b_list){
             let wv_ids = []
             b_list.forEach((b_id) => {
-                let b = BrowserWindow.fromId(b_id)
-                if(b) b.close()
+                let b = this.getBrowserWindowFromId(b_id)
+                if(b) {
+                    b.close()
+                    this.windowIdMap.delete(b_id)
+                }
 
                 let wv_id = new Array();
                 this.webviewOwnerStack.forEach( (v, k) => {
@@ -240,7 +256,7 @@ class DisplayWorker {
             let b_list  = this.dcWindows.get(this.activeDisplayContext)
             if(b_list){
                 b_list.forEach((element) => {
-                    let b = BrowserWindow.fromId(element)
+                    let b = this.getBrowserWindowFromId(element)
                     if(b) {
                         b.hide()
                     }
@@ -251,7 +267,7 @@ class DisplayWorker {
         if(this.dcWindows.has(this.activeDisplayContext)){
             let b_list  = this.dcWindows.get(this.activeDisplayContext)
             b_list.forEach((element) => {
-                let b = BrowserWindow.fromId(element)
+                let b = this.getBrowserWindowFromId(element)
                 if(b) b.show()
             }, this)
         }else{
@@ -267,7 +283,9 @@ class DisplayWorker {
     }
 
     create_window( context , options, next){
-        let b_id = 0;
+        console.log(options)
+        let b_id = options.windowName;
+        this.windowOptions.set(options.windowName, options)
         let opts = {
             x : options.x,
             y : options.y,
@@ -283,17 +301,20 @@ class DisplayWorker {
         }
         
         let browser = new BrowserWindow(opts)
-        logger.info('loading template : ', 'file://' + process.cwd() + '/template/' + options.template)
-        browser.loadURL('file://' + process.cwd() + '/template/' + options.template)
+        
+        logger.info('loading template : ', 'file://' + io.config.get('display:templateDir') + '/' + options.template)
+        browser.loadURL('file://' + io.config.get('display:templateDir') + '/' + options.template)
         
         browser.on('closed', () =>{
         })
         if(!this.dcWindows.has(context)){
             this.dcWindows.set(context, [])
         }
-        this.dcWindows.get( context ).push( browser.id )
-        let b_list = this.dcWindows.get( context )
-        b_id = b_list[b_list.length -1];    
+        
+        this.windowIdMap.set(b_id, browser.id)
+        this.dcWindows.get( context ).push( b_id )
+        // let b_list = this.dcWindows.get( context )
+        // b_id = b_list[b_list.length -1];    
 
         browser.on('blur', () => {
             browser.webContents.executeJavaScript('clearAllCursors()')
@@ -382,7 +403,7 @@ class DisplayWorker {
     }
 
     execute_in_displaywindow(options, next){
-        let b = BrowserWindow.fromId(options.window_id)
+        let b = this.getBrowserWindowFromId(options.window_id)
         if(b == undefined) {
             logger.error('window_id not found')
             options.displayName = this.displayName
@@ -429,18 +450,76 @@ class DisplayWorker {
         return ctx
     }
 
+    getBrowserWindowFromId(uuid){
+        if(this.windowIdMap.has(uuid)){
+            return BrowserWindow.fromId(this.windowIdMap.get(uuid))
+        }else{
+            return null
+        }
+    }
+
     process_message ( message, next) {
         logger.info('processing ' , message.command)
         let ctx = this.activeDisplayContext
         try{
             switch (message.command){
-                case 'get-bounds' :
+                case 'get-dw-context-windows-vbo':
+                    let _vbo = undefined
+                    let _wins = this.dcWindows.get(message.options.context)
+                    let _winOptions = undefined
+                    //add bounds and other information
+                    if(_wins){
+                        _winOptions = {}
+                        _wins.forEach( _win => {
+                            _winOptions[_win] = this.windowOptions.get(_win)
+                        })
+                    } 
+                    
+                    this.webviewOwnerStack.forEach( (v, k) => {
+                        if( _wins.indexOf(v) > -1 ){
+                            if(_vbo === undefined)
+                                _vbo = {}
+
+                            _vbo[k] = v
+                        }
+                    })
+
+                    let state = {
+                        'displayName': this.displayName,
+                        'context': message.options.context,
+                        'windows': _winOptions,
+                        'viewObjects': _vbo
+                    }
+                    console.log(state)
+                    next(JSON.stringify(state))
+                    break;
+                case 'get-display-bounds' :
                     let bound = {
                         'displayName' : this.displayName,
-                        'bounds' : this.bounds,
-                        'details' : this.displays
+                        'bounds' : this.bounds
                     }
                     next(JSON.stringify(bound))
+                    break;
+                case 'get-window-bounds' :
+                    let _windows = this.dcWindows.get(message.options.context)
+                    let _windowOptions = {}
+                    if(_windows){
+                        _windows.forEach( _win => {
+                            let _bounds = this.windowOptions.get(_win)
+                            if (_bounds.displayName === undefined) { _bounds.displayName = this.displayName }
+                            _bounds.windowName = _win
+                            _bounds.displayContext = message.options.context
+                            _windowOptions[_win] = _bounds 
+                        })
+                    }else{
+                        let _bounds = this.bounds
+                        _bounds.displayName = this.displayName
+                        _bounds.windowName = this.displayName
+                        _bounds.displayContext = message.options.context
+                        _windowOptions[this.displayName] = _bounds
+                    } 
+                    console.log(_windowOptions)
+                    next(JSON.stringify(_windowOptions))
                     break;
                 case 'set-display-context':
                     if(!this.displayContext.has(message.options.context)){
@@ -452,7 +531,7 @@ class DisplayWorker {
                     let b_list  = this.dcWindows.get(message.options.context)
                     if(b_list){
                         b_list.forEach((b_id) => {
-                            let b = BrowserWindow.fromId(b_id)
+                            let b = this.getBrowserWindowFromId(b_id)
                             if(b) b.hide()
                         }, this)
                     }
@@ -507,8 +586,11 @@ class DisplayWorker {
                         let b_list  = this.dcWindows.get(ctx)
                         if(b_list){
                             b_list.forEach((b_id) => {
-                                let b = BrowserWindow.fromId(b_id)
-                                if(b) b.close()
+                                let b = this.getBrowserWindowFromId(b_id)
+                                if(b){
+                                    b.close()
+                                    this.windowIdMap.delete(b_id)
+                                } 
 
                                 let wv_id = new Array();
                                 this.webviewOwnerStack.forEach( (v, k) => {
@@ -532,7 +614,7 @@ class DisplayWorker {
                     break;
                 case 'hide-window':
                     if(message.options.window_id){
-                        let b = BrowserWindow.fromId(message.options.window_id);
+                        let b = this.getBrowserWindowFromId(message.options.window_id);
                         if(b){
                             b.hide()
                             next(JSON.stringify({
@@ -571,7 +653,7 @@ class DisplayWorker {
                     break;
                 case 'show-window':
                     if(message.options.window_id){
-                        let b = BrowserWindow.fromId(message.options.window_id);
+                        let b = this.getBrowserWindowFromId(message.options.window_id);
                         if(b){
                             b.show()
                             next(JSON.stringify({
@@ -598,7 +680,7 @@ class DisplayWorker {
                     break;
                 case 'close-window':
                     if(message.options.window_id){
-                        let b = BrowserWindow.fromId(message.options.window_id)
+                        let b = this.getBrowserWindowFromId(message.options.window_id)
                         if(b){
                         
                             let wv_id = new Array();
@@ -614,6 +696,7 @@ class DisplayWorker {
                                 this.dcWindows.set(w_ctx, win_arr)
                             }
                             b.close()
+                            this.windowIdMap.delete( message.options.window_id )
                             next(JSON.stringify({
                                     'command' : 'close-window',
                                     'status' : 'success',
@@ -649,7 +732,7 @@ class DisplayWorker {
                     break;
                 case 'window-dev-tools':
                 
-                    let b = BrowserWindow.fromId(message.options.window_id)
+                    let b = this.getBrowserWindowFromId(message.options.window_id)
                     if(b){
                         if(message.options.devTools)
                             b.openDevTools()
@@ -665,7 +748,7 @@ class DisplayWorker {
                     this.create_viewobj(ctx, message.options, next)
                     break;
                 case 'capture-window':
-                    let focw = BrowserWindow.fromId(message.options.window_id)
+                    let focw = this.getBrowserWindowFromId(message.options.window_id)
                     if (focw) {
                         focw.capturePage(img => {
                             next(img.toJPEG(80))
