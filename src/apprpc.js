@@ -283,7 +283,6 @@ class DisplayWorker {
     }
 
     create_window( context , options, next){
-        console.log(options)
         let b_id = options.windowName;
         this.windowOptions.set(options.windowName, options)
         let opts = {
@@ -490,7 +489,6 @@ class DisplayWorker {
                         'windows': _winOptions,
                         'viewObjects': _vbo
                     }
-                    console.log(state)
                     next(JSON.stringify(state))
                     break;
                 case 'get-display-bounds' :
@@ -518,11 +516,9 @@ class DisplayWorker {
                         _bounds.displayContext = message.options.context
                         _windowOptions[this.displayName] = _bounds
                     } 
-                    console.log(_windowOptions)
                     next(JSON.stringify(_windowOptions))
                     break;
                 case 'get-context-list' :
-                    console.log(this.displayContext)
                     next(JSON.stringify([...this.displayContext]))
                     break;
                 case 'set-display-context':
