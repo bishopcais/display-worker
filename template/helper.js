@@ -265,7 +265,6 @@ function execute(opts) {
             }
 
             return {
-                window_id: options.window_id,
                 displayName: options.displayName,
                 displayContext: options.displayContext,
                 windowName: options.windowName,
@@ -622,7 +621,7 @@ function execute(opts) {
 
             return {
                 "view_id": wv.id, command: "create", "status": "success",
-                "window_id": options.window_id, "displayName": options.displayName, "windowName": options.windowName,
+                "displayName": options.displayName, "windowName": options.windowName,
                 "displayContext": options.displayContext
             }
             // }else if(options.command == "webview-execute-javascript") {

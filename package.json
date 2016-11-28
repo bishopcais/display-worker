@@ -7,8 +7,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "./node_modules/.bin/electron src/apprpc.js",
-    "dev": "./node_modules/.bin/electron src/apprpc.js",
-    "postinstall": "npm rebuild --runtime=electron --target=1.4.8 --disturl=https://atom.io/download/electron --abi=51"
+    "postinstall": "npm rebuild --runtime=electron --target=1.4.8 --disturl=https://atom.io/download/electron --abi=51",
+    "dist": "./node_modules/.bin/build"
   },
   "author": "Yedendra Shrinivasan <yshrini@us.ibm.com>, Yunfeng Zhang <zhangyun@us.ibm.com>",
   "homepage": "https://github.ibm.com/celio/display-worker",

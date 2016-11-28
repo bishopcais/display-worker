@@ -90,15 +90,17 @@ The configuration file is a JSON object. It specified in the following ways
 
 - Running using electron
 
+Run display worker
+
 ```js
 npm start <path to configuration file. Optional>
 // or
-electron src/apprpc.js <path to configuration file. Optional>
+./node_modules/.bin/electron src/apprpc.js <path to configuration file. Optional>
 ```
 
 - Running using crun
 ```
-node index.js
+node index.js <path to configuration file. Optional>
 ```
 
 - Using installer 
