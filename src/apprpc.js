@@ -239,7 +239,7 @@ class DisplayWorker {
         if(b_list){
             let wv_ids = []
             b_list.forEach((b_id) => {
-                let b = this.getBrowserWindowFromId(b_id)
+                let b = this.getBrowserWindowFromName(b_id)
                 if(b) {
                     b.close()
                     this.windowIdMap.delete(b_id)
@@ -284,7 +284,7 @@ class DisplayWorker {
             let b_list  = this.dcWindows.get(this.activeDisplayContext)
             if(b_list){
                 b_list.forEach((element) => {
-                    let b = this.getBrowserWindowFromId(element)
+                    let b = this.getBrowserWindowFromName(element)
                     if(b) {
                         b.hide()
                     }
@@ -295,7 +295,7 @@ class DisplayWorker {
         if(this.dcWindows.has(this.activeDisplayContext)){
             let b_list  = this.dcWindows.get(this.activeDisplayContext)
             b_list.forEach((element) => {
-                let b = this.getBrowserWindowFromId(element)
+                let b = this.getBrowserWindowFromName(element)
                 if(b) b.show()
             }, this)
         }else{
@@ -379,7 +379,6 @@ class DisplayWorker {
 
             if(options.contentGrid){
                 this.execute_in_displaywindow(Object.assign(options, {
-                    window_id: b_id,
                     displayName: this.displayName,
                     displayContext: this.activeDisplayContext,
                     windowName : options.windowName,
@@ -393,7 +392,6 @@ class DisplayWorker {
             }else{
                 next(JSON.stringify({
                     status : 'success',
-                    window_id : b_id,
                     x : options.x,
                     y : options.y,
                     width : options.width,
@@ -410,7 +408,6 @@ class DisplayWorker {
             type : 'displayWindowCreated',
             details : {
                 displayContext : this.activeDisplayContext,
-                window_id : b_id,
                 displayName : this.displayName,
                 windowName : b_id
             }
@@ -421,10 +418,9 @@ class DisplayWorker {
     // Creates a ViewObject
     create_viewobj( ctx, options, next){
         let view_id = uuid.v1()
-        this.webviewOwnerStack.set(view_id, options.window_id)
+        this.webviewOwnerStack.set(view_id, options.windowName)
         
         this.execute_in_displaywindow(Object.assign(options, {
-            window_id : options.window_id,
             displayName : options.displayName,
             windowName : options.windowName,
             displayContext : ctx,
@@ -435,12 +431,12 @@ class DisplayWorker {
 
     // Executes js commands in the template page
     execute_in_displaywindow(options, next){
-        let b = this.getBrowserWindowFromId(options.window_id)
+        let b = this.getBrowserWindowFromName(options.windowName)
         if(b == undefined) {
-            logger.error('window_id not found')
+            logger.error('windowName not found')
             options.displayName = this.displayName
-            logger.error('Display Worker Error: Window_id not found: ' + JSON.stringify(options))
-            next(new DisplayError('Display Worker Error', 'Window_id not found', options))
+            logger.error('Display Worker Error: windowName not found: ' + JSON.stringify(options))
+            next(new DisplayError('Display Worker Error', 'windowName not found', options))
         }else{
             if(b.isReady){
                 b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
@@ -453,7 +449,7 @@ class DisplayWorker {
                         }else if(d.command == 'clear-contents'){
                             let wv_id = new Array();
                             this.webviewOwnerStack.forEach( (v, k) => {
-                                if(v == options.window_id)
+                                if(v == options.windowName)
                                     wv_id.push(k)
                             })
                             wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
@@ -471,12 +467,12 @@ class DisplayWorker {
         }
     }
 
-    // returns DisplayContext associated with a window id/Name
-    getWindowContext(window_id){
+    // returns DisplayContext associated with a window Name
+    getWindowContext(windowName){
         let ctx = '' 
         
         this.dcWindows.forEach( (v,k) =>{
-            if(v.indexOf(window_id) > -1){
+            if(v.indexOf(windowName) > -1){
                 ctx = k
             }
         })
@@ -484,9 +480,9 @@ class DisplayWorker {
     }
 
     // returns the system window id from user defined window name
-    getBrowserWindowFromId(uuid){
-        if(this.windowIdMap.has(uuid)){
-            return BrowserWindow.fromId(this.windowIdMap.get(uuid))
+    getBrowserWindowFromName(name){
+        if(this.windowIdMap.has(name)){
+            return BrowserWindow.fromId(this.windowIdMap.get(name))
         }else{
             return null
         }
@@ -567,7 +563,7 @@ class DisplayWorker {
                     let b_list  = this.dcWindows.get(message.options.context)
                     if(b_list){
                         b_list.forEach((b_id) => {
-                            let b = this.getBrowserWindowFromId(b_id)
+                            let b = this.getBrowserWindowFromName(b_id)
                             if(b) b.hide()
                         }, this)
                     }
@@ -590,15 +586,22 @@ class DisplayWorker {
                     const w = BrowserWindow.getFocusedWindow()
                     if (w) {
                         let _dc = 'default'
+                        let _winName = ''
+                        for( let [k, v] of this.windowIdMap){
+                            if (v === w.id) {
+                                _winName = k
+                            }
+                        }
+
                         for( let [k, v] of this.dcWindows){
-                            if(v.indexOf( w.id) > -1){
+                            if(v.indexOf(_winName) > -1){
                                 _dc = k
                             }
                         }
                         next(JSON.stringify({
                                 'command' : 'get-focus-window',
                                 'status' : 'success',
-                                'window_id' : w.id,
+                                'windowName' : _winName,
                                 'displayName' : this.displayName,
                                 'displayContext' : _dc
                         }))
@@ -622,7 +625,7 @@ class DisplayWorker {
                         let b_list  = this.dcWindows.get(ctx)
                         if(b_list){
                             b_list.forEach((b_id) => {
-                                let b = this.getBrowserWindowFromId(b_id)
+                                let b = this.getBrowserWindowFromName(b_id)
                                 if(b){
                                     b.close()
                                     this.windowIdMap.delete(b_id)
@@ -649,8 +652,8 @@ class DisplayWorker {
                     
                     break;
                 case 'hide-window':
-                    if(message.options.window_id){
-                        let b = this.getBrowserWindowFromId(message.options.window_id);
+                    if(message.options.windowName){
+                        let b = this.getBrowserWindowFromName(message.options.windowName);
                         if(b){
                             b.hide()
                             next(JSON.stringify({
@@ -663,16 +666,16 @@ class DisplayWorker {
                                 command : 'hide-window',
                                 displayName : this.displayName
                             }
-                            logger.error('Display Worker Error: Window_id not present' + JSON.stringify(e_details))
-                            next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
+                            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
+                            next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                         }
                     }else{
                         let e_details = {
                             command : 'hide-window',
                             displayName : this.displayName
                         }
-                        logger.error('Display Worker Error: Window_id not present' + JSON.stringify(e_details))
-                        next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
+                        logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
+                        next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                     }
                         
                     break;
@@ -688,8 +691,8 @@ class DisplayWorker {
                     }))
                     break;
                 case 'show-window':
-                    if(message.options.window_id){
-                        let b = this.getBrowserWindowFromId(message.options.window_id);
+                    if(message.options.windowName){
+                        let b = this.getBrowserWindowFromName(message.options.windowName);
                         if(b){
                             b.show()
                             next(JSON.stringify({
@@ -702,41 +705,41 @@ class DisplayWorker {
                                 command : 'show-window',
                                 displayName : this.displayName
                             }
-                            logger.error('Display Worker Error: Window_id not present' + JSON.stringify(e_details))
-                            next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
+                            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
+                            next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                         }
                     }else{
                         let e_details = {
                             command : 'show-window',
                             displayName : this.displayName
                         }
-                        logger.error('Display Worker Error: Window_id not present' + JSON.stringify(e_details))
-                        next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
+                        logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
+                        next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                     }
                     break;
                 case 'close-window':
-                    if(message.options.window_id){
-                        let b = this.getBrowserWindowFromId(message.options.window_id)
+                    if(message.options.windowName){
+                        let b = this.getBrowserWindowFromName(message.options.windowName)
                         if(b){
                         
                             let wv_id = new Array();
                             this.webviewOwnerStack.forEach( (v, k) => {
-                                if(v == message.options.window_id)
+                                if(v == message.options.windowName)
                                     wv_id.push(k)
                             })
                             wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
                             let w_ctx = this.getWindowContext(b.id)
                             if(this.dcWindows.has(w_ctx)){
                                 let win_arr = this.dcWindows.get( w_ctx   )
-                                win_arr.splice( win_arr.indexOf(message.options.window_id) , 1)
+                                win_arr.splice( win_arr.indexOf(message.options.windowName) , 1)
                                 this.dcWindows.set(w_ctx, win_arr)
                             }
                             b.close()
-                            this.windowIdMap.delete( message.options.window_id )
+                            this.windowIdMap.delete( message.options.windowName )
                             next(JSON.stringify({
                                     'command' : 'close-window',
                                     'status' : 'success',
-                                    'window_id' : message.options.window_id,
+                                    'windowName' : message.options.windowName,
                                     'viewObjects' : wv_id,
                                     'displayName' : this.displayName
                                 }))
@@ -745,7 +748,7 @@ class DisplayWorker {
                                 type : 'displayWindowClosed',
                                 details : {
                                     displayContext : w_ctx,
-                                    window_id : message.options.window_id,
+                                    windowName : message.options.windowName,
                                     displayName : this.displayName
                                 }
                             }))
@@ -754,21 +757,21 @@ class DisplayWorker {
                                 command : 'close-window',
                                 displayName : this.displayName
                             }
-                            logger.error('Display Worker Error: Window_id not present' + JSON.stringify(e_details))
-                            next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
+                            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
+                            next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                         } 
                     }else{
                         let e_details = {
                             command : 'close-window',
                             displayName : this.displayName
                         }
-                        logger.error('Display Worker Error: Window_id not present' + JSON.stringify(e_details))
-                        next(new DisplayError('Display Worker Error', 'Window_id not present', e_details))
+                        logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
+                        next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                     }
                     break;
                 case 'window-dev-tools':
                 
-                    let b = this.getBrowserWindowFromId(message.options.window_id)
+                    let b = this.getBrowserWindowFromName(message.options.windowName)
                     if(b){
                         if(message.options.devTools)
                             b.openDevTools()
@@ -784,7 +787,7 @@ class DisplayWorker {
                     this.create_viewobj(ctx, message.options, next)
                     break;
                 case 'capture-window':
-                    let focw = this.getBrowserWindowFromId(message.options.window_id)
+                    let focw = this.getBrowserWindowFromName(message.options.windowName)
                     if (focw) {
                         focw.capturePage(img => {
                             next(img.toJPEG(80))
@@ -794,8 +797,8 @@ class DisplayWorker {
                             command : 'capture-window',
                             displayName : this.displayName
                         }
-                        logger.error('Display Worker Error', `Window ${message.options.window_id} not found: `, e_details)
-                        next(new DisplayError('Display Worker Error', `Window ${message.options.window_id} not found`, e_details))
+                        logger.error('Display Worker Error', `Window ${message.options.windowName} not found: `, e_details)
+                        next(new DisplayError('Display Worker Error', `Window ${message.options.windowName} not found`, e_details))
                     }
                     break;
                 default :
@@ -803,14 +806,14 @@ class DisplayWorker {
                         message.options.command = message.command
                         message.options.client_id = message.client_id
                         if(this.webviewOwnerStack.has(message.options.view_id) ){
-                            message.options.window_id = this.webviewOwnerStack.get(message.options.view_id)
+                            message.options.windowName = this.webviewOwnerStack.get(message.options.view_id)
                             this.execute_in_displaywindow(message.options , next)
                         }else{
                             message.options.displayName = this.displayName
                             logger.error('Display Worker Error: ' +  message.options.view_id + ' - view object not found: ' + JSON.stringify(message.options))
                             next(new DisplayError('Display Worker Error', message.options.view_id + ' - view object is not found.' , message.options ))    
                         }
-                    }else if(message.options.window_id){
+                    }else if(message.options.windowName){
                         message.options.command = message.command
                         this.execute_in_displaywindow(message.options , next)
                     }else{
