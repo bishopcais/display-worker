@@ -1,16 +1,17 @@
 {
   "name": "display-worker",
   "productName": "DisplayWorker",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Display worker helps to show and manipulate contents on screen",
-  "main": "index.js",
+  "main": "src/apprpc.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
+    "start": "electron src/apprpc.js",
     "dev": "electron src/apprpc.js",
     "postinstall": "npm rebuild --runtime=electron --target=1.4.8 --disturl=https://atom.io/download/electron --abi=51"
   },
-  "author": "yedendra shrinivasan",
+  "author": "Yedendra Shrinivasan <yshrini@us.ibm.com>, Yunfeng Zhang <zhangyun@us.ibm.com>",
+  "homepage": "https://github.ibm.com/celio/display-worker",
   "license": "ISC",
   "private": true,
   "dependencies": {

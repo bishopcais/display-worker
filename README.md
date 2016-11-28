@@ -86,18 +86,23 @@ The configuration file is a JSON object. It specified in the following ways
 
 
 ## Run
-- Running locally with default settings location
-```
-npm start
-```
 
-- Running directly using electron
 
-```
+- Running using electron
+
+```js
+npm start <path to configuration file. Optional>
+// or
 electron src/apprpc.js <path to configuration file. Optional>
 ```
 
-- Using debian installer in Ubuntu
+- Running using crun
+```
+node index.js
+```
+
+- Using installer 
+#Ubuntu 16# 
 ```
 display-worker <path to configuration file. Optional>
 ```
