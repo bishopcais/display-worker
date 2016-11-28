@@ -14,16 +14,19 @@ $(document).on('scroll', function () {
     $(document).scrollTop(0)
 });
 
+// set displayContext for this BrowserWindow
 function setDisplayContext(ctx) {
     displayContext = ctx
 }
 
+// sets the fontSize at root dom level
 function setFontSize(fs) {
     console.log("options.fontSize = ", fs)
     document.body.style.fontSize = fs
     snappingDistance = parseInt(fs) / 2
 }
 
+// gets the closest grid for a point
 function getClosestGrid(x, y) {
     let min_dist = Number.MAX_VALUE
     let temp_label = ""
@@ -49,6 +52,8 @@ function getClosestGrid(x, y) {
             height: grid[temp_label].height, sq_dist: min_dist
         }
 }
+
+// selects elements if its top and left fall within a rectangle
 function rectangleSelect(selector, x1, y1, x2, y2) {
     var elements = [];
     jQuery(selector).each(function () {
@@ -69,19 +74,8 @@ function rectangleSelect(selector, x1, y1, x2, y2) {
     });
     return elements;
 }
-function test(x1, y1, x2, y2) {
-    // Simple test
-    // Mark all li elements red if they are children of ul#list
-    // and if they fall inside the rectangle with coordinates:
-    // x1=0, y1=0, x2=200, y2=200
-    var elements = rectangleSelect("webview", x1, y1, x2, y2);
-    var itm = elements.length;
-    while (itm--) {
-        //elements[itm].style.color = 'red';
-        console.log(elements[itm]);
-    }
-}
 
+// creates a uniform grid
 function createGrid(row, col, rowHeight, colWidth, padding) {
     gridSize.row = row
     gridSize.col = col
@@ -174,6 +168,7 @@ function createGrid(row, col, rowHeight, colWidth, padding) {
     }
 }
 
+// returns a grid or grid cell
 function getGrid(row, col) {
     if (row && col)
         return grid[row + ':' + col]
@@ -181,6 +176,7 @@ function getGrid(row, col) {
         return grid
 }
 
+// adds a custome cell to grid
 function addToGrid(label, bounds, style) {
     // if(!grid[label]){
     let pad = 0;
@@ -220,6 +216,8 @@ function addToGrid(label, bounds, style) {
     // }
 }
 
+
+// removes a cell from grid
 function removeFromGrid(label) {
     let div = document.getElementById("bg" + label)
     if (div)
@@ -229,6 +227,7 @@ function removeFromGrid(label) {
     return grid
 } 
 
+// Executes js commands specified through RPC using CELIO lib 
 function execute(opts) {
     let options = JSON.parse(opts)
     console.log('Executed command : ', options.command, options)
@@ -895,7 +894,7 @@ function execute(opts) {
          }
       }
 */
-
+// resize and move view objects
 function setBounds(wv, destBounds) {
     if (!wv)
         return;
@@ -971,7 +970,7 @@ function setBounds(wv, destBounds) {
     }
 }
 
-
+// slides content
 function slideContents(options) {
 
     //  Shang's code
@@ -1110,6 +1109,7 @@ function slideContents(options) {
 
 }
 
+// converts em to pixels
 function toPixels(options) {
     let ems = parseFloat(getComputedStyle(document.body, "").fontSize)
     let w = parseInt(getComputedStyle(document.body, '').width)
