@@ -15,10 +15,12 @@
   "private": true,
   "dependencies": {
     "@cel/celio": "^2.0.0",
-    "electron": "^1.4.5",
     "node-uuid": "^1.4.7",
     "robotjs": "^0.4.4",
     "winston": "^2.3.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "electron": "^1.4.5",
+    "electron-builder": "^8.6.0"
+  }
 }
