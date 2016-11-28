@@ -26,8 +26,8 @@ The configuration file is a JSON object. It specified in the following ways
 1. <The absolute or relative path to the configuration file> as a parameter to `display-worker`.
 2. a cog.json file in the working directory. 
 
-Configuration File details
-```
+###Configuration File details
+```js
 {
   "mq": {
      "url": "localhost/test",
