@@ -1,3 +1,10 @@
 node_modules
+build
+dist
+debian
+logs
 .idea
 cog.json
+.vscode
+*.rdb
+*.log

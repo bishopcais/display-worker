@@ -22,5 +22,15 @@
   "devDependencies": {
     "electron": "^1.4.5",
     "electron-builder": "^8.6.0"
+  },
+  "build": {
+    "appId": "display-worker",
+    "productName" : "display-worker",
+    "category": "public.app-category.graphics",
+    "linux": {
+      "target": [
+        "deb"
+      ]
+    }
   }
 }
