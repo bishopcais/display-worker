@@ -4,6 +4,7 @@ function clearAllCursors(){
     // document.getElementById("pointing").innerHTML = ""
 }
 
+// adds a new pointing cursor
 function addCursor(opts){
     let cursordiv = document.createElement("div")
     cursordiv.className = "cursor"
@@ -30,10 +31,12 @@ function addCursor(opts){
     document.getElementById("pointing").appendChild(cursordiv)
 }
 
+// removes a pointing cursor
 function removeCursor(opts){
     document.getElementById("pointing").removeChild(document.getElementById(opts))
 }
 
+// updates a pointing cursor's position
 function updateCursorPosition(opts){
     opts = JSON.parse(opts)
     let cursordiv = document.getElementById(opts.name)
@@ -55,7 +58,7 @@ function updateCursorPosition(opts){
     }
 }
 
-
+// returns the closest dragcursor
 function getClosestDragCursor(x,y){
     let distance = 1000
     let closestCursor = ""

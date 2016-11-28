@@ -4,6 +4,8 @@ process.Title = "DisplayWorker"
 const {app, BrowserWindow, ipcMain} = require('electron')
 const uuid = require('node-uuid')
 const winston = require('winston')
+
+// Logger setup
 let logger = new (winston.Logger)({
     transports: [
         new (winston.transports.Console)({
@@ -20,6 +22,7 @@ let logger = new (winston.Logger)({
     ]
 });
 
+// Check if file exists
 function fileExists(filePath)
 {
     try
@@ -39,7 +42,7 @@ if(process.argv.length > 2 )
 else
     searchPaths.push('./cog.json')
 
-
+// Search for settings file
 let cogPath = ''
 searchPaths.some((f) => { if(fileExists(f)){ cogPath = f; return true;} } )
 if(cogPath === ''){
@@ -47,7 +50,10 @@ if(cogPath === ''){
     process.exit()
 }
 logger.info( 'using configuration from ' , cogPath )
+
+
 const CELIO = require('@cel/celio')
+// io is a CELIO instance
 const io = new CELIO(cogPath)
 
 // check if displayName is defined
@@ -60,9 +66,13 @@ try{
 
 const Pointing = require('./pointing')
 const DisplayError = require('./displayerror')
+
 let displayWorker
+
 app.commandLine.appendSwitch('disable-http-cache')
+
 app.setName('CELIO Display Worker')
+
 app.on('ready', () => {
 
     process.setMaxListeners(0);
@@ -90,12 +100,14 @@ app.on('window-all-closed', () => {
     // This dummy handler is required to keep display-worker running after closing all browserwindow
 });
 
-
+// Listen and publish view object events
 ipcMain.on('view-object-event', (event, arg) => {
   if(arg.displayContext && arg.type)  
     io.publishTopic('display.'+ arg.displayContext + '.' + arg.type + '.' + arg.details.view_id , arg)
 })
 
+
+// Manage launcher menu selection
 ipcMain.on('launchermenu', (event , msg) => {
     msg = JSON.parse(msg)
     logger.info('launching app via menu ', msg)
@@ -129,6 +141,7 @@ ipcMain.on('launchermenu', (event , msg) => {
     }
 })
 
+// Listen to GSpeak pools for making a CELIO app active
 io.onTopic('pool.*', m =>{
     let msg = JSON.parse(m.toString())
     if(msg.ingests['signal-pool'] && msg.ingests['signal-pool'].indexOf('celio') > -1){
@@ -140,10 +153,13 @@ io.onTopic('pool.*', m =>{
     }
 })
 
+// Display Worker class
 class DisplayWorker {
     constructor(){
+        // gets screen information via Electron Native API
         this.displays = electron.screen.getAllDisplays()    
         
+        // Loads bounds information from settings file if present otherwise infers from Electron's Screen information
         if( io.config.get('display:bounds')){
             this.bounds = io.config.get('display:bounds')
         }else{
@@ -170,22 +186,34 @@ class DisplayWorker {
             io.config.set('display:bounds', this.bounds)
         }
 
+        // Prints Display Configuration
         logger.info('\nDisplay-worker configuration : \n')
         logger.info(io.config.get('display'))
         logger.info(io.config.get('display:templateDir'))
         this.config = io.config.get('display')
         
+        // DisplayName is used to identify a display worker instance.
         this.displayName = this.config.displayName
+
+        // DisplayContext is an unique app identifier
         this.displayContext = new Set()
         this.displayContext.add('default')
         this.activeDisplayContext = 'default'
         
+        // windowIdMap maps system window id to user-defined window name. Key - WindowName (String), Value - System Window Id (Integer)
         this.windowIdMap = new Map()
+
+        // windowOptions catalogs options such as contentGrid and background specified by user while creating a DisplayContext
         this.windowOptions = new Map()
+
+        // dcWindows maps an array of WindowNames to a displayContext. Key - DisplayContext Name (String), Value - an array of WindowNames (Array<String>) 
         this.dcWindows = new Map()
         this.dcWindows.set(this.activeDisplayContext, [])
+
+        // webviewOwnerStack maps a viewObject Id to a window name. Key - ViewObject Id (String), Value - Window Name (String)
         this.webviewOwnerStack = new Map()
 
+        // listens and processes RPC call
         io.doCall('rpc-display-' + io.config.get('display:displayName'), (request, reply, ack)=>{
             try{
                 let msg = JSON.parse(request.content.toString())
@@ -195,11 +223,15 @@ class DisplayWorker {
             }
         })
 
+        // Supports spatial pointing using Wand, HTC Vive and Kinetic
         this.pointing = new Pointing(io)
+        
+        // Publishes a display.added event
         io.publishTopic('display.added', io.config.get('display:displayName'))
         logger.info('\nworker server started.\n')
     }
 
+    // closes a display context, removes associated windows and view objects
     close_display_context (context, next) {
         
         this.displayContext.delete(context)
@@ -245,6 +277,7 @@ class DisplayWorker {
         }
     }
 
+    // activates or creates a display context
     set_display_context(context, next) {
         let lastContext = this.activeDisplayContext
         if( this.activeDisplayContext != context ){
@@ -277,6 +310,7 @@ class DisplayWorker {
         })) 
     }
 
+    // creates a new BrowserWindow
     create_window( context , options, next){
         let b_id = options.windowName;
         this.windowOptions.set(options.windowName, options)
@@ -307,25 +341,27 @@ class DisplayWorker {
         
         this.windowIdMap.set(b_id, browser.id)
         this.dcWindows.get( context ).push( b_id )
-        // let b_list = this.dcWindows.get( context )
-        // b_id = b_list[b_list.length -1];    
-
+        
+        // When the browser window is out of focus, hides any cursors drawn and launcherMenu. Also mutes audio
         browser.on('blur', () => {
             browser.webContents.executeJavaScript('clearAllCursors()')
             browser.webContents.executeJavaScript('hideLauncherMenu()')
             browser.webContents.setAudioMuted(true)
         })
 
+        // When the browser window becomes active, audio is enabled
         browser.on('focus', () => {
             browser.webContents.setAudioMuted(false)
         })
 
+        // Avoids navigating away from template page 
         browser.webContents.on('will-navigate', (e) => {
             logger.info('preventing attempt to navigate browser window content')
             e.preventDefault()
             return false
         })
 
+        // sets up launcherMenu, DisplayContext associated with BrowserWindow, default fontSize after the template page is loaded
         browser.webContents.on('did-finish-load', ()=> {
             if(io.config.get('display:launcherMenu')){
                 logger.info('setting up menu handler in new DisplayWindow')
@@ -337,6 +373,7 @@ class DisplayWorker {
 
         })
 
+        // When the dom is ready, Grid is defined if specified. The create_window call returns after the dom is ready to allow users create view objects
         browser.webContents.on('dom-ready', () => {
             browser.isReady = true
 
@@ -368,18 +405,20 @@ class DisplayWorker {
             }
         })
 
-         io.publishTopic('display.window', JSON.stringify({
+        // Publishes a displayWindowCreated event
+        io.publishTopic('display.window', JSON.stringify({
             type : 'displayWindowCreated',
             details : {
                 displayContext : this.activeDisplayContext,
                 window_id : b_id,
-                displayName : this.displayName
+                displayName : this.displayName,
+                windowName : b_id
             }
         }))
        
     }
 
-
+    // Creates a ViewObject
     create_viewobj( ctx, options, next){
         let view_id = uuid.v1()
         this.webviewOwnerStack.set(view_id, options.window_id)
@@ -394,6 +433,7 @@ class DisplayWorker {
         }), next)
     }
 
+    // Executes js commands in the template page
     execute_in_displaywindow(options, next){
         let b = this.getBrowserWindowFromId(options.window_id)
         if(b == undefined) {
@@ -431,6 +471,7 @@ class DisplayWorker {
         }
     }
 
+    // returns DisplayContext associated with a window id/Name
     getWindowContext(window_id){
         let ctx = '' 
         
@@ -442,6 +483,7 @@ class DisplayWorker {
         return ctx
     }
 
+    // returns the system window id from user defined window name
     getBrowserWindowFromId(uuid){
         if(this.windowIdMap.has(uuid)){
             return BrowserWindow.fromId(this.windowIdMap.get(uuid))
@@ -450,6 +492,7 @@ class DisplayWorker {
         }
     }
 
+    // Process commands specified through RPC
     process_message ( message, next) {
         logger.info('processing ' , message.command)
         let ctx = this.activeDisplayContext

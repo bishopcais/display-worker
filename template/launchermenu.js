@@ -4,6 +4,7 @@ let isNativeMenuHandlerEnabled = true
 let lmenuitems = []
 let lmenuposition = ""
 
+// listens to show / hide launcher menu events
 ipcRenderer.on("launchermenu", (event, arg) => {
     disableNativeMenuHandler()
     if(event == "showmenu"){
@@ -13,7 +14,7 @@ ipcRenderer.on("launchermenu", (event, arg) => {
     }
 })
 
-
+// setup native menu handler for environments without spatial pointing device such as personal computers
 function setupNativeMenuHandler(items, position){
     console.log("setting up menu ", items, position)
     isNativeMenuHandlerEnabled = true
@@ -23,6 +24,7 @@ function setupNativeMenuHandler(items, position){
     document.addEventListener('mouseleave', hideLauncherMenu)
 }
 
+// Window Event Menu Handlers
 function nativeMenuHandle(e){
     if(isNativeMenuHandlerEnabled){
         if(lmenuposition == 'left'){
@@ -35,6 +37,7 @@ function nativeMenuHandle(e){
     }
 }
 
+// Window Event Menu Handlers
 function disableNativeMenuHandler(){
     if(isNativeMenuHandlerEnabled){
         isNativeMenuHandlerEnabled = false
@@ -42,6 +45,7 @@ function disableNativeMenuHandler(){
     }
 }
 
+// Show Launcher Menu
 function showLauncherMenu () {
     if(isShowingMenu)
         return;
@@ -86,9 +90,9 @@ function showLauncherMenu () {
     // setTimeout(hideLauncherMenu , 3800)
 }
 
-function hideLauncherMenu () {
-    
 
+// Hides launchermenu
+function hideLauncherMenu () {
     let menu = document.getElementById("launchermenu1")
     if(menu && isShowingMenu){
         let left = getComputedStyle(menu).left;
@@ -103,7 +107,5 @@ function hideLauncherMenu () {
         })
         
         isShowingMenu = false
-    
     }
-     
 }
