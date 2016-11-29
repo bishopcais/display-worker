@@ -31,7 +31,24 @@
     "linux": {
       "target": [
         "deb"
-      ]
-    }
+      ],
+      "depends" : [ "libappindicator1", "libindicator7" ],
+      "afterInstall" : "./debian/after-install.tpl",
+      "afterRemove" : "./debian/after-remove.tpl"
+    },
+    "extraFiles" : [
+      { 
+        "from" : "./template",
+        "to": "./template"
+      },
+      {
+         "from" : "./cog-sample.json",
+         "to" : "./cog-sample.json"
+      },
+      {
+	"from" : "./debian/display-worker.service",
+        "to" : "./display-worker.service"
+      }
+    ]
   }
 }

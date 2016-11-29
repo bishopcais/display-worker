@@ -1,24 +1,54 @@
 {
   "mq": {
-    "url": "url",
-    "username": "",
-    "password": ""
+     "url": "localhost/cel",
+     "username": "cel",
+     "password": "cel"
   },
   "store" : {
-    "url" : "",
-    "password" : ""
+    "url" : "localhost",
+    "password" : "guest"
   },
   "display" : {
-    "displayName" : "front",
+    "templateDir": "/opt/display-worker/template",
+    "displayName": "main",
     "hotspot" : {
         "center" : [175.2119, 910.8918, -4263.35],
         "normal" : [ 0.0, 0.0, -1.0 ],
         "over" : [ 1.0, 0.0, 0.0 ],
         "width" : 4102.0,
-        "height" : 2307.0
+        "height" : 2307.0,
+        "clickWidth" : 15, "clickSpeed" : 100 
+    },
+    "_comment": "bounds and launcherMenu are optional. Bounds is used to define the pixel region of the display. Ensure that hotspot only covers this bounds. If bounds is not specified, entire display is covered",
+    "bounds" :{ "x" : 805, "y" : 0, "right" : 800, "bottom" : 600, "width": 800, "height" : 600 },
+    "launcherMenu" : {
+      "position" : "left",
+      "menuWidth" : 100,
+      "distanceThreshold" : 850
     }
-    //, //optional
-    //"bounds" : { "x" : 0, "y" : 0, "width" : 800, "height" : 600},
-    //"launcherMenu" : { "position" : "left", menuWidth: 100, distanceThreshold: 850 }
-  }
+  },
+  "_comment" : "apps is required, if you have launcherMenu",
+  "apps": [
+    {
+      "type" : "GSpeak",
+      "appname": "knice",
+      "label" : "K-Nice",
+      "chief-pool": "knice",
+      "master-reset" : true
+    },
+    {
+      "type" : "GSpeak",
+      "appname": "pulse",
+      "label" : "Pulse",
+      "chief-pool": "triweb",
+      "master-reset" : true
+    },
+    {
+      "type" : "celio",
+      "appname" : "triptomarsland",
+      "label" : "Mars",
+      "master-reset" : true
+    }
+  ]
+
 }

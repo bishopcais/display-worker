@@ -1,7 +1,6 @@
 node_modules
 build
 dist
-debian
 logs
 .idea
 cog.json

@@ -1,0 +1,13 @@
+[Unit]
+Description=Display Worker
+Requires=ob-x11-dm.service network.target
+After=ob-x11-dm.service network.target
+
+[Service]
+Environment=DISPLAY=:0
+ExecStart=/usr/local/bin/display-worker | /usr/bin/logger
+User=cel
+TimeoutStopSec=1
+
+[Install]
+WantedBy=oblong.target
