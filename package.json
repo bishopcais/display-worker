@@ -38,8 +38,7 @@
       ],
       "depends" : [ "libappindicator1", "libindicator7" ],
       "afterInstall" : "./debian/after-install.tpl",
-      "afterRemove" : "./debian/after-remove.tpl",
-      "publish" : [ "github" ]
+      "afterRemove" : "./debian/after-remove.tpl"
     },
     "extraFiles" : [
       { 
