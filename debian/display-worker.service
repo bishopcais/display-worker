@@ -5,6 +5,7 @@ After=ob-x11-dm.service network.target
 
 [Service]
 Environment=DISPLAY=:0
+Environment=DW_SETTINGS_FILE=/etc/celio/display-worker-settings.json
 ExecStart=/usr/local/bin/display-worker | /usr/bin/logger
 User=cel
 TimeoutStopSec=1

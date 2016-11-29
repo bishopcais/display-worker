@@ -4,7 +4,7 @@ process.Title = "DisplayWorker"
 const {app, BrowserWindow, ipcMain} = require('electron')
 const uuid = require('node-uuid')
 const winston = require('winston')
-
+const path = require('path')
 // Logger setup
 let logger = new (winston.Logger)({
     transports: [
@@ -37,10 +37,17 @@ function fileExists(filePath)
 
 let searchPaths = []
 
-if(process.argv.length > 2 )
+if (process.env.DW_SETTINGS_FILE) {
+    logger.info('Using DW_SETTINGS env : ' + process.env.DW_SETTINGS_FILE)
+    searchPaths.push(process.env.DW_SETTINGS_FILE)
+} else if (process.argv.length > 2 ) {
+    logger.info('Using ARGS[2] : ' + process.argv[2])
     searchPaths.push(process.argv[2])
-else
+} else {
+    logger.info('Using DEFAULT settings file in working directory')
     searchPaths.push('./cog.json')
+}
+    
 
 // Search for settings file
 let cogPath = ''
@@ -329,9 +336,10 @@ class DisplayWorker {
         }
         
         let browser = new BrowserWindow(opts)
+        let _templatePath =  path.normalize(path.format({dir : io.config.get('display:templateDir') , base : options.template }))
         
-        logger.info('loading template : ', 'file://' + io.config.get('display:templateDir') + '/' + options.template)
-        browser.loadURL('file://' + io.config.get('display:templateDir') + '/' + options.template)
+        logger.info('loading template : ', 'file://' + _templatePath)
+        browser.loadURL('file://' + _templatePath)
         
         browser.on('closed', () =>{
         })
