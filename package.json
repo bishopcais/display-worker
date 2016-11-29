@@ -12,6 +12,10 @@
   },
   "author": "Yedendra Shrinivasan <yshrini@us.ibm.com>, Yunfeng Zhang <zhangyun@us.ibm.com>",
   "homepage": "https://github.ibm.com/celio/display-worker",
+  "repository" : {
+     "type" : "git",
+     "url" : "git@github.ibm.com:celio/display-worker.git"
+  },
   "license": "ISC",
   "private": true,
   "dependencies": {
@@ -34,7 +38,8 @@
       ],
       "depends" : [ "libappindicator1", "libindicator7" ],
       "afterInstall" : "./debian/after-install.tpl",
-      "afterRemove" : "./debian/after-remove.tpl"
+      "afterRemove" : "./debian/after-remove.tpl",
+      "publish" : [ "github" ]
     },
     "extraFiles" : [
       { 
