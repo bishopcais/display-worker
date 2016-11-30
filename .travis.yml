@@ -5,7 +5,7 @@ node_js:
   - 6.1
 
 before_install:
-  - echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > .npmrc
+  - echo '//cel-npm-registry.mybluemix.net/:_authToken="beiMBXVNB2404QftDvDKj+FVDoO3EYhdsL1MUk5/6HM="' > .npmrc
 
 install:
   - npm install
