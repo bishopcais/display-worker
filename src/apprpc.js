@@ -516,7 +516,7 @@ class DisplayWorker {
                     } 
                     
                     this.webviewOwnerStack.forEach( (v, k) => {
-                        if( _wins.indexOf(v) > -1 ){
+                        if( _wins && _wins.indexOf(v) > -1 ){
                             if(_vbo === undefined)
                                 _vbo = {}
 
