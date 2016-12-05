@@ -62,6 +62,7 @@ logger.info( 'using configuration from ' , cogPath )
 const CELIO = require('@cel/celio')
 // io is a CELIO instance
 const io = new CELIO(cogPath)
+io.logger = logger
 
 // check if displayName is defined
 try{
