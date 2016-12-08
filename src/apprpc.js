@@ -77,6 +77,9 @@ const DisplayError = require('./displayerror')
 
 let displayWorker
 
+if(process.env.DW_DISABLE_HARDWARE_ACCELERATION)
+    app.disableHardwareAcceleration()
+
 app.commandLine.appendSwitch('disable-http-cache')
 
 app.setName('CELIO Display Worker')
