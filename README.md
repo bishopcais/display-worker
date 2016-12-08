@@ -19,7 +19,7 @@ A C/C++ compiler like GCC.
 libxtst-dev and libpng++-dev (sudo apt-get install libxtst-dev libpng++-dev).
 
 
-#### From source display-worker:
+#### Clone display-Worker
 ```
 git clone git@github.ibm.com:celio/display-worker.git
 cd display-worker
@@ -27,35 +27,25 @@ npm install
 ```
 
 #### Run
-
-
-- Running using electron
-
-Run display worker
-
+- using electron
 ```js
 npm start <path to configuration file. Optional>
-// or
-./node_modules/.bin/electron src/apprpc.js <path to configuration file. Optional>
 ```
 
-- Running using crun. crun is service launch daemon for using in CEL. Other environment does not require this. 
+- using crun. crun is service launch daemon for using in CEL. Other environment does not require this. 
 ```
 node index.js <path to configuration file. Optional>
 ```
 
 #### Environment Variables
 
-- For Linux, use DISPLAY=:<n>
+- For Linux, use `DISPLAY=:<n>`
 
-- Use DW_SETTINGS_FILE to specify the path of the configuration file. The details of the configuration file is given below. 
+- Use `DW_SETTINGS_FILE=<path_to_configuration_file>` to specify the path of the configuration file. The details of the configuration file is given below. 
 
 ## Configuration
-The configuration file is a JSON object. It specified in the following ways
-1. <The absolute or relative path to the configuration file> as a parameter to `display-worker`.
-2. a cog.json file in the working directory. 
+The configuration file is a JSON object. 
 
-###Configuration File details
 ```js
 {
   "mq": {
