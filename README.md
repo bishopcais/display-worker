@@ -1,25 +1,54 @@
 #Display Worker
 
-## Requirements
-### Windows
+Display Worker is a electron-based display daemon that helps to remotely manage web-based contents. CELIO display APIs supports this process. For more details on how to display content please refer [CELIO documentation](https://github.ibm.com/celio/CELIO). 
+
+## Development or Running from Source Requirements
+
+### Setup
+
+#### Dev Environment Prerequisites 
+- Windows
 Visual Studio 2013 (Express works fine).
 Python (v2.7.3 recommended, v3.x.x is not supported).
-### Mac
+- Mac
 Xcode Command Line Tools.
-### Linux
+- Linux
 Python (v2.7 recommended, v3.x.x is not supported).
 make.
 A C/C++ compiler like GCC.
 libxtst-dev and libpng++-dev (sudo apt-get install libxtst-dev libpng++-dev).
 
 
-## Installation
-To install display-worker:
+#### From source display-worker:
 ```
 git clone git@github.ibm.com:celio/display-worker.git
 cd display-worker
 npm install
 ```
+
+#### Run
+
+
+- Running using electron
+
+Run display worker
+
+```js
+npm start <path to configuration file. Optional>
+// or
+./node_modules/.bin/electron src/apprpc.js <path to configuration file. Optional>
+```
+
+- Running using crun. crun is service launch daemon for using in CEL. Other environment does not require this. 
+```
+node index.js <path to configuration file. Optional>
+```
+
+#### Environment Variables
+
+- For Linux, use DISPLAY=:<n>
+
+- Use DW_SETTINGS_FILE to specify the path of the configuration file. The details of the configuration file is given below. 
 
 ## Configuration
 The configuration file is a JSON object. It specified in the following ways
@@ -84,27 +113,47 @@ The configuration file is a JSON object. It specified in the following ways
 
 ```
 
+## Building Debian Package
 
-## Run
+- Set up the required development environment as described above on the ubuntu machine.
+- After `npm install`, run `npm run dist`. This step produces a debian package with `display-worker_<version as specified package.json>_amd64.deb` under `dist` folder.
 
+## Using Debian Package
 
-- Running using electron
+#### Install
 
-Run display worker
+`sudo dpkg -i display-worker_<version as specified package.json>_amd64.deb`
 
-```js
-npm start <path to configuration file. Optional>
-// or
-./node_modules/.bin/electron src/apprpc.js <path to configuration file. Optional>
+The installer adds `display-worker` executable to the system. It also
+- copies the template to `/opt/display-worker/template`
+- copies a `display-worker.service` file to `/etc/systemd/system/`. Edit this file to change the application load order as well as the reference to the configuration file.
+- copies the default configuration file to `/etc/celio/display-worker-settings.json`. Edit the default configuration file to suit your environment requirements. The display-worker service  uses this configuration file. You can change this in the service file
+
+#### Running using service 
+
+- start : `sudo systemctl start display-worker.service`
+- stop : `sudo systemctl stop display-worker.service` 
+- observing logs : `journalctl -f -u display-worker.service`
+
+You can multiple display-workers in a system by ensuring a separate service and configuration files for each instance.
+
+#### Running using Command
+
+`DISPLAY=:<n> DW_SETTINGS_FILE=<path_to_configuration_file> display-worker`
+
+or
+
+`DISPLAY=:<n>  display-worker <path_to_configuration_file>`
+
+or 
+
 ```
+cd <into a dir with configuration file>
+DISPLAY=:<n>  display-worker
+```
+#### uninstall
 
-- Running using crun
-```
-node index.js <path to configuration file. Optional>
-```
+`sudo dpkg --remove display-worker`
 
-- Using installer 
-#Ubuntu 16# 
-```
-display-worker <path to configuration file. Optional>
-```
+
+
