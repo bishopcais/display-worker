@@ -1,7 +1,7 @@
 {
   "name": "display-worker",
   "productName": "DisplayWorker",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Display worker helps to show and manipulate contents on screen",
   "main": "src/apprpc.js",
   "scripts": {
@@ -37,8 +37,7 @@
         "deb"
       ],
       "depends" : [ "libappindicator1", "libindicator7" ],
-      "afterInstall" : "./debian/after-install.tpl",
-      "afterRemove" : "./debian/after-remove.tpl"
+      "afterInstall" : "./debian/after-install.tpl"
     },
     "extraFiles" : [
       { 

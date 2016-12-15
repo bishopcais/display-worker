@@ -151,9 +151,9 @@ or
 cd <into a dir with configuration file>
 DISPLAY=:<n>  display-worker
 ```
-#### uninstall
+#### Uninstall
 
-`sudo dpkg --remove display-worker`
+`sudo apt-get purge display-worker`
 
 
 
