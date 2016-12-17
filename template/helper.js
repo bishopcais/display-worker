@@ -6,6 +6,7 @@ let grid = {}
 let gridSize = {}
 let snappingDistance = 400
 let displayContext = ""
+let useNativeCursor = true
 
 const {ipcRenderer} = nodeRequire('electron')
 
@@ -13,6 +14,20 @@ $(document).on('scroll', function () {
     $(document).scrollLeft(0)
     $(document).scrollTop(0)
 });
+
+function setNativeCursorDrawing( vis ) {
+    useNativeCursor = vis
+    let wvs = document.getElementsByTagName("webview")
+    for( var i = 0; i < wvs.length; i++ ){
+        if(useNativeCursor){
+            wvs[i].insertCSS("body { cursor: auto }");
+            document.body.style.cursor = "auto"
+        } else {
+            wvs[i].insertCSS("body { cursor: none }");
+            document.body.style.cursor = "none"
+        }
+    }
+}
 
 // set displayContext for this BrowserWindow
 function setDisplayContext(ctx) {
@@ -368,7 +383,8 @@ function execute(opts) {
             }
 
             wv.addEventListener("dom-ready", (e) => {
-                wv.insertCSS("body { cursor: none }");
+                if(!useNativeCursor)
+                    wv.insertCSS("body { cursor: none }");
                 if (options.deviceEmulation) {
                     wv.getWebContents().enableDeviceEmulation(options.deviceEmulation)
                 }
