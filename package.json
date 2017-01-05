@@ -1,7 +1,7 @@
 {
   "name": "display-worker",
   "productName": "DisplayWorker",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Display worker helps to show and manipulate contents on screen",
   "main": "src/apprpc.js",
   "scripts": {

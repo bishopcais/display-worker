@@ -379,11 +379,7 @@ class DisplayWorker {
             browser.webContents.executeJavaScript("setDisplayContext('" + context  + "')")
             if(options.fontSize)
                 browser.webContents.executeJavaScript("setFontSize('" + options.fontSize  + "')")
-
-        })
-
-        // When the dom is ready, Grid is defined if specified. The create_window call returns after the dom is ready to allow users create view objects
-        browser.webContents.on('dom-ready', () => {
+            
             browser.isReady = true
 
             if(options.contentGrid){
@@ -410,6 +406,12 @@ class DisplayWorker {
                     windowName : options.windowName
                 }))
             }
+
+        })
+
+        // When the dom is ready, Grid is defined if specified. The create_window call returns after the dom is ready to allow users create view objects
+        browser.webContents.on('dom-ready', () => {
+            
         })
 
         // Publishes a displayWindowCreated event
