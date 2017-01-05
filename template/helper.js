@@ -548,7 +548,7 @@ function execute(opts) {
                                                 //     closebtn1.style.top = $(wv).offset().top + 30 + "px"
                                                 // }
                                                 ipcRenderer.send('view-object-event', JSON.stringify({
-                                                    type: "boundsChanged",
+                                                    type: "viewObjectBoundsChanged",
                                                     displayContext: displayContext,
                                                     details: _d
                                                 }))
@@ -556,7 +556,7 @@ function execute(opts) {
                                         }
                                     } else {
                                         ipcRenderer.send('view-object-event', JSON.stringify({
-                                            type: "boundsChanged",
+                                            type: "viewObjectBoundsChanged",
                                             displayContext: displayContext,
                                             details: _d
                                         }))
@@ -770,7 +770,7 @@ function execute(opts) {
                 if (animate) {
                     animate.onfinish = () => {
                         ipcRenderer.send('view-object-event', JSON.stringify({
-                            type: "boundsChanged",
+                            type: "viewObjectBoundsChanged",
                             displayContext: displayContext,
                             details: {
                                 view_id: wv.id,
