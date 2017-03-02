@@ -335,22 +335,22 @@ class DisplayWorker {
                 nodeIntegration : true
             }
         }
-        
+
         let browser = new BrowserWindow(opts)
-        let _templatePath =  path.normalize(path.format({dir : io.config.get('display:templateDir') , base : options.template }))
-        
+        let _templatePath =  path.resolve(path.normalize(path.format({dir : io.config.get('display:templateDir') , base : options.template })))
+
         logger.info('loading template : ', 'file://' + _templatePath)
         browser.loadURL('file://' + _templatePath)
-        
+
         browser.on('closed', () =>{
         })
         if(!this.dcWindows.has(context)){
             this.dcWindows.set(context, [])
         }
-        
+
         this.windowIdMap.set(b_id, browser.id)
         this.dcWindows.get( context ).push( b_id )
-        
+
         // When the browser window is out of focus, hides any cursors drawn and launcherMenu. Also mutes audio
         browser.on('blur', () => {
             browser.webContents.executeJavaScript('clearAllCursors()')
