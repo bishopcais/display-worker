@@ -20,12 +20,12 @@
   "private": true,
   "dependencies": {
     "@cel/celio": "^2.0.0",
-    "node-uuid": "^1.4.7",
+    "uuid": "^3.0.0",
     "robotjs": "^0.4.4",
     "winston": "^2.3.0"
   },
   "devDependencies": {
-    "electron": "^1.4.5",
+    "electron": "^1.6.0",
     "electron-builder": "^8.6.0"
   },
   "build": {
@@ -40,7 +40,7 @@
       "afterInstall" : "./debian/after-install.tpl"
     },
     "extraFiles" : [
-      { 
+      {
         "from" : "./template",
         "to": "./template"
       },

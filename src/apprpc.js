@@ -2,7 +2,7 @@ const fs = require('fs')
 const electron = require('electron')
 process.Title = "DisplayWorker"
 const {app, BrowserWindow, ipcMain} = require('electron')
-const uuid = require('node-uuid')
+const uuid = require('uuid')
 const winston = require('winston')
 const path = require('path')
 // Logger setup
@@ -47,7 +47,7 @@ if (process.env.DW_SETTINGS_FILE) {
     logger.info('Using DEFAULT settings file in working directory')
     searchPaths.push('./cog.json')
 }
-    
+
 
 // Search for settings file
 let cogPath = ''
@@ -110,7 +110,7 @@ app.on('window-all-closed', () => {
 
 // Listen and publish view object events
 ipcMain.on('view-object-event', (event, arg) => {
-  if(arg.displayContext && arg.type)  
+  if(arg.displayContext && arg.type)
     io.publishTopic('display.'+ arg.displayContext + '.' + arg.type + '.' + arg.details.view_id , arg)
 })
 
@@ -132,7 +132,7 @@ ipcMain.on('launchermenu', (event , msg) => {
                 setTimeout( ()=>{
                     io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
 
-                }, 400)    
+                }, 400)
             }
 
             setTimeout( ()=>{
@@ -157,7 +157,7 @@ io.onTopic('pool.*', m =>{
             if(c.indexOf(msg.ingests.appname) > -1){
                 io.displayContext.setActive( msg.ingests.appname, true )
             }
-        })    
+        })
     }
 })
 
@@ -165,8 +165,8 @@ io.onTopic('pool.*', m =>{
 class DisplayWorker {
     constructor(){
         // gets screen information via Electron Native API
-        this.displays = electron.screen.getAllDisplays()    
-        
+        this.displays = electron.screen.getAllDisplays()
+
         // Loads bounds information from settings file if present otherwise infers from Electron's Screen information
         if( io.config.get('display:bounds')){
             this.bounds = io.config.get('display:bounds')
@@ -199,7 +199,7 @@ class DisplayWorker {
         logger.info(io.config.get('display'))
         logger.info(io.config.get('display:templateDir'))
         this.config = io.config.get('display')
-        
+
         // DisplayName is used to identify a display worker instance.
         this.displayName = this.config.displayName
 
@@ -207,14 +207,14 @@ class DisplayWorker {
         this.displayContext = new Set()
         this.displayContext.add('default')
         this.activeDisplayContext = 'default'
-        
+
         // windowIdMap maps system window id to user-defined window name. Key - WindowName (String), Value - System Window Id (Integer)
         this.windowIdMap = new Map()
 
         // windowOptions catalogs options such as contentGrid and background specified by user while creating a DisplayContext
         this.windowOptions = new Map()
 
-        // dcWindows maps an array of WindowNames to a displayContext. Key - DisplayContext Name (String), Value - an array of WindowNames (Array<String>) 
+        // dcWindows maps an array of WindowNames to a displayContext. Key - DisplayContext Name (String), Value - an array of WindowNames (Array<String>)
         this.dcWindows = new Map()
         this.dcWindows.set(this.activeDisplayContext, [])
 
@@ -233,7 +233,7 @@ class DisplayWorker {
 
         // Supports spatial pointing using Wand, HTC Vive and Kinetic
         this.pointing = new Pointing(io)
-        
+
         // Publishes a display.added event
         io.publishTopic('display.added', io.config.get('display:displayName'))
         logger.info('\nworker server started.\n')
@@ -241,7 +241,7 @@ class DisplayWorker {
 
     // closes a display context, removes associated windows and view objects
     close_display_context (context, next) {
-        
+
         this.displayContext.delete(context)
         let b_list  = this.dcWindows.get(context)
         if(b_list){
@@ -260,7 +260,7 @@ class DisplayWorker {
                 })
                 wv_id.forEach((v) => {
                     wv_ids.push(v)
-                    this.webviewOwnerStack.delete(v) 
+                    this.webviewOwnerStack.delete(v)
                 })
 
             }, this)
@@ -274,7 +274,7 @@ class DisplayWorker {
                 'closedDisplayContext' : context,
                 'closedWindows' : b_list,
                 'closedViewObjects' : wv_ids
-            }))             
+            }))
         }else{
             next(JSON.stringify({
                 'status' : 'warning',
@@ -309,13 +309,13 @@ class DisplayWorker {
         }else{
             this.dcWindows.set(this.activeDisplayContext, []);
         }
-        
+
         next(JSON.stringify({
             'status' : 'success',
             'command' : 'set-active-context',
             'displayName' : this.displayName,
             'message' : this.activeDisplayContext + ' is now active'
-        })) 
+        }))
     }
 
     // creates a new BrowserWindow
@@ -363,7 +363,7 @@ class DisplayWorker {
             browser.webContents.setAudioMuted(false)
         })
 
-        // Avoids navigating away from template page 
+        // Avoids navigating away from template page
         browser.webContents.on('will-navigate', (e) => {
             logger.info('preventing attempt to navigate browser window content')
             e.preventDefault()
@@ -379,7 +379,7 @@ class DisplayWorker {
             browser.webContents.executeJavaScript("setDisplayContext('" + context  + "')")
             if(options.fontSize)
                 browser.webContents.executeJavaScript("setFontSize('" + options.fontSize  + "')")
-            
+
             browser.isReady = true
 
             if(options.contentGrid){
@@ -411,7 +411,7 @@ class DisplayWorker {
 
         // When the dom is ready, Grid is defined if specified. The create_window call returns after the dom is ready to allow users create view objects
         browser.webContents.on('dom-ready', () => {
-            
+
         })
 
         // Publishes a displayWindowCreated event
@@ -423,14 +423,14 @@ class DisplayWorker {
                 windowName : b_id
             }
         }))
-       
+
     }
 
     // Creates a ViewObject
     create_viewobj( ctx, options, next){
         let view_id = uuid.v1()
         this.webviewOwnerStack.set(view_id, options.windowName)
-        
+
         this.execute_in_displaywindow(Object.assign(options, {
             displayName : options.displayName,
             windowName : options.windowName,
@@ -480,8 +480,8 @@ class DisplayWorker {
 
     // returns DisplayContext associated with a window Name
     getWindowContext(windowName){
-        let ctx = '' 
-        
+        let ctx = ''
+
         this.dcWindows.forEach( (v,k) =>{
             if(v.indexOf(windowName) > -1){
                 ctx = k
@@ -515,8 +515,8 @@ class DisplayWorker {
                         _wins.forEach( _win => {
                             _winOptions[_win] = this.windowOptions.get(_win)
                         })
-                    } 
-                    
+                    }
+
                     this.webviewOwnerStack.forEach( (v, k) => {
                         if( _wins && _wins.indexOf(v) > -1 ){
                             if(_vbo === undefined)
@@ -550,7 +550,7 @@ class DisplayWorker {
                             if (_bounds.displayName === undefined) { _bounds.displayName = this.displayName }
                             _bounds.windowName = _win
                             _bounds.displayContext = message.options.context
-                            _windowOptions[_win] = _bounds 
+                            _windowOptions[_win] = _bounds
                         })
                     }else{
                         let _bounds = this.bounds
@@ -558,7 +558,7 @@ class DisplayWorker {
                         _bounds.windowName = this.displayName
                         _bounds.displayContext = message.options.context
                         _windowOptions[this.displayName] = _bounds
-                    } 
+                    }
                     next(JSON.stringify(_windowOptions))
                     break;
                 case 'get-context-list' :
@@ -591,7 +591,7 @@ class DisplayWorker {
                     }else{
                         this.close_display_context(message.options.context, next)
                     }
-                    
+
                     break;
                 case 'get-focus-window':
                     const w = BrowserWindow.getFocusedWindow()
@@ -640,7 +640,7 @@ class DisplayWorker {
                                 if(b){
                                     b.close()
                                     this.windowIdMap.delete(b_id)
-                                } 
+                                }
 
                                 let wv_id = new Array();
                                 this.webviewOwnerStack.forEach( (v, k) => {
@@ -659,8 +659,8 @@ class DisplayWorker {
                                 'command' : 'close-all-windows',
                                 'status' : 'success'
                             }))
-                    
-                    
+
+
                     break;
                 case 'hide-window':
                     if(message.options.windowName){
@@ -688,7 +688,7 @@ class DisplayWorker {
                         logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
                         next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
                     }
-                        
+
                     break;
                 case 'hide-all-windows':
                     let bs = BrowserWindow.getAllWindows()
@@ -698,7 +698,7 @@ class DisplayWorker {
                     next(JSON.stringify({
                         'command' : 'hide-all-windows',
                         'status' : 'success',
-                        'displayName' : this.displayName 
+                        'displayName' : this.displayName
                     }))
                     break;
                 case 'show-window':
@@ -709,7 +709,7 @@ class DisplayWorker {
                             next(JSON.stringify({
                                 'command' : 'show-window',
                                 'status' : 'success',
-                                'displayName' : this.displayName 
+                                'displayName' : this.displayName
                             }))
                         }else{
                             let e_details = {
@@ -732,7 +732,7 @@ class DisplayWorker {
                     if(message.options.windowName){
                         let b = this.getBrowserWindowFromName(message.options.windowName)
                         if(b){
-                        
+
                             let wv_id = new Array();
                             this.webviewOwnerStack.forEach( (v, k) => {
                                 if(v == message.options.windowName)
@@ -770,7 +770,7 @@ class DisplayWorker {
                             }
                             logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
                             next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
-                        } 
+                        }
                     }else{
                         let e_details = {
                             command : 'close-window',
@@ -781,7 +781,7 @@ class DisplayWorker {
                     }
                     break;
                 case 'window-dev-tools':
-                
+
                     let b = this.getBrowserWindowFromName(message.options.windowName)
                     if(b){
                         if(message.options.devTools)
@@ -790,7 +790,7 @@ class DisplayWorker {
                             b.closeDevTools()
                     }
                     next(JSON.stringify({'status' : 'success', 'devTools' : message.options.devTools,  'displayName' : this.displayName} ))
-                    break;   
+                    break;
                 case 'create-viewobj' :
                     if(message.options.displayContext){
                         ctx = message.options.displayContext
@@ -822,7 +822,7 @@ class DisplayWorker {
                         }else{
                             message.options.displayName = this.displayName
                             logger.error('Display Worker Error: ' +  message.options.view_id + ' - view object not found: ' + JSON.stringify(message.options))
-                            next(new DisplayError('Display Worker Error', message.options.view_id + ' - view object is not found.' , message.options ))    
+                            next(new DisplayError('Display Worker Error', message.options.view_id + ' - view object is not found.' , message.options ))
                         }
                     }else if(message.options.windowName){
                         message.options.command = message.command
