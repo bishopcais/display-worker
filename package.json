@@ -7,14 +7,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 0",
     "start": "./node_modules/.bin/electron src/apprpc.js",
-    "postinstall": "npm rebuild --runtime=electron --target=1.4.8 --disturl=https://atom.io/download/electron --abi=51",
+    "postinstall": "npm rebuild --runtime=electron --target=1.6.14 --disturl=https://atom.io/download/electron --abi=53",
     "dist": "./node_modules/.bin/build"
   },
   "author": "Yedendra Shrinivasan <yshrini@us.ibm.com>, Yunfeng Zhang <zhangyun@us.ibm.com>",
   "homepage": "https://github.ibm.com/celio/display-worker",
-  "repository" : {
-     "type" : "git",
-     "url" : "git@github.ibm.com:celio/display-worker.git"
+  "repository": {
+    "type": "git",
+    "url": "git@github.ibm.com:celio/display-worker.git"
   },
   "license": "ISC",
   "private": true,
@@ -25,32 +25,35 @@
     "winston": "^2.3.0"
   },
   "devDependencies": {
-    "electron": "^1.6.0",
+    "electron": "1.6.14",
     "electron-builder": "^8.6.0"
   },
   "build": {
     "appId": "display-worker",
-    "productName" : "display-worker",
+    "productName": "display-worker",
     "category": "public.app-category.graphics",
     "linux": {
       "target": [
         "deb"
       ],
-      "depends" : [ "libappindicator1", "libindicator7" ],
-      "afterInstall" : "./debian/after-install.tpl"
+      "depends": [
+        "libappindicator1",
+        "libindicator7"
+      ],
+      "afterInstall": "./debian/after-install.tpl"
     },
-    "extraFiles" : [
+    "extraFiles": [
       {
-        "from" : "./template",
+        "from": "./template",
         "to": "./template"
       },
       {
-         "from" : "./cog-sample.json",
-         "to" : "./cog-sample.json"
+        "from": "./cog-sample.json",
+        "to": "./cog-sample.json"
       },
       {
-	      "from" : "./debian/display-worker.service",
-        "to" : "./display-worker.service"
+        "from": "./debian/display-worker.service",
+        "to": "./display-worker.service"
       }
     ]
   }
