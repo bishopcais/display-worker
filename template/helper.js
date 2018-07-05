@@ -354,6 +354,7 @@ function execute(opts) {
             }
             let wv = document.createElement("webview")
             wv.id = options.view_id
+            
             wv.className = "ui-widget-content"
 
             toPixels(options)
@@ -379,6 +380,10 @@ function execute(opts) {
                     wv.insertCSS("img{ width : 100vw; height: auto;}")
                 })
             } else {
+                wv.preload = './injection.js';
+                wv.addEventListener('dom-ready', () => {
+                    wv.executeJavaScript('webview_id = ' + wv.id);
+                });
                 wv.src = options.url
             }
 
