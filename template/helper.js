@@ -380,10 +380,10 @@ function execute(opts) {
                     wv.insertCSS("img{ width : 100vw; height: auto;}")
                 })
             } else {
-                wv.preload = './injection.js';
-                wv.addEventListener('dom-ready', () => {
-                    wv.executeJavaScript('webview_id = ' + wv.id);
+                wv.addEventListener('console-message', (e) => {
+                    console.log('webview message: ', e.message);
                 });
+                wv.preload = './injection.js';
                 wv.src = options.url
             }
 
