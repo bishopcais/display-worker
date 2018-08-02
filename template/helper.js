@@ -388,6 +388,7 @@ function execute(opts) {
             }
 
             wv.addEventListener("dom-ready", (e) => {
+                wv.send('webview_id', wv.id);
                 if(!useNativeCursor)
                     wv.insertCSS("body { cursor: none }");
                 if (options.deviceEmulation) {

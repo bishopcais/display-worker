@@ -1,4 +1,4 @@
-node_modules
+node_modules/
 build
 dist
 logs
@@ -7,3 +7,4 @@ cog.json
 .vscode
 *.rdb
 *.log
+.DS_Store
