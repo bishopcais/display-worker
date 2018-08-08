@@ -9,6 +9,7 @@ let displayContext = ""
 let useNativeCursor = true
 
 const {ipcRenderer} = nodeRequire('electron')
+const io = nodeRequire('@cel/celio');
 
 $(document).on('scroll', function () {
     $(document).scrollLeft(0)
@@ -388,7 +389,10 @@ function execute(opts) {
             }
 
             wv.addEventListener("dom-ready", (e) => {
-                wv.send('webview_id', wv.id);
+                wv.send('start_injection', {
+                    webview_id: wv.id, 
+                    liaison_worker_url: io.config.get('liaison_worker_url').replace(/\/$/, ''),
+                });
                 if(!useNativeCursor)
                     wv.insertCSS("body { cursor: none }");
                 if (options.deviceEmulation) {

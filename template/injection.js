@@ -1,19 +1,14 @@
 const { ipcRenderer } = require('electron');
 
-ipcRenderer.on('webview_id', (event, message) => {
-    window.webview_id = message;
-    console.log("Setting window.webview_id = " + global.webview_id);
-});
-
-document.addEventListener('DOMContentLoaded', (event) => {
-    let script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.slim.js';
-    script.onload = script.onreadystatechange = () => {
-        let script = document.createElement('script');
-        if (document.body.getElementsByTagName('table').length > 0) {
-            script.src = 'http://localhost:7600/js/table.js?time=' + Date.now();
-        }
-        document.body.appendChild(script);
+ipcRenderer.on('start_injection', (event, message) => {
+    for (let key of Object.keys(message)) {
+        window[key] = message[key];
     }
+
+    // injection script within liaison-worker handles
+    // injecting any additional JS scripts and setting up
+    // the listeners, etc. so that we never have to touch this
+    // script again.
+    script.src = `${window.liaison_worker_url}/js/injection.js`;
     document.body.appendChild(script);
 });
