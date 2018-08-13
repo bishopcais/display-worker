@@ -1207,25 +1207,31 @@ function padZero(str, len) {
 }
 
 io.onTopic('SpatialContext.api.pointing', msg => {
-    msg = JSON.parse(msg);
-    console.log(msg);
-    let elem = document.getElementById('pointing-' + msg.userId);
-    if (!elem) {
-        elem = document.createElement('div');
-        elem.setAttribute('id', 'pointing-' + msg.userId);
-        elem.classList.add('circle');
-        elem.innerText = msg.userId;
-        document.body.prepend(elem);
+    try {
+        msg = JSON.parse(msg);
+        console.log(msg);
+        let elem = document.getElementById('pointing-' + msg.userId);
+        if (!elem) {
+            elem = document.createElement('div');
+            elem.setAttribute('id', 'pointing-' + msg.userId);
+            elem.classList.add('circle');
+            elem.innerText = msg.userId;
+            document.body.prepend(elem);
+        }
+        
+        if (!msg.pointing_pixel || msg.pointing_pixel.length != 2) {
+            elem.classList.add('missing');
+        }
+        else {
+            elem.classList.remove('missing');
+        }
+        elem.style.backgroundColor = msg.color;
+        elem.style.color = invertColor(msg.color);
+        elem.style.left = msg.pointing_pixel[0] + 'px';
+        elem.style.top = msg.pointing_pixel[1] + 'px';
     }
-    
-    if (!msg.pointing_pixel || msg.pointing_pixel.length != 2) {
-        elem.classList.add('missing');
+    catch (e) {
+        console.error('failed to parse message');
+        console.error(e);
     }
-    else {
-        elem.classList.remove('missing');
-    }
-    elem.style.backgroundColor = msg.color;
-    elem.style.color = invertColor(msg.color);
-    elem.style.left = msg.pointing_pixel[0] + 'px';
-    elem.style.top = msg.pointing_pixel[1] + 'px';
 });
