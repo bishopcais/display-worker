@@ -163,6 +163,25 @@
             background-image: linear-gradient(to bottom, #fc693c, #d93434);
             text-decoration: none;
         }
+
+        .circle {
+            height: 50px;
+            width: 50px;
+            background-color: #f0f0f0;
+            color: #000000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index:9999;
+        }
+
+        .missing {
+            opacity: 0.4;
+        }
     </style>
 <body onload="console.log('loaded')">
     <div id="pointing" class="pointing">

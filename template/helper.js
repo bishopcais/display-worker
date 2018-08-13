@@ -9,7 +9,8 @@ let displayContext = ""
 let useNativeCursor = true
 
 const {ipcRenderer} = nodeRequire('electron')
-const io = nodeRequire('@cel/celio');
+const CELIO = nodeRequire('@cel/celio');
+let io = new CELIO();
 
 $(document).on('scroll', function () {
     $(document).scrollLeft(0)
@@ -1179,3 +1180,52 @@ function toPixels(options) {
         console.log(e, options)
     }
 }
+
+function invertColor(hex) {
+    if (hex.indexOf('#') === 0) {
+        hex = hex.slice(1);
+    }
+    // convert 3-digit hex to 6-digits.
+    if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) {
+        throw new Error('Invalid HEX color.');
+    }
+    // invert color components
+    var r = (255 - parseInt(hex.slice(0, 2), 16)).toString(16),
+        g = (255 - parseInt(hex.slice(2, 4), 16)).toString(16),
+        b = (255 - parseInt(hex.slice(4, 6), 16)).toString(16);
+    // pad each with zeros and return
+    return '#' + padZero(r) + padZero(g) + padZero(b);
+}
+
+function padZero(str, len) {
+    len = len || 2;
+    var zeros = new Array(len).join('0');
+    return (zeros + str).slice(-len);
+}
+
+io.onTopic('SpatialContext.api.pointing', msg => {
+    msg = JSON.parse(msg);
+    console.log(msg);
+    let elem = document.getElementById('pointing-' + msg.userId);
+    if (!elem) {
+        elem = document.createElement('div');
+        elem.setAttribute('id', 'pointing-' + msg.userId);
+        elem.classList.add('circle');
+        elem.innerText = msg.userId;
+        document.body.prepend(elem);
+    }
+    
+    if (!msg.pointing_pixel || msg.pointing_pixel.length != 2) {
+        elem.classList.add('missing');
+    }
+    else {
+        elem.classList.remove('missing');
+    }
+    elem.style.backgroundColor = msg.color;
+    elem.style.color = invertColor(msg.color);
+    elem.style.left = msg.pointing_pixel[0] + 'px';
+    elem.style.top = msg.pointing_pixel[1] + 'px';
+});
