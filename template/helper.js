@@ -1227,8 +1227,18 @@ io.onTopic('SpatialContext.api.pointing', msg => {
         }
         elem.style.backgroundColor = msg.color;
         elem.style.color = invertColor(msg.color);
-        elem.style.left = msg.pointing_pixel[0] + 'px';
-        elem.style.top = msg.pointing_pixel[1] + 'px';
+        elem.style.left = (msg.pointing_pixel[0] - 25) + 'px';
+        elem.style.top = (msg.pointing_pixel[1] - 25) + 'px';
+
+        if (msg.rightHand === 'open') {
+            elem.style.borderStyle = 'dashed';
+        }
+        else if (msg.rightHand === 'closed') {
+            elem.style.borderStyle = 'solid';
+        }
+        else {
+            elem.style.borderStyle = 'dotted';
+        }
     }
     catch (e) {
         console.error('failed to parse message');
