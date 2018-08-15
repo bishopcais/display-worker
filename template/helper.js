@@ -1229,11 +1229,13 @@ io.onTopic('SpatialContext.api.pointing', msg => {
         elem.style.color = invertColor(msg.color);
         elem.style.left = (msg.pointing_pixel[0] - 25) + 'px';
         elem.style.top = (msg.pointing_pixel[1] - 25) + 'px';
-
-        if (msg.rightHand === 'open') {
+        
+        if (msg.right_hand_state === 'open') {
+            elem.innerText = msg.userId;
             elem.style.borderStyle = 'dashed';
         }
-        else if (msg.rightHand === 'closed') {
+        else if (msg.right_hand_state === 'closed') {
+            elem.innerText = msg.userId + '*';
             elem.style.borderStyle = 'solid';
         }
         else {
