@@ -11,5 +11,8 @@ ipcRenderer.on('start_injection', (event, message) => {
     // script again.
     let script = document.createElement('script');
     script.src = `${window.liaison_worker_url}/js/injection.js`;
+    script.onerror = (error) => {
+        console.error(`The requested script ${error.target.src} failed to load...`);
+    };
     document.body.appendChild(script);
 });
