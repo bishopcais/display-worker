@@ -332,7 +332,8 @@ class DisplayWorker {
             acceptFirstMouse : true,
             backgroundColor: '#2e2c29',
             webPreferences : {
-                nodeIntegration : true
+                nodeIntegration : true,
+                webSecurity: io.config.get('liaison_worker_url').startsWith('https'),
             }
         }
 

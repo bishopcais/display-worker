@@ -355,6 +355,7 @@ function execute(opts) {
                 }
             }
             let wv = document.createElement("webview")
+            wv.disablewebsecurity = io.config.get('liaison_worker_url').startsWith('https');
             wv.id = options.view_id
             
             wv.className = "ui-widget-content"
