@@ -4,6 +4,10 @@ ipcRenderer.on('start_injection', (event, message) => {
     for (let key of Object.keys(message)) {
         window[key] = message[key];
     }
+    if (!window[window.webview_id]) {
+        window[window.webview_id] = {};
+    }
+
     window[window.webview_id].uuid = require('uuid/v1');
 
     // injection script within liaison-worker handles

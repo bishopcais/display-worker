@@ -53,14 +53,14 @@ function getClosestGrid(x, y) {
         let diff_x = grid[k].rx - x
         let diff_y = grid[k].ry - y
         let cur_dist = Math.pow(diff_x, 2) + Math.pow(diff_y, 2) //no need to do sqrt to save time
-        console.log(k, cur_dist)
+        // console.log(k, cur_dist)
         if (cur_dist < min_dist) {
             min_dist = cur_dist
             temp_label = k
         }
     }
 
-    console.log("min_dist : ", min_dist, "label : ", temp_label)
+    // console.log("min_dist : ", min_dist, "label : ", temp_label)
     if (temp_label == "")
         return false
     else
@@ -355,7 +355,10 @@ function execute(opts) {
                 }
             }
             let wv = document.createElement("webview")
-            wv.disablewebsecurity = io.config.get('liaison_worker_url').startsWith('https');
+            if (!io.config.get('liaison_worker_url').startsWith('https')) {
+                wv.disablewebsecurity = true;
+                wv.webpreferences = "allowRunningInsecureContent";
+            }
             wv.id = options.view_id
             
             wv.className = "ui-widget-content"

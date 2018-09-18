@@ -331,9 +331,10 @@ class DisplayWorker {
             enableLargerThanScreen: true,
             acceptFirstMouse : true,
             backgroundColor: '#2e2c29',
-            webPreferences : {
+            webPreferences: {
                 nodeIntegration : true,
                 webSecurity: io.config.get('liaison_worker_url').startsWith('https'),
+                allowRunningInsecureContent: !io.config.get('liaison_worker_url').startsWith('https')
             }
         }
 
