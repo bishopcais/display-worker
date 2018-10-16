@@ -1251,7 +1251,7 @@ io.onTopic('SpatialContext.api.pointing', msg => {
         }
 
         elem.children[0].style.backgroundColor = msg.color;
-        elem.children[1].style.backgroundColor = msg.color;
+        //elem.children[1].style.backgroundColor = msg.color;
         elem.children[1].style.color = invertColor(msg.color);
     }
     catch (e) {
