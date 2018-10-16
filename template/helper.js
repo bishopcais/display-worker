@@ -355,10 +355,10 @@ function execute(opts) {
                 }
             }
             let wv = document.createElement("webview")
-            if (!io.config.get('liaison_worker_url').startsWith('https')) {
+            /*if (!io.config.get('liaison_worker_url').startsWith('https')) {
                 wv.disablewebsecurity = true;
                 wv.webpreferences = "allowRunningInsecureContent";
-            }
+            }*/
             wv.id = options.view_id
             
             wv.className = "ui-widget-content"
@@ -394,10 +394,10 @@ function execute(opts) {
             }
 
             wv.addEventListener("dom-ready", (e) => {
-                wv.send('start_injection', {
+                /*wv.send('start_injection', {
                     webview_id: wv.id, 
                     liaison_worker_url: io.config.get('liaison_worker_url').replace(/\/$/, ''),
-                });
+                });*/
                 if(!useNativeCursor)
                     wv.insertCSS("body { cursor: none }");
                 if (options.deviceEmulation) {
@@ -1213,38 +1213,46 @@ function padZero(str, len) {
 io.onTopic('SpatialContext.api.pointing', msg => {
     try {
         msg = JSON.parse(msg);
-        console.log(msg);
+        //console.log(msg);
         let elem = document.getElementById('pointing-' + msg.userId);
         if (!elem) {
             elem = document.createElement('div');
+            elem.classList.add('pointing');
             elem.setAttribute('id', 'pointing-' + msg.userId);
-            elem.classList.add('circle');
-            elem.innerText = msg.userId;
+            hand_elem = document.createElement('div');
+            span_elem = document.createElement('span');
+            span_elem.classList.add('right-hand-text');
+            span_elem.innerText = msg.userId;
+            elem.appendChild(hand_elem);
+            elem.appendChild(span_elem);
             document.body.prepend(elem);
         }
         
-        if (!msg.pointing_pixel || msg.pointing_pixel.length != 2) {
+        /*if (!msg.pointing_pixel || msg.pointing_pixel.length != 2) {
             elem.classList.add('missing');
         }
         else {
             elem.classList.remove('missing');
-        }
-        elem.style.backgroundColor = msg.color;
-        elem.style.color = invertColor(msg.color);
+        }*/
+
         elem.style.left = (msg.pointing_pixel[0] - 25) + 'px';
         elem.style.top = (msg.pointing_pixel[1] - 25) + 'px';
-        
-        if (msg.right_hand_state === 'open') {
-            elem.innerText = msg.userId;
-            elem.style.borderStyle = 'dashed';
+        elem.children[0].className = "";
+        let allowed_gestures = ['open', 'closed', 'lasso'];
+        if (allowed_gestures.indexOf(msg.right_hand_state) !== -1) {
+            elem.children[0].classList.add(`right-hand-${msg.right_hand_state}`);
         }
-        else if (msg.right_hand_state === 'closed') {
-            elem.innerText = msg.userId + '*';
-            elem.style.borderStyle = 'solid';
+        else if (allowed_gestures.indexOf(msg.left_hand_state) !== -1) {
+            elem.children[0].classList.add(`left-hand-${msg.left_hand_state}`);
         }
         else {
-            elem.style.borderStyle = 'dotted';
+            // TODO: replace this with a better icon
+            elem.children[0].classList.add('hand-unknown');
         }
+
+        elem.children[0].style.backgroundColor = msg.color;
+        elem.children[1].style.backgroundColor = msg.color;
+        elem.children[1].style.color = invertColor(msg.color);
     }
     catch (e) {
         console.error('failed to parse message');

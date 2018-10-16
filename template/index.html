@@ -181,6 +181,94 @@
             z-index:9999;
         }
 
+        .pointing {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            width: 50px;
+            height: 50px;
+        }
+
+        .right-hand-open {
+            -webkit-mask-image: url('hand-open.svg');
+            mask-image: url('hand-open.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+        }
+
+        .right-hand-closed {
+            -webkit-mask-image: url('hand-closed.svg');
+            mask-image: url('hand-closed.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+        }
+
+        .right-hand-lasso {
+            -webkit-mask-image: url('hand-lasso.svg');
+            mask-image: url('hand-lasso.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+        }
+
+        .left-hand-open {
+            -webkit-mask-image: url('hand-open.svg');
+            mask-image: url('hand-open.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+            transform: scaleX(-1);
+        }
+
+        .left-hand-closed {
+            -webkit-mask-image: url('hand-closed.svg');
+            mask-image: url('hand-closed.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+            transform: scaleX(-1);       
+        }
+
+        .left-hand-lasso {
+            -webkit-mask-image: url('hand-lasso.svg');
+            mask-image: url('hand-lasso.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+            transform: scaleX(-1);
+        }
+
+        .hand-unknown {
+            -webkit-mask-image: url('hand-unknown.svg');
+            mask-image: url('hand-unknown.svg');
+            background-repeat: no-repeat;
+            background-size: 50px 50px;
+            width: 50px;
+            height: 50px;
+            z-index: 800;
+        }
+
+        .right-hand-text {
+            position: relative;
+            z-index: 900;
+            top: -25px;
+            left: 22px;
+        }
+
         .missing {
             opacity: 0.4;
         }
