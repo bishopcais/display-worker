@@ -394,10 +394,10 @@ function execute(opts) {
             }
 
             wv.addEventListener("dom-ready", (e) => {
-                /*wv.send('start_injection', {
+                wv.send('start_injection', {
                     webview_id: wv.id, 
                     liaison_worker_url: io.config.get('liaison_worker_url').replace(/\/$/, ''),
-                });*/
+                });
                 if(!useNativeCursor)
                     wv.insertCSS("body { cursor: none }");
                 if (options.deviceEmulation) {
@@ -1210,49 +1210,59 @@ function padZero(str, len) {
     return (zeros + str).slice(-len);
 }
 
-io.onTopic('SpatialContext.api.pointing', msg => {
+let hands = {};
+
+io.onTopic('SpatialContext.api.pointing', msgs => {
     try {
-        msg = JSON.parse(msg);
-        //console.log(msg);
-        let elem = document.getElementById('pointing-' + msg.userId);
-        if (!elem) {
-            elem = document.createElement('div');
-            elem.classList.add('pointing');
-            elem.setAttribute('id', 'pointing-' + msg.userId);
-            hand_elem = document.createElement('div');
-            span_elem = document.createElement('span');
-            span_elem.classList.add('right-hand-text');
-            span_elem.innerText = msg.userId;
-            elem.appendChild(hand_elem);
-            elem.appendChild(span_elem);
-            document.body.prepend(elem);
-        }
-        
-        /*if (!msg.pointing_pixel || msg.pointing_pixel.length != 2) {
-            elem.classList.add('missing');
-        }
-        else {
-            elem.classList.remove('missing');
-        }*/
+        msgs = JSON.parse(msgs);
+        msgs['timestamp_3_start'] = (new Date()).getTime() / 1000;
+        for (let msg of msgs.data) {
+            //console.log(msg);
+            let elem;
+            if (!hands[msg.userId]) {
+                elem = document.createElement('div');
+                elem.classList.add('pointing');
+                elem.setAttribute('id', 'pointing-' + msg.userId);
+                hand_elem = document.createElement('div');
+                span_elem = document.createElement('span');
+                span_elem.classList.add('right-hand-text');
+                span_elem.innerText = msg.userId;
+                elem.appendChild(hand_elem);
+                elem.appendChild(span_elem);
+                document.body.prepend(elem);
+                hands[msg.userId] = elem;
+            }
+            else {
+                elem = hands[msg.userId];
+            }
 
-        elem.style.left = (msg.pointing_pixel[0] - 25) + 'px';
-        elem.style.top = (msg.pointing_pixel[1] - 25) + 'px';
-        elem.children[0].className = "";
-        let allowed_gestures = ['open', 'closed', 'lasso'];
-        if (allowed_gestures.indexOf(msg.right_hand_state) !== -1) {
-            elem.children[0].classList.add(`right-hand-${msg.right_hand_state}`);
-        }
-        else if (allowed_gestures.indexOf(msg.left_hand_state) !== -1) {
-            elem.children[0].classList.add(`left-hand-${msg.left_hand_state}`);
-        }
-        else {
-            // TODO: replace this with a better icon
-            elem.children[0].classList.add('hand-unknown');
+            let allowed_gestures = ['open', 'closed', 'lasso'];
+
+            elem.style.left = (msg.pointing_pixel[0] - 25) + 'px';
+            elem.style.top = (msg.pointing_pixel[1] - 25) + 'px';
+            
+            if (allowed_gestures.indexOf(msg.right_hand_state) !== -1) {
+                elem.children[0].className = "";
+                elem.children[0].classList.add('hand');
+                elem.children[0].classList.add(`hand-${msg.right_hand_state}`);
+                elem.children[0].classList.add('right');
+                
+            }
+            else if (allowed_gestures.indexOf(msg.left_hand_state) !== -1) {
+                elem.children[0].className = "";
+                elem.children[0].classList.add('hand');
+                elem.children[0].classList.add(`hand-${msg.left_hand_state}`);
+                elem.children[0].classList.add('left');
+            }
+
+            elem.children[0].style.backgroundColor = msg.color;
+            //elem.children[1].style.backgroundColor = msg.color;
+            elem.children[1].style.color = invertColor(msg.color);
         }
 
-        elem.children[0].style.backgroundColor = msg.color;
-        //elem.children[1].style.backgroundColor = msg.color;
-        elem.children[1].style.color = invertColor(msg.color);
+        msgs['timestamp_3_end'] = (new Date()).getTime() / 1000;
+        msgs['timestamp_3_duration'] = msgs['timestamp_3_end'] - msgs['timestamp_3_start'];
+        //console.log(JSON.stringify(msgs, null, 2));
     }
     catch (e) {
         console.error('failed to parse message');
