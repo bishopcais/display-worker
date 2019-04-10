@@ -5,9 +5,7 @@
   "description": "Display worker helps to show and manipulate contents on screen",
   "main": "src/apprpc.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 0",
-    "start": "./node_modules/.bin/electron src/apprpc.js",
-    "dist": "./node_modules/.bin/build"
+    "start": "./node_modules/.bin/electron src/apprpc.js"
   },
   "author": "Yedendra Shrinivasan <yshrini@us.ibm.com>, Yunfeng Zhang <zhangyun@us.ibm.com>",
   "homepage": "https://github.ibm.com/celio/display-worker",
@@ -19,8 +17,8 @@
   "private": true,
   "dependencies": {
     "@cel/celio": "^2.0.0",
+    "@cisl/logger": "^1.1.0",
     "uuid": "^3.0.0",
-    "robotjs": "^0.4.4",
     "winston": "^2.3.0"
   },
   "devDependencies": {

@@ -1,196 +1,202 @@
-let previousValue = new Map()
-let lastTransform = new Map()
-let uniformGridCellSize = { padding: 0 }
-let dragTimer = new Map()
-let grid = {}
-let gridSize = {}
-let snappingDistance = 400
-let displayContext = ""
-let useNativeCursor = true
+let previousValue = new Map();
+let lastTransform = new Map();
+let uniformGridCellSize = { padding: 0 };
+let dragTimer = new Map();
+let grid = {};
+let gridSize = {};
+let snappingDistance = 400;
+let displayContext = '';
+let useNativeCursor = true;
 
-const {ipcRenderer} = nodeRequire('electron')
-const CELIO = nodeRequire('@cel/celio');
+const {ipcRenderer} = require('electron');
+const CELIO = require('@cel/celio');
 let io = new CELIO();
 
-$(document).on('scroll', function () {
-    $(document).scrollLeft(0)
-    $(document).scrollTop(0)
+document.addEventListener('scroll', () => {
+  document.scrollLeft(0);
+  document.scrollTop(0);
 });
 
-function setNativeCursorDrawing( vis ) {
-    useNativeCursor = vis
-    let wvs = document.getElementsByTagName("webview")
-    for( var i = 0; i < wvs.length; i++ ){
-        if(useNativeCursor){
-            wvs[i].insertCSS("body { cursor: auto }");
-            document.body.style.cursor = "auto"
-        } else {
-            wvs[i].insertCSS("body { cursor: none }");
-            document.body.style.cursor = "none"
-        }
+function setNativeCursorDrawing(vis) {
+  useNativeCursor = vis;
+  let wvs = document.getElementsByTagName('webview');
+  for (let i = 0; i < wvs.length; i++) {
+    if (useNativeCursor) {
+      wvs[i].insertCSS('body { cursor: auto }');
+      document.body.style.cursor = 'auto';
     }
+    else {
+      wvs[i].insertCSS('body { cursor: none }');
+      document.body.style.cursor = 'none';
+    }
+  }
 }
 
 // set displayContext for this BrowserWindow
 function setDisplayContext(ctx) {
-    displayContext = ctx
+  displayContext = ctx;
 }
 
 // sets the fontSize at root dom level
 function setFontSize(fs) {
-    console.log("options.fontSize = ", fs)
-    document.body.style.fontSize = fs
-    snappingDistance = parseInt(fs) / 2
+  console.log(`options.fontSize = ${fs}`);
+  document.body.style.fontSize = fs;
+  snappingDistance = parseInt(fs) / 2;
 }
 
 // gets the closest grid for a point
 function getClosestGrid(x, y) {
-    let min_dist = Number.MAX_VALUE
-    let temp_label = ""
+  let min_dist = Number.MAX_VALUE;
+  let temp_label = '';
 
-    for (var k in grid) {
-
-        let diff_x = grid[k].rx - x
-        let diff_y = grid[k].ry - y
-        let cur_dist = Math.pow(diff_x, 2) + Math.pow(diff_y, 2) //no need to do sqrt to save time
-        // console.log(k, cur_dist)
-        if (cur_dist < min_dist) {
-            min_dist = cur_dist
-            temp_label = k
-        }
+  for (let k in grid) {
+    let diff_x = grid[k].rx - x;
+    let diff_y = grid[k].ry - y;
+    // no need to do sqrt to save time
+    let cur_dist = Math.pow(diff_x, 2) + Math.pow(diff_y, 2);
+    // console.log(k, cur_dist)
+    if (cur_dist < min_dist) {
+      min_dist = cur_dist;
+      temp_label = k;
     }
+  }
 
-    // console.log("min_dist : ", min_dist, "label : ", temp_label)
-    if (temp_label == "")
-        return false
-    else
-        return {
-            left: grid[temp_label].x, top: grid[temp_label].y, width: grid[temp_label].width,
-            height: grid[temp_label].height, sq_dist: min_dist
-        }
+  // console.log("min_dist : ", min_dist, "label : ", temp_label)
+  if (temp_label === '') {
+    return false;
+  }
+  else {
+    return {
+      left: grid[temp_label].x,
+      top: grid[temp_label].y,
+      width: grid[temp_label].width,
+      height: grid[temp_label].height,
+      sq_dist: min_dist
+    };
+  }
 }
 
 // selects elements if its top and left fall within a rectangle
 function rectangleSelect(selector, x1, y1, x2, y2) {
-    var elements = [];
-    jQuery(selector).each(function () {
-        var $this = jQuery(this);
-        var offset = $this.offset();
-        var x = offset.left;
-        var y = offset.top;
-        var w = $this.width();
-        var h = $this.height();
+  let elements = [];
+  document.querySelectorAll(selector).forEach((elem) => {
+    let x = elem.offsetLeft;
+    let y = elem.offsetTop;
+    let w = elem.clientWidth;
+    let h = elem.clientHeight;
 
-        if (x >= x1
-            && y >= y1
-            && x <= x2
-            && y <= y2) {
-            // this element fits inside the selection rectangle
-            elements.push($this.get(0));
-        }
-    });
-    return elements;
+    if (x >= x1 && y >= y1 && x <= x2 && y <= y2) {
+      // this element fits inside the selection rectangle
+      elements.push(elem);
+    }
+  });
+  return elements;
 }
 
 // creates a uniform grid
 function createGrid(row, col, rowHeight, colWidth, padding) {
-    gridSize.row = row
-    gridSize.col = col
-    let w = parseInt(getComputedStyle(document.body, '').width)
-    let h = parseInt(getComputedStyle(document.body, '').height)
+  gridSize.row = row;
+  gridSize.col = col;
+  let w = parseInt(getComputedStyle(document.body, '').width)
+  let h = parseInt(getComputedStyle(document.body, '').height)
 
-    if (!padding)
-        padding = 2
+  if (!padding) {
+    padding = 2;
+  }
 
-    if (!rowHeight) {
-        rowHeight = []
-        for (let x = 0; x < row; x++) {
-            rowHeight[x] = Math.ceil(h / row)
-        }
-    } else {
-        for (let x = 0; x < row; x++) {
-            rowHeight[x] = Math.ceil(rowHeight[x] * h)
-        }
+  if (!rowHeight) {
+    rowHeight = [];
+    for (let x = 0; x < row; x++) {
+      rowHeight[x] = Math.ceil(h / row);
     }
-
-
-    if (!colWidth) {
-        colWidth = []
-        for (let y = 0; y < col; y++) {
-            colWidth[y] = Math.ceil(w / col)
-        }
-    } else {
-        for (let y = 0; y < col; y++) {
-            colWidth[y] = Math.ceil(colWidth[y] * w)
-        }
+  }
+  else {
+    for (let x = 0; x < row; x++) {
+      rowHeight[x] = Math.ceil(rowHeight[x] * h);
     }
-    uniformGridCellSize.padding = 0
-    if (padding)
-        uniformGridCellSize.padding = padding
+  }
 
-    uniformGridCellSize.width = 0
-    for (let x = 0; x < colWidth.length; x++) {
-        uniformGridCellSize.width += colWidth[x]
+  if (!colWidth) {
+    colWidth = [];
+    for (let y = 0; y < col; y++) {
+      colWidth[y] = Math.ceil(w / col);
     }
-
-    uniformGridCellSize.width /= colWidth.length
-
-    uniformGridCellSize.height = 0
-    for (let x = 0; x < rowHeight.length; x++) {
-        uniformGridCellSize.height += rowHeight[x]
+  }
+  else {
+    for (let y = 0; y < col; y++) {
+      colWidth[y] = Math.ceil(colWidth[y] * w);
     }
-    uniformGridCellSize.height /= rowHeight.length
+  }
+  uniformGridCellSize.padding = 0;
+  if (padding) {
+    uniformGridCellSize.padding = padding;
+  }
 
-    let rr = 0;
-    for (let r = 1; r <= row; r++) {
-        let cc = 0;
-        for (let c = 1; c <= col; c++) {
-            let key = r + '|' + c
+  uniformGridCellSize.width = 0;
+  for (let x = 0; x < colWidth.length; x++) {
+    uniformGridCellSize.width += colWidth[x];
+  }
 
-            grid[key] = {
-                x: cc + padding,
-                y: rr + padding,
-                width: colWidth[c - 1] - 2 * padding,
-                height: rowHeight[r - 1] - 2 * padding,
-                rx: cc,
-                ry: rr,
-                rw: colWidth[c - 1],
-                rh: rowHeight[r - 1]
-            }
-            cc += colWidth[c - 1]
-        }
-        rr += rowHeight[r - 1]
+  uniformGridCellSize.width /= colWidth.length;
+
+  uniformGridCellSize.height = 0;
+  for (let x = 0; x < rowHeight.length; x++) {
+    uniformGridCellSize.height += rowHeight[x];
+  }
+  uniformGridCellSize.height /= rowHeight.length;
+
+  let rr = 0;
+  for (let r = 1; r <= row; r++) {
+    let cc = 0;
+    for (let c = 1; c <= col; c++) {
+      let key = r + '|' + c;
+
+      grid[key] = {
+        x: cc + padding,
+        y: rr + padding,
+        width: colWidth[c - 1] - 2 * padding,
+        height: rowHeight[r - 1] - 2 * padding,
+        rx: cc,
+        ry: rr,
+        rw: colWidth[c - 1],
+        rh: rowHeight[r - 1]
+      };
+      cc += colWidth[c - 1];
     }
+    rr += rowHeight[r - 1];
+  }
 
-    grid["center"] = {
-        rx: Math.round(w / 4),
-        ry: Math.round(h / 4),
-        rw: Math.round(w / 2),
-        rh: Math.round(h / 2),
-        x: Math.round(w / 4) + padding,
-        y: Math.round(h / 4) + padding,
-        width: Math.round(w / 2) - 2 * padding,
-        height: Math.round(h / 2) - 2 * padding
-    }
+  grid['center'] = {
+    rx: Math.round(w / 4),
+    ry: Math.round(h / 4),
+    rw: Math.round(w / 2),
+    rh: Math.round(h / 2),
+    x: Math.round(w / 4) + padding,
+    y: Math.round(h / 4) + padding,
+    width: Math.round(w / 2) - 2 * padding,
+    height: Math.round(h / 2) - 2 * padding
+  };
 
-    grid["fullscreen"] = {
-        rx: 0,
-        ry: 0,
-        rw: w,
-        rh: h,
-        x: padding,
-        y: padding,
-        width: w - 2 * padding,
-        height: h - 2 * padding
-    }
+  grid['fullscreen'] = {
+    rx: 0,
+    ry: 0,
+    rw: w,
+    rh: h,
+    x: padding,
+    y: padding,
+    width: w - 2 * padding,
+    height: h - 2 * padding
+  };
 }
 
 // returns a grid or grid cell
 function getGrid(row, col) {
-    if (row && col)
-        return grid[row + ':' + col]
-    else
-        return grid
+  if (row && col) {
+    return grid[row + ':' + col];
+  }
+  else {
+    return grid;
+  }
 }
 
 // adds a custome cell to grid
@@ -372,26 +378,11 @@ function execute(opts) {
             wv.style.background = "white"
             wv.style.zIndex = 0
 
-
-            if (options.url.toLowerCase().indexOf(".mp4") > -1 && options.url.indexOf("file:///") > -1) {
-                wv.src = "video.html"
-                wv.addEventListener("dom-ready", () => {
-                    wv.executeJavaScript("setup('" + options.url + "')")
-                    // wv.insertCSS( "video{ width : 100vw; height: 100vh;}" )
-                })
-            } else if ((options.url.toLowerCase().indexOf(".jpg") > -1 || options.url.toLowerCase().indexOf(".png"))
-                && options.url.indexOf("file:///") > -1) {
-                wv.src = options.url
-                wv.addEventListener("dom-ready", () => {
-                    wv.insertCSS("img{ width : 100vw; height: auto;}")
-                })
-            } else {
-                wv.addEventListener('console-message', (e) => {
-                    console.log('webview message: ', e.message);
-                });
-                wv.preload = './injection.js';
-                wv.src = options.url
-            }
+            wv.addEventListener('console-message', (e) => {
+                console.log('webview message: ', e.message);
+            });
+            wv.preload = './preload.js';
+            wv.src = options.url;
 
             wv.addEventListener("dom-ready", (e) => {
                 wv.send('start_injection', {
@@ -1215,7 +1206,6 @@ let hands = {};
 io.onTopic('SpatialContext.api.pointing', msgs => {
     try {
         msgs = JSON.parse(msgs);
-        msgs['timestamp_3_start'] = (new Date()).getTime() / 1000;
         for (let msg of msgs.data) {
             //console.log(msg);
             let elem;
@@ -1229,11 +1219,15 @@ io.onTopic('SpatialContext.api.pointing', msgs => {
                 span_elem.innerText = msg.userId;
                 elem.appendChild(hand_elem);
                 elem.appendChild(span_elem);
-                document.body.prepend(elem);
-                hands[msg.userId] = elem;
+                document.getElementById('pointing').prepend(elem);
+                hands[msg.userId] = {
+                    elem: elem,
+                    timeout: null
+                }
             }
             else {
-                elem = hands[msg.userId];
+                elem = hands[msg.userId].elem;
+                clearTimeout(hands[msg.userId].timeout);
             }
 
             let allowed_gestures = ['open', 'closed', 'lasso'];
@@ -1256,13 +1250,12 @@ io.onTopic('SpatialContext.api.pointing', msgs => {
             }
 
             elem.children[0].style.backgroundColor = msg.color;
-            //elem.children[1].style.backgroundColor = msg.color;
             elem.children[1].style.color = invertColor(msg.color);
+            hands[msg.userId].timeout = setTimeout(() => {
+                document.getElementById('pointing').removeChild(hands[msg.userId].elem);
+                delete hands[msg.userId];
+            }, 30 * 1000);
         }
-
-        msgs['timestamp_3_end'] = (new Date()).getTime() / 1000;
-        msgs['timestamp_3_duration'] = msgs['timestamp_3_end'] - msgs['timestamp_3_start'];
-        //console.log(JSON.stringify(msgs, null, 2));
     }
     catch (e) {
         console.error('failed to parse message');

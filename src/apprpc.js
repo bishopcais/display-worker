@@ -1,26 +1,11 @@
-const fs = require('fs')
-const electron = require('electron')
-process.Title = "DisplayWorker"
-const {app, BrowserWindow, ipcMain} = require('electron')
-const uuid = require('uuid')
-const winston = require('winston')
-const path = require('path')
-// Logger setup
-let logger = new (winston.Logger)({
-    transports: [
-        new (winston.transports.Console)({
-            level: 'info',
-            handleExceptions: true,
-            json: false,
-            colorize: true,
-            formatter: function(options) {
-                // Return string will be passed to logger.
-                return process.Title +':'+ options.level.toUpperCase() +' '+ (options.message ? options.message : '') +
-                (options.meta && Object.keys(options.meta).length ? '\n\t'+ JSON.stringify(options.meta) : '' );
-            }
-        })
-    ]
-});
+const fs = require('fs');
+const logger = require('@cisl/logger');
+const {app, BrowserWindow, ipcMain, screen} = require('electron');
+const uuid = require('uuid');
+const winston = require('winston');
+const path = require('path');
+
+process.Title = 'display-worker';
 
 // Check if file exists
 function fileExists(filePath)
@@ -38,7 +23,7 @@ function fileExists(filePath)
 let searchPaths = []
 
 if (process.env.DW_SETTINGS_FILE) {
-    logger.info('Using DW_SETTINGS env : ' + process.env.DW_SETTINGS_FILE)
+    logger.info(`Using DW_SETTINGS env : ` + )
     searchPaths.push(process.env.DW_SETTINGS_FILE)
 } else if (process.argv.length > 2 ) {
     logger.info('Using ARGS[2] : ' + process.argv[2])
@@ -72,7 +57,6 @@ try{
     process.exit()
 }
 
-const Pointing = require('./pointing')
 const DisplayError = require('./displayerror')
 
 let displayWorker
@@ -84,7 +68,7 @@ app.setName('CELIO Display Worker')
 app.on('ready', () => {
 
     process.setMaxListeners(0);
-	let displays = electron.screen.getAllDisplays()
+	let displays = screen.getAllDisplays()
 
     logger.info('Displays attached to this display-worker: \n')
     displays.forEach((d) => {
@@ -110,44 +94,10 @@ app.on('window-all-closed', () => {
 
 // Listen and publish view object events
 ipcMain.on('view-object-event', (event, arg) => {
-  if(arg.displayContext && arg.type)
-    io.publishTopic('display.'+ arg.displayContext + '.' + arg.type + '.' + arg.details.view_id , arg)
-})
-
-
-// Manage launcher menu selection
-ipcMain.on('launchermenu', (event , msg) => {
-    msg = JSON.parse(msg)
-    logger.info('launching app via menu ', msg)
-    if(msg.type == 'celio') {
-        io.displayContext.setActive( msg.appname, false );
-        io.store.setState('display:activeAppOnMenu', msg.appname );
-    }else if( msg.type == 'GSpeak') {
-        io.store.setState('display:activeAppOnMenu', msg.appname )
-        io.store.setState('display:activeDisplayContext', msg.appname )
-        io.displayContext.hideAll().then(m =>{
-            io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
-            logger.info('all display contexts hidden')
-            if(msg['master-reset']){
-                setTimeout( ()=>{
-                    io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
-
-                }, 400)
-            }
-
-            setTimeout( ()=>{
-                io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'barbiturate', 'wake-up'], ingests: {} } ))
-                if(msg['master-reset']){
-                    setTimeout( ()=>{
-                        io.publishTopic('pool.' + msg['chief-pool'], JSON.stringify( { descrips : [ 'master-reset'], ingests: {} } ))
-
-                    }, 400)
-                }
-            }, 500)
-
-        })
-    }
-})
+  if (arg.displayContext && arg.type) {
+    io.publishTopic('display.' + arg.displayContext + '.' + arg.type + '.' + arg.details.view_id, arg);
+  }
+});
 
 // Listen to GSpeak pools for making a CELIO app active
 io.onTopic('pool.*', m =>{
@@ -165,7 +115,7 @@ io.onTopic('pool.*', m =>{
 class DisplayWorker {
     constructor(){
         // gets screen information via Electron Native API
-        this.displays = electron.screen.getAllDisplays()
+        this.displays = screen.getAllDisplays()
 
         // Loads bounds information from settings file if present otherwise infers from Electron's Screen information
         if( io.config.get('display:bounds')){
@@ -229,10 +179,7 @@ class DisplayWorker {
             }catch(e){
                 reply(e)
             }
-        })
-
-        // Supports spatial pointing using Wand, HTC Vive and Kinetic
-        this.pointing = new Pointing(io)
+        });
 
         // Publishes a display.added event
         io.publishTopic('display.added', io.config.get('display:displayName'))
@@ -328,6 +275,7 @@ class DisplayWorker {
             width : options.width,
             height : options.height,
             frame: false,
+            //fullscreen: true,
             enableLargerThanScreen: true,
             acceptFirstMouse : true,
             backgroundColor: '#2e2c29',
@@ -353,10 +301,9 @@ class DisplayWorker {
         this.windowIdMap.set(b_id, browser.id)
         this.dcWindows.get( context ).push( b_id )
 
-        // When the browser window is out of focus, hides any cursors drawn and launcherMenu. Also mutes audio
+        // When the browser window is out of focus, hides any cursors drawn. Also mutes audio
         browser.on('blur', () => {
             browser.webContents.executeJavaScript('clearAllCursors()')
-            browser.webContents.executeJavaScript('hideLauncherMenu()')
             browser.webContents.setAudioMuted(true)
         })
 
@@ -372,12 +319,8 @@ class DisplayWorker {
             return false
         })
 
-        // sets up launcherMenu, DisplayContext associated with BrowserWindow, default fontSize after the template page is loaded
+        // sets up DisplayContext associated with BrowserWindow, default fontSize after the template page is loaded
         browser.webContents.on('did-finish-load', ()=> {
-            if(io.config.get('display:launcherMenu')){
-                logger.info('setting up menu handler in new DisplayWindow')
-                browser.webContents.executeJavaScript("setupNativeMenuHandler(" + JSON.stringify(io.config.get('apps'))  + ", '" + io.config.get("display:launcherMenu:position")  + "')")
-            }
             browser.webContents.executeJavaScript("setDisplayContext('" + context  + "')")
             if(options.fontSize)
                 browser.webContents.executeJavaScript("setFontSize('" + options.fontSize  + "')")
