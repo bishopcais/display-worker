@@ -97,8 +97,8 @@ function rectangleSelect(selector, x1, y1, x2, y2) {
 function createGrid(row, col, rowHeight, colWidth, padding) {
   gridSize.row = row;
   gridSize.col = col;
-  let w = parseInt(getComputedStyle(document.body, '').width)
-  let h = parseInt(getComputedStyle(document.body, '').height)
+  let w = parseInt(getComputedStyle(document.body, '').width);
+  let h = parseInt(getComputedStyle(document.body, '').height);
 
   if (!padding) {
     padding = 2;
@@ -253,10 +253,11 @@ function removeFromGrid(label) {
 // Executes js commands specified through RPC using CELIO lib 
 function execute(opts) {
     let options = JSON.parse(opts)
-    console.log('Executed command : ', options.command, options)
+    console.log('Executed command : ', options.command, options);
     try {
-        if (options.command == "create-grid") {
-            let cont_grid = options.contentGrid
+        if (options.command === 'create-grid') {
+          console.log(options);
+            let cont_grid = options.contentGrid;
             grid = {}
             if (cont_grid.row && cont_grid.col) {
                 createGrid(cont_grid.row, cont_grid.col, cont_grid.rowHeight, cont_grid.colWidth, cont_grid.padding)
