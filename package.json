@@ -17,42 +17,11 @@
   "private": true,
   "dependencies": {
     "@cel/celio": "^2.0.0",
-    "@cisl/logger": "^1.1.0",
-    "uuid": "^3.0.0",
-    "winston": "^2.3.0"
+    "@cisl/logger": "^1.1.1",
+    "uuid": "^3.3.3"
   },
   "devDependencies": {
-    "electron": "2.0.9",
-    "electron-builder": "^20.28.1",
-    "electron-rebuild": "^1.8.2"
-  },
-  "build": {
-    "appId": "display-worker",
-    "productName": "display-worker",
-    "category": "public.app-category.graphics",
-    "linux": {
-      "target": [
-        "deb"
-      ],
-      "depends": [
-        "libappindicator1",
-        "libindicator7"
-      ],
-      "afterInstall": "./debian/after-install.tpl"
-    },
-    "extraFiles": [
-      {
-        "from": "./template",
-        "to": "./template"
-      },
-      {
-        "from": "./cog-sample.json",
-        "to": "./cog-sample.json"
-      },
-      {
-        "from": "./debian/display-worker.service",
-        "to": "./display-worker.service"
-      }
-    ]
+    "electron": "^6.0.10",
+    "electron-rebuild": "^1.8.6"
   }
 }
