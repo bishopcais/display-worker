@@ -63,7 +63,6 @@ catch (e) {
 }
 
 const DisplayError = require('./displayerror');
-
 let displayWorker;
 
 app.commandLine.appendSwitch('disable-http-cache');
@@ -72,10 +71,9 @@ app.setName('CELIO Display Worker');
 
 app.on('ready', () => {
   screen = electron.screen;
-  process.setMaxListeners(0);
   let displays = screen.getAllDisplays();
 
-  logger.info('Displays attached to this display-worker: \n');
+  logger.info('Displays attached to this display-worker:');
   displays.forEach((d) => {
     logger.info(d);
   });
@@ -143,7 +141,8 @@ class DisplayWorker {
     }
 
     // Prints Display Configuration
-    logger.info('\nDisplay-worker configuration : \n');
+    logger.info();
+    logger.info('Display-worker configuration:');
     logger.info(io.config.get('display'));
     logger.info(io.config.get('display:templateDir'));
     this.config = io.config.get('display');
@@ -285,17 +284,10 @@ class DisplayWorker {
     };
 
     let browser = new BrowserWindow(opts);
-    let _templatePath = path.resolve(
-      path.normalize(path.format(
-        {
-          dir: io.config.get('display:templateDir'),
-          base: options.template
-        }
-      ))
-    );
+    let template_path = path.resolve(path.join(__dirname, 'template'));
 
-    logger.info(`loading template: file://${_templatePath}`);
-    browser.loadURL(`file://${_templatePath}`);
+    logger.info(`loading template: file://${template_path}`);
+    browser.loadURL(`file://${template_path}`);
 
     browser.on('closed', () => {
     });
@@ -462,7 +454,7 @@ class DisplayWorker {
           let _vbo;
           let _winOptions;
           let _wins = this.dcWindows.get(message.options.context);
-          
+
           // add bounds and other information
           if (_wins) {
             _winOptions = {};
