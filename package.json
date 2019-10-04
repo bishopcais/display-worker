@@ -3,26 +3,28 @@
   "productName": "DisplayWorker",
   "version": "3.0.0",
   "description": "Display worker helps to show and manipulate contents on screen",
-  "main": "src/app.js",
+  "main": "index.js",
   "scripts": {
-    "start": "./node_modules/.bin/electron src/app.js"
+    "start": "./node_modules/.bin/electron index.js"
   },
-  "author": "Yedendra Shrinivasan <yshrini@us.ibm.com>, Yunfeng Zhang <zhangyun@us.ibm.com>",
-  "homepage": "https://github.ibm.com/celio/display-worker",
-  "repository": {
-    "type": "git",
-    "url": "git@github.ibm.com:celio/display-worker.git"
-  },
+  "contributors": [
+    "Yedendra Shrinivasan <yshrini@us.ibm.com>",
+    "Yunfeng Zhang <zhangyun@us.ibm.com>",
+    "Matthew Peveler <pevelm@rpi.edu"
+  ],
   "license": "ISC",
-  "private": true,
   "dependencies": {
-    "@cel/celio": "^2.0.0",
-    "@cisl/io": "^1.0.0-dev4",
-    "@cisl/logger": "^1.1.1",
-    "uuid": "^3.3.3"
+    "electron": "^6.0.10",
+    "@cisl/io": "^1.0.0-dev7",
+    "@cisl/logger": "^1.2.0"
   },
   "devDependencies": {
-    "electron": "^6.0.10",
-    "electron-rebuild": "^1.8.6"
-  }
+    "electron-rebuild": "^1.8.6",
+    "eslint": "^6.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://internal.cisl.rpi.edu/code/cais/core/display-worker"
+  },
+  "private": true
 }

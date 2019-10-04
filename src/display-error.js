@@ -1,4 +1,3 @@
-
 class DisplayError extends Error {
   constructor(name, message, details) {
     super();
