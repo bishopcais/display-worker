@@ -1,12 +1,9 @@
 let previousValue = new Map();
-let lastTransform = new Map();
 let uniformGridCellSize = { padding: 0 };
 let dragTimer = new Map();
 let grid = {};
 let gridSize = {};
-let snappingDistance = 400;
-let displayContext = '';
-let useNativeCursor = true;
+let displayContextName = '';
 
 const {ipcRenderer} = require('electron');
 const io = require('@cisl/io');
@@ -16,24 +13,13 @@ document.addEventListener('scroll', () => {
   document.scrollTop(0);
 });
 
-function setNativeCursorDrawing(vis) {
-  useNativeCursor = vis;
-  let wvs = document.getElementsByTagName('webview');
-  for (let i = 0; i < wvs.length; i++) {
-    if (useNativeCursor) {
-      wvs[i].insertCSS('body { cursor: auto }');
-      document.body.style.cursor = 'auto';
-    }
-    else {
-      wvs[i].insertCSS('body { cursor: none }');
-      document.body.style.cursor = 'none';
-    }
-  }
+function clearAllCursors() {
+  // pass
 }
 
 // set displayContext for this BrowserWindow
 function setDisplayContext(ctx) {
-  displayContext = ctx;
+  displayContextName = ctx;
 }
 
 // sets the fontSize at root dom level
@@ -66,11 +52,12 @@ function getClosestGrid(x, y) {
   }
   else {
     return {
+      label: temp_label,
       left: grid[temp_label].x,
       top: grid[temp_label].y,
       width: grid[temp_label].width,
       height: grid[temp_label].height,
-      sq_dist: min_dist
+      distance: Math.sqrt(min_dist)
     };
   }
 }
@@ -203,7 +190,7 @@ function addToGrid(label, bounds, style) {
   // if(!grid[label]){
   let pad = 0;
   if (uniformGridCellSize.padding)
-    pad = uniformGridCellSize.padding
+    pad = uniformGridCellSize.padding;
 
   grid[label] = {
     rx: parseInt(bounds.left),
@@ -214,25 +201,25 @@ function addToGrid(label, bounds, style) {
     y: parseInt(bounds.top) + pad,
     width: parseInt(bounds.width) - 2 * pad,
     height: parseInt(bounds.height) - 2 * pad
-  }
+  };
   if (style) {
-    let ediv = document.getElementById("bg" + label)
+    let ediv = document.getElementById("bg" + label);
     if (ediv)
-      document.getElementById("background").removeChild(ediv)
+      document.getElementById("background").removeChild(ediv);
 
-    let div = document.createElement('div')
-    div.id = "bg" + label
-    div.className = "background-div"
-    div.style.top = bounds.top
-    div.style.left = bounds.left
-    div.style.width = bounds.width
-    div.style.height = bounds.height
+    let div = document.createElement('div');
+    div.id = "bg" + label;
+    div.className = "background-div";
+    div.style.top = bounds.top;
+    div.style.left = bounds.left;
+    div.style.width = bounds.width;
+    div.style.height = bounds.height;
     for (let k of Object.keys(style)) {
-      div.style[k] = style[k]
+      div.style[k] = style[k];
     }
-    document.getElementById("background").appendChild(div)
+    document.getElementById("background").appendChild(div);
   }
-  return { status: 'success' }
+  return { status: 'success' };
   // }else{
   //     return { status : 'failed' , message : 'Label :  ' + label + ' exists.' }
   // }
@@ -241,114 +228,131 @@ function addToGrid(label, bounds, style) {
 
 // removes a cell from grid
 function removeFromGrid(label) {
-  let div = document.getElementById("bg" + label)
+  let div = document.getElementById("bg" + label);
   if (div)
-    document.getElementById("background").removeChild(div)
+    document.getElementById("background").removeChild(div);
 
-  delete grid[label]
-  return grid
+  delete grid[label];
+  return grid;
 }
 
 // Executes js commands specified through RPC using CELIO lib
 function execute(opts) {
-  let options = JSON.parse(opts)
+  let options = JSON.parse(opts);
   console.log('Executed command : ', options.command, options);
   try {
     if (options.command === 'create-grid') {
-      console.log(options);
       let cont_grid = options.contentGrid;
-      grid = {}
+      grid = {};
       if (cont_grid.row && cont_grid.col) {
-        createGrid(cont_grid.row, cont_grid.col, cont_grid.rowHeight, cont_grid.colWidth, cont_grid.padding)
+        createGrid(cont_grid.row, cont_grid.col, cont_grid.rowHeight, cont_grid.colWidth, cont_grid.padding);
       }
 
       if (cont_grid.custom) {
         for (let x = 0; x < cont_grid.length; x++) {
-          let g = cont_grid.custom[x]
-          toPixels(g)
-          addToGrid(g.label, { left: g.left, top: g.top, width: g.width, height: g.height })
+          let g = cont_grid.custom[x];
+          toPixels(g);
+          addToGrid(g.label, { left: g.left, top: g.top, width: g.width, height: g.height });
         }
       }
 
       if (options.gridBackground) {
-        document.getElementById('background').innerHTML = ""
+        document.getElementById('background').innerHTML = "";
         for (let key of Object.keys(options.gridBackground)) {
 
-          let g = grid[key]
-          let div = document.createElement('div')
-          div.id = "bg" + key
-          div.className = "background-div"
-          div.style.top = g.ry + "px"
-          div.style.left = g.rx + "px"
-          div.style.width = g.rw
-          div.style.height = g.rh
-          div.style.background = options.gridBackground[key]
-          document.getElementById("background").appendChild(div)
+          let g = grid[key];
+          let div = document.createElement('div');
+          div.id = "bg" + key;
+          div.className = "background-div";
+          div.style.top = g.ry + "px";
+          div.style.left = g.rx + "px";
+          div.style.width = g.rw;
+          div.style.height = g.rh;
+          div.style.background = options.gridBackground[key];
+          document.getElementById("background").appendChild(div);
         }
       }
 
       return {
         displayName: options.displayName,
-        displayContext: options.displayContext,
+        displayContextName: options.displayContextName,
         windowName: options.windowName,
         x: options.x,
         y: options.y,
         width: options.width,
         height: options.height,
         template: options.template
-      }
-    } else if (options.command == "get-grid") {
-      return grid
-    } else if (options.command == "uniform-grid-cell-size") {
-      return uniformGridCellSize
-    } else if (options.command == "add-to-grid") {
-      toPixels(options.bounds)
-      addToGrid(options.label, options.bounds, options.style)
-      return grid
-    } else if (options.command == "remove-from-grid") {
-      removeFromGrid(options.label)
-      return grid
-    } else if (options.command == "clear-grid") {
-      document.getElementById('background').innerHTML = ""
-      grid = {}
-      return { command: "clear-grid", "status": "success" }
-    } else if (options.command == "clear-contents") {
-      document.getElementById('content').innerHTML = ""
-      return { "status": "success", command: "clear-contents" }
-    } else if (options.command == "cell-style") {
-      let g = document.getElementById("bg" + options.label)
+      };
+    }
+    else if (options.command == "get-grid") {
+      return grid;
+    }
+    else if (options.command == "uniform-grid-cell-size") {
+      return uniformGridCellSize;
+    }
+    else if (options.command == "add-to-grid") {
+      toPixels(options.bounds);
+      addToGrid(options.label, options.bounds, options.style);
+      return grid;
+    }
+    else if (options.command == "remove-from-grid") {
+      removeFromGrid(options.label);
+      return grid;
+    }
+    else if (options.command == "clear-grid") {
+      document.getElementById('background').innerHTML = "";
+      grid = {};
+      return { command: "clear-grid", "status": "success" };
+    }
+    else if (options.command == "clear-contents") {
+      document.getElementById('content').innerHTML = "";
+      return { "status": "success", command: "clear-contents" };
+    }
+    else if (options.command == "cell-style") {
+      let g = document.getElementById("bg" + options.label);
       if (g) {
-        let currentValue = {}
-        let destValue = {}
+        let currentValue = {};
+        let destValue = {};
 
         for (let k of Object.keys(options.style)) {
-          currentValue[k] = getComputedStyle(g, "")[k]
-          destValue[k] = options.style[k]
+          currentValue[k] = getComputedStyle(g, "")[k];
+          destValue[k] = options.style[k];
         }
-        g.animate([currentValue, destValue], options.animation_options ? options.animation_options : {
+        g.animate([currentValue, destValue], options.animationOptions ? options.animationOptions : {
           duration: 800, fill: 'forwards', easing: 'ease-in-out'
-        })
+        });
 
-        return { "command": "cell-style", "status": "success" }
-      } else {
-        return { "command": "cell-style", "status": "error", "error_message" : "cell not found" }
+        return { "command": "cell-style", "status": "success" };
+      }
+      else {
+        return { "command": "cell-style", "status": "error", "error_message" : "cell not found" };
       }
 
-    } else if (options.command == "set-displaywindow-font-size") {
-      setFontSize(options.fontSize)
-      return { command: "set-displaywindow-font-size", "status": "success" }
-    } else if (options.command == "create-viewobj") {
-
+    }
+    else if (options.command == "set-displaywindow-font-size") {
+      setFontSize(options.fontSize);
+      return { command: "set-displaywindow-font-size", "status": "success" };
+    }
+    else if (options.command === "create-view-object") {
       if (options.slide && options.position) {
-        slideContents(options)
+        slideContents(options);
       }
-
 
       if (options.position) {
-        let pos = options.position
+        let pos = options.position;
         if (typeof pos == "object") {
-          if (pos["grid-top"] && pos["grid-left"]) {
-            pos = pos["grid-top"] + "|" + pos["grid-left"];
+          if (pos.gridTop && pos.gridLeft) {
+            pos = pos.gridTop + "|" + pos.gridLeft;
+          }
+          else {
+            return {
+              status: "error",
+              message: "missing gridTop or gridLeft parameter",
+              viewId: options.id,
+              "displayName": options.displayName,
+              "windowName": options.windowName,
+              displayContextName: options.displayContextName
+            };
           }
         }
         let box = grid[pos];
@@ -360,23 +364,21 @@ function execute(opts) {
           options.height = options.height ? options.height : box.height;
         }
       }
-      let wv = document.createElement("webview")
-      /*if (!io.config.get('liaison_worker_url').startsWith('https')) {
-                wv.disablewebsecurity = true;
-                wv.webpreferences = "allowRunningInsecureContent";
-            }*/
-      wv.id = options.view_id
 
-      wv.className = "ui-widget-content"
+      toPixels(options);
 
-      toPixels(options)
-      wv.style.width = options.width
-      wv.style.height = options.height
-      wv.style.position = "absolute"
-      wv.style.top = options.top
-      wv.style.left = options.left
-      wv.style.background = "white"
-      wv.style.zIndex = 0
+      let wvContainer = document.createElement('div');
+      wvContainer.id = 'container-' + options.viewId;
+      wvContainer.classList.add('webview-container');
+      wvContainer.classList.add('ui-widget-content');
+      wvContainer.style.top = options.top;
+      wvContainer.style.left = options.left;
+      wvContainer.style.width = options.width;
+      wvContainer.style.height = options.height;
+
+      let wv = document.createElement("webview");
+      wvContainer.appendChild(wv);
+      wv.id = options.viewId;
 
       wv.addEventListener('console-message', (e) => {
         console.log('webview message: ', e.message);
@@ -386,403 +388,385 @@ function execute(opts) {
 
       wv.addEventListener("dom-ready", (e) => {
         const params = {
-          webview_id: wv.id
+          webviewId: wv.id
         };
         if (io.config.display.liaison_worker_url) {
           params.liaison_worker_url = io.config.display.liaison_worker_url.replace(/\/$/, '');
         }
-        wv.send('start_injection', params);
-        if(!useNativeCursor)
-          wv.insertCSS("body { cursor: none }");
+        wv.send('dom-ready', params);
         if (options.deviceEmulation) {
-          wv.getWebContents().enableDeviceEmulation(options.deviceEmulation)
+          wv.getWebContents().enableDeviceEmulation(options.deviceEmulation);
         }
-      })
+      });
 
       wv.addEventListener("crashed", (e, killed) => {
         ipcRenderer.send('view-object-event', {
           type: "viewObjectCrashed",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id,
+            viewId: wv.id,
             killed: killed
           }
         });
-      })
+      });
 
       wv.addEventListener("gpu-crashed", (e) => {
         ipcRenderer.send('view-object-event', {
           type: "viewObjectGPUCrashed",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id
+            viewId: wv.id
           }
         });
-      })
+      });
 
       wv.addEventListener("plugin-crashed", (e) => {
         ipcRenderer.send('view-object-event', {
           type: "viewObjectPluginCrashed",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id
+            viewId: wv.id
           }
         });
-      })
+      });
 
-
-      // if (options.uiClosable) {
-      //     let closebtn = document.createElement("div")
-      //     closebtn.className = "closebtn"
-      //     closebtn.id = wv.id + "-closehint"
-      //     closebtn.innerHTML = "x"
-      //     closebtn.style.left = parseInt(options.left) + 10 + "px"
-      //     closebtn.style.top = parseInt(options.top) + 30 + "px"
-      //     closebtn.addEventListener("mousedown", () => {
-      //         document.getElementById('pointing').removeChild(closebtn)
-      //         document.getElementById('content').removeChild(wv)
-      //         ipcRenderer.send('view-object-event', JSON.stringify({
-      //             type: "viewObjectClosed",
-      //             displayContext: displayContext,
-      //             details: {
-      //                 view_id: wv.id
-      //             }
-      //         }))
-      //     })
-      //     document.getElementById("pointing").appendChild(closebtn)
-      // }
+      let closebtn;
+      if (options.uiClosable) {
+        closebtn = document.createElement("div")
+        closebtn.className = "closebtn"
+        closebtn.id = wv.id + "-closehint"
+        closebtn.innerHTML = "x"
+        closebtn.addEventListener("mousedown", () => {
+          document.getElementById('content').removeChild(wvContainer);
+          ipcRenderer.send('view-object-event', JSON.stringify({
+            type: "viewObjectClosed",
+            displayContextName: displayContextName,
+            details: {
+              viewId: wv.id
+            }
+          }));
+        });
+        wvContainer.append(closebtn);
+      }
 
       if (options.uiDraggable) {
-        wv.addEventListener("mouseover", (e) => {
-          // console.log("mouse in", $(wv).offset(), $(wv).width(), $(wv).height(), $(document.body).width(), $(document.body).height())
+        wvContainer.addEventListener("mouseenter", (e) => {
           let closest;
-          if (!wv.canDrag) {
-            wv.canDrag = true
-            wv.dispatchEvent(new Event("dragHintStart"))
-            $(wv).draggable({
+          if (!wvContainer.canDrag) {
+            wvContainer.canDrag = true;
+            wvContainer.dispatchEvent(new Event("dragHintStart"));
+            $(wvContainer).draggable({
               disabled: false,
               scroll: false,
               refreshPositions: true,
-              start: (e_drag, ui) => {
-                let zIndex = 0
-                let elems = document.getElementsByTagName("webview")
-                for (let i = 0; i < elems.length; i++) {
-                  let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
-                  console.log(zi)
-                  zIndex = zi > zIndex ? zi : zIndex
+              start: () => {
+                const contentElement = document.getElementById('content');
+                if (closebtn) {
+                  closebtn.style.display = 'none';
                 }
-
-                if (wv.style.zIndex <= zIndex) {
-                  wv.style.zIndex = zIndex + 1
-                  console.log(zIndex)
-                }
-                // let closebtn = document.getElementById(wv.id + "-closehint")
-                // if (closebtn) {
-                //     closebtn.style.display = "none"
-                // }
+                pointingDiv.style.display = 'none';
+                contentElement.removeChild(wvContainer);
+                contentElement.append(wvContainer);
               },
               drag: (e) => {
-                wv.isDragging = true
-                let pointingDiv = document.getElementById(wv.id + "-draghint")
-                if (pointingDiv) {
-                  pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width() / 2 - $(pointingDiv).width() / 2) + "px"
-                  pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
-                }
-
-                if(e.screenY < 1 && options.uiClosable){
-                  $(wv).draggable( {disabled : true})
-                  wv.isDragging = false
-                  pointingDiv.style.display = "none"
-                  wv.dispatchEvent(new Event("dragHintEnd"))
-                  document.getElementById('content').removeChild(wv)
+                wvContainer.isDragging = true;
+                if (e.screenY < 1 && options.uiClosable) {
+                  $(wvContainer).draggable( {disabled : true});
+                  wvContainer.isDragging = false;
+                  pointingDiv.style.display = "none";
+                  wvContainer.dispatchEvent(new Event("dragHintEnd"));
+                  document.getElementById('content').removeChild(wvContainer);
                   ipcRenderer.send('view-object-event', {
                     type : "viewObjectClosed",
-                    displayContext : displayContext,
+                    displayContextName : displayContextName,
                     details :  {
-                      view_id : wv.id
+                      viewId : wvContainer.id
                     }
                   });
                 }
 
               },
               stop: () => {
-                if (wv.isDragging) {
-                  ipcRenderer.send('set-drag-cursor', "")
-                  $(wv).draggable({ disabled: true })
-                  wv.isDragging = false
-                  pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width() / 2 - $(pointingDiv).width() / 2) + "px"
-                  pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
-                  pointingDiv.style.display = "none"
-                  wv.dispatchEvent(new Event("dragHintEnd"))
-                  // let closebtn = document.getElementById(wv.id + "-closehint")
-                  // if (closebtn) {
-                  //     closebtn.style.display = "block"
-                  //     closebtn.style.left = $(wv).offset().left + 10 + "px"
-                  //     closebtn.style.top = $(wv).offset().top + 20 + "px"
-                  // }
-                  let _d = {
-                    top: $(wv).offset().top,
-                    left: $(wv).offset().left,
-                    width: $(wv).width(),
-                    height: $(wv).height(),
-                    units: "px",
-                    view_id: wv.id
+                if (wvContainer.isDragging) {
+                  ipcRenderer.send('set-drag-cursor', "");
+                  $(wvContainer).draggable({ disabled: true });
+                  wvContainer.isDragging = false;
+                  if (closebtn) {
+                    closebtn.style.display = 'block';
                   }
+                  wvContainer.dispatchEvent(new Event("dragHintEnd"));
+                  let _d = {
+                    top: $(wvContainer).offset().top,
+                    left: $(wvContainer).offset().left,
+                    width: $(wvContainer).width(),
+                    height: $(wvContainer).height(),
+                    units: "px",
+                    viewId: wvContainer.id
+                  };
 
-                  closest = getClosestGrid($(wv).offset().left, $(wv).offset().top);
-                  let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
-                  if (closest && Math.sqrt(closest.sq_dist) < snappingDistance) {
+                  closest = getClosestGrid($(wvContainer).offset().left, $(wvContainer).offset().top);
+                  let computedStyle = {
+                    width: parseFloat(getComputedStyle(wvContainer).width),
+                    height: parseFloat(getComputedStyle(wvContainer).height)
+                  };
+
+                  if (closest && closest.distance > 0) {
                     let destBounds = {
                       "left": closest.left + "px",
                       "top": closest.top + "px",
-                      "width": (closest.width > getComputedStyle(wv).width ? closest.width : getComputedStyle(wv).width) + "px",
-                      "height": (closest.height > getComputedStyle(wv).height ? closest.height : getComputedStyle(wv).height) + "px",
-                      "animation_options": {
+                      "width": (closest.width > computedStyle.width ? closest.width : computedStyle.width) + "px",
+                      "height": (closest.height > computedStyle.height ? closest.height : computedStyle.height) + "px",
+                      "animationOptions": {
                         duration: 500,
                         fill: 'forwards',
                         easing: 'linear'
                       }
-                    }
-                    _d.top = closest.top
-                    _d.left = closest.left
-                    _d.width = parseInt(destBounds.width)
-                    _d.height = parseInt(destBounds.height)
+                    };
+                    _d.top = closest.top;
+                    _d.left = closest.left;
+                    _d.width = parseInt(destBounds.width);
+                    _d.height = parseInt(destBounds.height);
 
-                    let animate = setBounds(wv, destBounds)
+                    let animate = setBounds(wvContainer, destBounds);
                     if (animate) {
                       animate.onfinish = () => {
-                        // let closebtn1 = document.getElementById(wv.id + "-closehint")
-                        // if (closebtn1) {
-                        //     closebtn1.style.left = $(wv).offset().left + 10 + "px"
-                        //     closebtn1.style.top = $(wv).offset().top + 30 + "px"
-                        // }
                         ipcRenderer.send('view-object-event', {
                           type: "viewObjectBoundsChanged",
-                          displayContext: displayContext,
+                          displayContextName: displayContextName,
                           details: _d
                         });
-                      }
+                      };
                     }
-                  } else {
+                  }
+                  else {
                     ipcRenderer.send('view-object-event', {
                       type: "viewObjectBoundsChanged",
-                      displayContext: displayContext,
+                      displayContextName: displayContextName,
                       details: _d
                     });
                   }
-
-
                 }
               }
-            })
+            });
 
-            let pointingDiv = document.getElementById(wv.id + "-draghint")
+            let pointingDiv = document.getElementById(wvContainer.id + "-draghint");
 
-            if (pointingDiv == undefined) {
-              pointingDiv = document.createElement("img")
-              pointingDiv.src = "drag.svg"
-              pointingDiv.className = "dragcursor"
-              pointingDiv.id = wv.id + "-draghint"
-              document.getElementById("pointing").appendChild(pointingDiv)
+            if (!pointingDiv) {
+              pointingDiv = document.createElement("img");
+              pointingDiv.src = "drag.svg";
+              pointingDiv.className = "dragcursor";
+              pointingDiv.id = wvContainer.id + "-draghint";
+              wvContainer.appendChild(pointingDiv);
+              pointingDiv.style.left = Math.round($(wvContainer).width() / 2 - $(pointingDiv).width() / 2) + "px";
+              pointingDiv.style.top = Math.round($(wvContainer).height() / 2 - $(pointingDiv).height() / 2) + "px";
             }
 
-            pointingDiv.style.left = Math.round($(wv).offset().left + $(wv).width() / 2 - $(pointingDiv).width() / 2) + "px"
-            pointingDiv.style.top = Math.round($(wv).offset().top + $(wv).height() / 2 - $(pointingDiv).height() / 2) + "px"
-            pointingDiv.style.display = "block"
+            pointingDiv.style.display = "block";
 
-            dragTimer.set(wv.id, setTimeout(() => {
-              console.log("drag timeout");
-              dragTimer.delete(wv.id)
-              if (!wv.isDragging) {
-                if (document.getElementById(wv.id + "-draghint"))
-                  document.getElementById(wv.id + "-draghint").style.display = "none"
-
-                $(wv).draggable({ disabled: true });
-                wv.dispatchEvent(new Event("dragHintEnd"))
+            dragTimer.set(wvContainer.id, setTimeout(() => {
+              dragTimer.delete(wvContainer.id);
+              if (!wvContainer.isDragging) {
+                if (document.getElementById(wvContainer.id + "-draghint")) {
+                  document.getElementById(wvContainer.id + "-draghint").style.display = "none";
+                }
+                $(wvContainer).draggable({ disabled: true });
+                wvContainer.dispatchEvent(new Event("dragHintEnd"));
               }
-            }, 2000))
+            }, 750));
           }
 
-        })
-        wv.addEventListener("mouseout", (e) => {
-          console.log("mouse out")
-          clearTimeout(dragTimer.get(wv.id))
-          dragTimer.delete(wv.id)
-          wv.canDrag = false
-          $(wv).draggable({ disabled: false });
-          if (document.getElementById(wv.id + "-draghint"))
-            document.getElementById(wv.id + "-draghint").style.display = "none"
-        })
+        });
+        wvContainer.addEventListener("mouseleave", (e) => {
+          clearTimeout(dragTimer.get(wvContainer.id));
+          dragTimer.delete(wvContainer.id);
+          wvContainer.canDrag = false;
+          $(wvContainer).draggable({ disabled: false });
+          if (document.getElementById(wvContainer.id + "-draghint")) {
+            document.getElementById(wvContainer.id + "-draghint").style.display = "none";
+          }
+        });
       }
 
-      if (options.nodeIntegration)
-        wv.nodeintegration = true
-      else
-        wv.nodeintegration = false
+      wv.nodeintegration = options.nodeIntegration === true;
 
       if (options.cssText) {
-        wv.cssText = options.cssText
+        wv.cssText = options.cssText;
         wv.addEventListener('did-finish-load', (evt) => {
-          wv.insertCSS(wv.cssText)
-        })
+          wv.insertCSS(wv.cssText);
+        });
 
         wv.addEventListener('dom-ready', (evt) => {
-          wv.insertCSS(wv.cssText)
-        })
+          wv.insertCSS(wv.cssText);
+        });
       }
 
-      document.getElementById("content").appendChild(wv)
+      document.getElementById("content").append(wvContainer);
 
-      // console.log("before options.slide wv="+JSON.stringify($('webview').offset()))
-      // console.log("before options.slide options="+JSON.stringify(options))
-
-
-      // $( "#content webview" ).draggable({ stack: "#content webview" });
       ipcRenderer.send('view-object-event', {
         type: "viewObjectCreated",
-        displayContext: displayContext,
+        displayContextName: displayContextName,
         details: options
       });
 
       return {
-        "view_id": wv.id, command: "create", "status": "success",
-        "displayName": options.displayName, "windowName": options.windowName,
-        "displayContext": options.displayContext
-      }
-      // }else if(options.command == "webview-execute-javascript") {
-      //     let wv = document.getElementById(options.view_id)
-      //     if (wv) {
-      //         userGesture = (options.userGesture) ? options.userGesture == true : false;
-      //         wv.executeJavaScript(options.code, userGesture)
-      //         return {"view_id": wv.id, command: "execute-javascript", "status": "success"};
-      //     }
-      //     else {
-      //         return {"view_id": options.view_id, command: "execute-javascript", "status": "error", "error_message" : "view not found" };
-      //     }
-    } else if (options.command == "set-webview-css-style") {
-      let wv = document.getElementById(options.view_id)
+        "viewId": wv.id,
+        command: "create",
+        "status": "success",
+        "displayName": options.displayName,
+        "windowName": options.windowName,
+        displayContextName: options.displayContextName
+      };
+    }
+    else if(options.command == "webview-execute-javascript") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.cssText = options.cssText
+        userGesture = (options.userGesture) ? options.userGesture == true : false;
+        wv.executeJavaScript(options.code, userGesture)
+        return {"viewId": wv.id, command: "execute-javascript", "status": "success"};
+      }
+      else {
+        return {"viewId": options.viewId, command: "execute-javascript", "status": "error", "error_message" : "view not found" };
+    }
+    }
+    else if (options.command == "set-webview-css-style") {
+      let wv = document.getElementById(options.viewId);
+      if (wv) {
+        wv.cssText = options.cssText;
         try {
-          wv.insertCSS(options.cssText)
-        } catch (e) {
+          wv.insertCSS(options.cssText);
+        }
+        catch (e) {
 
         }
-        return { "view_id": wv.id, command: "set-css-style", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "set-css-style", "status": "error", "error_message" : "view not found" }
+        return { "viewId": wv.id, command: "set-css-style", "status": "success" };
       }
-    } else if (options.command == "set-url") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "set-css-style", "status": "error", "error_message" : "view not found" };
+      }
+    }
+    else if (options.command == "set-url") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.src = options.url
+        wv.src = options.url;
         ipcRenderer.send('view-object-event', {
           type: "urlChanged",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id,
+            viewId: wv.id,
             url: options.url
           }
         });
-        return { "view_id": wv.id, command: "set-url", "status": "success" }
+        return { "viewId": wv.id, command: "set-url", "status": "success" };
 
-      } else {
-        return { "view_id": wv.id, command: "set-url", "status": "error", "error_message" : "view not found" }
+      }
+      else {
+        return { "viewId": wv.id, command: "set-url", "status": "error", "error_message" : "view not found" };
       }
 
-    } else if (options.command == "get-url") {
-      let wv = document.getElementById(options.view_id)
+    }
+    else if (options.command == "get-url") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        return { "view_id": wv.id, command: "get-url", "status": "success", "url": wv.src }
-      } else {
-        return { "view_id": wv.id, command: "get-url", "status": "error", "error_message" : "view not found" }
+        return { "viewId": wv.id, command: "get-url", "status": "success", "url": wv.src };
+      }
+      else {
+        return { "viewId": wv.id, command: "get-url", "status": "error", "error_message" : "view not found" };
       }
 
-    } else if (options.command == "reload") {
-      let wv = document.getElementById(options.view_id)
+    }
+    else if (options.command == "reload") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.reload()
+        wv.reload();
         ipcRenderer.send('view-object-event', {
           type: "urlReloaded",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id,
+            viewId: wv.id,
             url: wv.src
           }
         });
-        return { "view_id": wv.id, command: "reload", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "reload", "status": "error", "error_message" :"view not found" }
+        return { "viewId": wv.id, command: "reload", "status": "success" };
+      }
+      else {
+        return { "viewId": wv.id, command: "reload", "status": "error", "error_message" :"view not found" };
       }
 
-    } else if (options.command == "hide") {
-      let wv = document.getElementById(options.view_id)
+    }
+    else if (options.command == "hide") {
+      let wv = document.getElementById(options.viewId);
 
       if (wv) {
         let c = {
           width: wv.style.width, height: wv.style.height
-        }
-        previousValue.set(options.view_id, c)
-        wv.className = 'hide'
-        wv.style.width = '0px'
-        wv.style.height = '0px'
+        };
+        previousValue.set(options.viewId, c);
+        wv.className = 'hide';
+        wv.style.width = '0px';
+        wv.style.height = '0px';
         ipcRenderer.send('view-object-event', {
           type: "viewObjectHidden",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id
+            viewId: wv.id
           }
         });
-        return { "view_id": wv.id, command: "hide", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "hide", "status": "error", "error_message" :"view not found" }
+        return { "viewId": wv.id, command: "hide", "status": "success" };
       }
-    } else if (options.command == "show") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "hide", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == "show") {
+      let wv = document.getElementById(options.viewId);
 
       if (wv) {
-        let c = previousValue.get(options.view_id)
-        wv.style.width = c.width
-        wv.style.height = c.height
-        wv.className = ''
+        let c = previousValue.get(options.viewId);
+        wv.style.width = c.width;
+        wv.style.height = c.height;
+        wv.className = '';
         ipcRenderer.send('view-object-event', {
           type: "viewObjectShown",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id
+            viewId: wv.id
           }
         });
-        return { "view_id": wv.id, command: "show", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "show", "status": "error", "error_message" :"view not found" }
+        return { "viewId": wv.id, command: "show", "status": "success" };
       }
-    } else if (options.command == "close") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "show", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command === "close") {
+      let wvContainer = document.getElementById('container-' + options.viewId);
 
-      if (wv) {
-        document.getElementById('content').removeChild(wv)
+      if (wvContainer) {
+        document.getElementById('content').removeChild(wvContainer);
         ipcRenderer.send('view-object-event', {
           type: "viewObjectClosed",
-          displayContext: displayContext,
+          displayContextName: displayContextName,
           details: {
-            view_id: wv.id
+            viewId: wvContainer.id
           }
         });
-        return { "view_id": wv.id, command: "close", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "close", "status": "error", "error_message" :"view not found" }
+        return { "viewId": wvContainer.id, command: "close", "status": "success" };
       }
-    } else if (options.command == "set-bounds") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wvContainer.id, command: "close", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == "set-bounds") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        let animate = setBounds(wv, options)
+        let animate = setBounds(wv, options);
         if (animate) {
           animate.onfinish = () => {
             ipcRenderer.send('view-object-event', {
               type: "viewObjectBoundsChanged",
-              displayContext: displayContext,
+              displayContextName: displayContextName,
               details: {
-                view_id: wv.id,
+                viewId: wv.id,
                 top: $(wv).offset().top,
                 left: $(wv).offset().left,
                 width: $(wv).width(),
@@ -790,117 +774,139 @@ function execute(opts) {
                 units: "px"
               }
             });
-          }
+          };
         }
 
-        return { "view_id": wv.id, command: "set-bounds", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "set-bounds", "status": "error", "error_message" :"view not found" }
+        return { "viewId": wv.id, command: "set-bounds", "status": "success" };
+      }
+      else {
+        return { "viewId": wv.id, command: "set-bounds", "status": "error", "error_message" :"view not found" };
       }
 
-    } else if (options.command == "get-bounds") {
-      let wv = document.getElementById(options.view_id)
+    }
+    else if (options.command == "get-bounds") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        let _d = {}
-        _d.left = getComputedStyle(wv).left
-        _d.top = getComputedStyle(wv).top
-        _d.width = getComputedStyle(wv).width
-        _d.height = getComputedStyle(wv).height
+        let _d = {};
+        _d.left = getComputedStyle(wv).left;
+        _d.top = getComputedStyle(wv).top;
+        _d.width = getComputedStyle(wv).width;
+        _d.height = getComputedStyle(wv).height;
 
-        return { "view_id": wv.id, command: "get-bounds", "status": "success", "bounds": _d }
-      } else {
-        return { "view_id": wv.id, command: "get-bounds", "status": "error", "error_message" :"view not found" }
+        return { "viewId": wv.id, command: "get-bounds", "status": "success", "bounds": _d };
+      }
+      else {
+        return { "viewId": wv.id, command: "get-bounds", "status": "error", "error_message" :"view not found" };
       }
 
-    } else if (options.command == "back") {
-      let wv = document.getElementById(options.view_id)
+    }
+    else if (options.command == "back") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.goBack()
-        return { "view_id": wv.id, command: "back", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "back", "status": "error", "error_message" :"view not found" }
+        wv.goBack();
+        return { "viewId": wv.id, command: "back", "status": "success" };
       }
-    } else if (options.command == "forward") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "back", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == "forward") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.goForward()
-        return { "view_id": wv.id, command: "forward", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "forward", "status": "error", "error_message" :"view not found" }
+        wv.goForward();
+        return { "viewId": wv.id, command: "forward", "status": "success" };
       }
-    } else if (options.command == "enable-device-emulation") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "forward", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == "enable-device-emulation") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.getWebContents().enableDeviceEmulation(options.parameters)
-        return { "view_id": wv.id, command: "enable-device-emulation", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "enable-device-emulation", "status": "error", "error_message" :"view not found" }
+        wv.getWebContents().enableDeviceEmulation(options.parameters);
+        return { "viewId": wv.id, command: "enable-device-emulation", "status": "success" };
       }
-    } else if (options.command == "disable-device-emulation") {
-      let wv = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "enable-device-emulation", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == "disable-device-emulation") {
+      let wv = document.getElementById(options.viewId);
       if (wv) {
-        wv.getWebContents().disableDeviceEmulation()
-        return { "view_id": wv.id, command: "disable-device-emulation", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "disable-device-emulation", "status": "error", "error_message" :"view not found" }
+        wv.getWebContents().disableDeviceEmulation();
+        return { "viewId": wv.id, command: "disable-device-emulation", "status": "success" };
       }
-    } else if (options.command == 'view-object-dev-tools') {
-      let vb = document.getElementById(options.view_id)
+      else {
+        return { "viewId": wv.id, command: "disable-device-emulation", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == 'view-object-dev-tools') {
+      let vb = document.getElementById(options.viewId);
       if (vb) {
         if (options.devTools)
-          vb.openDevTools()
+          vb.openDevTools();
         else
-          vb.closeDevTools()
+          vb.closeDevTools();
       }
 
-      return { "status": "success" }
-    } else if (options.command == 'play-video') {
-      let vb = document.getElementById(options.view_id)
+      return { "status": "success" };
+    }
+    else if (options.command == 'play-video') {
+      let vb = document.getElementById(options.viewId);
       if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("play()")
-        return { "view_id": wv.id, command: "play-video", "status": "success" }
-      } else {
-        return { "view_id": wv.id, command: "play-video", "status": "error", "error_message" :"view not found" }
+        vb.executeJavaScript("play()");
+        return { "viewId": wv.id, command: "play-video", "status": "success" };
       }
-    } else if (options.command == 'pause-video') {
-      let vb = document.getElementById(options.view_id)
-      if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("pause()")
-        return { "view_id": vb.id, command: "pause-video", "status": "success" }
-      } else {
-        return { "view_id": vb.id, command: "pause-video", "status": "error", "error_message" :"view not found" }
+      else {
+        return { "viewId": wv.id, command: "play-video", "status": "error", "error_message" :"view not found" };
       }
-    } else if (options.command == 'set-current-video-time') {
-      let vb = document.getElementById(options.view_id)
+    }
+    else if (options.command == 'pause-video') {
+      let vb = document.getElementById(options.viewId);
       if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("setCurrentTime('" + options.time + "')")
-        return { "view_id": vb.id, command: "set-current-video-time", "status": "success" }
-      } else {
-        return { "view_id": vb.id, command: "set-current-video-time", "status": "error", "error_message" :"view not found" }
+        vb.executeJavaScript("pause()");
+        return { "viewId": vb.id, command: "pause-video", "status": "success" };
+      }
+      else {
+        return { "viewId": vb.id, command: "pause-video", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else if (options.command == 'set-current-video-time') {
+      let vb = document.getElementById(options.viewId);
+      if (vb && vb.src.indexOf("video.html") > -1) {
+        vb.executeJavaScript("setCurrentTime('" + options.time + "')");
+        return { "viewId": vb.id, command: "set-current-video-time", "status": "success" };
+      }
+      else {
+        return { "viewId": vb.id, command: "set-current-video-time", "status": "error", "error_message" :"view not found" };
       }
       // } else if (options.command == 'get-current-video-time') {
-      //     let vb = document.getElementById(options.view_id)
+      //     let vb = document.getElementById(options.viewId)
       //     if (vb && vb.src.indexOf("video.html") > -1) {
       //         vb.executeJavaScript("getCurrentTime()", true, (t) => {
-      //             return { "view_id": vb.id, command: "get-current-video-time", "time": t, "status": "success" }
+      //             return { "viewId": vb.id, command: "get-current-video-time", "time": t, "status": "success" }
       //         })
       //     } else {
-      //         return { "view_id": vb.id, command: "get-current-video-time", "status": "error", "error_message" :"view not found" }
+      //         return { "viewId": vb.id, command: "get-current-video-time", "status": "error", "error_message" :"view not found" }
       //     }
-    } else if (options.command == 'replay-video') {
-      let vb = document.getElementById(options.view_id)
-      if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("replay()")
-        return { "view_id": vb.id, command: "replay-video", "status": "success" }
-      } else {
-        return { "view_id": vb.id, command: "replay-video", "status": "error", "error_message" :"view not found" }
-      }
-    } else {
-      return { "view_id": options.view_id, command: options.command, "status": "error", "error_message" :"command not defined" }
     }
-  } catch (e) {
-    console.log(e)
-    return { "view_id": options.view_id, command: options.command, "status": "error", "error_message" : e.toString() }
+    else if (options.command == 'replay-video') {
+      let vb = document.getElementById(options.viewId);
+      if (vb && vb.src.indexOf("video.html") > -1) {
+        vb.executeJavaScript("replay()");
+        return { "viewId": vb.id, command: "replay-video", "status": "success" };
+      }
+      else {
+        return { "viewId": vb.id, command: "replay-video", "status": "error", "error_message" :"view not found" };
+      }
+    }
+    else {
+      return { "viewId": options.viewId, command: options.command, "status": "error", "error_message" :"command not defined" };
+    }
+  }
+  catch (e) {
+    console.log(e);
+    return { "viewId": options.viewId, command: options.command, "status": "error", "error_message" : e.toString() };
   }
 }
 
@@ -911,7 +917,7 @@ function execute(opts) {
         "top" : "100px",
         "height" : "300px",
         "width" : "400px",
-        "animation_options" : {
+        "animationOptions" : {
             duration : 1000,
             fill : 'forwards',
             easing : 'linear'
@@ -923,74 +929,39 @@ function setBounds(wv, destBounds) {
   if (!wv)
     return;
 
-  if (destBounds.zIndex) {
-    wv.style.zIndex = destBounds.zIndex
-  } else if (destBounds.bringToFront) {
-    let zIndex = 0
-    let elems = document.getElementsByTagName("webview")
-    for (let i = 0; i < elems.length; i++) {
-      let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
-      zIndex = zi > zIndex ? zi : zIndex
-    }
-    wv.style.zIndex = zIndex + 1
-  } else if (destBounds.sendToBack) {
-    let zIndex = 10000
-    let elems = document.getElementsByTagName("webview")
-    for (let i = 0; i < elems.length; i++) {
-      let zi = parseInt(getComputedStyle(elems[i], "").zIndex)
-      zIndex = zi < zIndex ? zi : zIndex
-    }
-    wv.style.zIndex = zIndex - 1
+  if (destBounds.bringToFront) {
+    const content = document.getElementById('content');
+    content.removeChild(wv);
+    content.appendChild(wv);
+  }
+  else if (destBounds.sendToBack) {
+    const content = document.getElementById('content');
+    content.removeChild(wv);
+    content.prepend(wv);
   }
 
-  toPixels(destBounds)
-  let currentValue = {}
-  let destValue = {}
+  toPixels(destBounds);
 
-  if (destBounds.left && destBounds.top) {
-
-    let c = { top: 0, left: 0 }
-    let d = {}
-
-    if (lastTransform.has(wv.id)) {
-      c = lastTransform.get(wv.id)
-    }
-
-    d.left = parseInt(destBounds.left) - parseInt(getComputedStyle(wv).left)
-    d.top = parseInt(destBounds.top) - parseInt(getComputedStyle(wv).top)
-
-    if (!isNaN(d.left) && !isNaN(d.top)) {
-      currentValue.transform = 'translate(' + c.left + 'px,' + c.top + 'px)'
-      destValue.transform = 'translate(' + d.left + 'px,' + d.top + 'px)'
-      lastTransform.set(wv.id, d)
-    }
-
+  const animationProperties = {};
+  const animationOptions = {duration: 800, fill: 'forwards', easing: 'ease-in-out'};
+  if (destBounds.left) {
+    animationProperties.left = destBounds.left;
+  }
+  if (destBounds.top) {
+    animationProperties.top = destBounds.top;
+  }
+  if (destBounds.height) {
+    animationProperties.height = destBounds.height;
+  }
+  if (destBounds.width) {
+    animationProperties.width = destBounds.width;
   }
 
-  if (destBounds.width && getComputedStyle(wv).width) {
-    currentValue.width = getComputedStyle(wv).width
-    destValue.width = destBounds.width
+  if (Object.keys(animationProperties).length === 0) {
+    return false;
   }
-
-  if (destBounds.height && getComputedStyle(wv).height) {
-    currentValue.height = getComputedStyle(wv).height
-    destValue.height = destBounds.height
-  }
-
-  if (destBounds.opacity && getComputedStyle(wv).opacity) {
-    currentValue.opacity = getComputedStyle(wv).opacity
-    destValue.opacity = destBounds.opacity
-  }
-
-
-  if (Object.keys(currentValue).length === 0) {
-    return false
-  } else {
-    console.log(currentValue)
-    console.log(destValue)
-    return wv.animate([currentValue, destValue], destBounds.animation_options ? destBounds.animation_options : {
-      duration: 800, fill: 'forwards', easing: 'ease-in-out'
-    })
+  else {
+    return $(wv).animate(animationProperties, destBounds.animationOptions ? destBounds.animationOptions : animationOptions);
   }
 }
 
@@ -1001,8 +972,8 @@ function slideContents(options) {
 
   var max_row_index = gridSize.row;
   var max_col_index = gridSize.col;
-  var cur_row_index = options['position']['grid-top']
-  var cur_col_index = options['position']['grid-left']
+  var cur_row_index = options.position.gridTop;
+  var cur_col_index = options.position.gridLeft;
   var x1, x2;
   var y1, y2;
 
@@ -1022,22 +993,23 @@ function slideContents(options) {
           let destBounds = {
             "left": grid[next_grid_index].x + "px",
             "top": grid[next_grid_index].y + "px",
-            "animation_options": {
+            "animationOptions": {
               duration: 800,
               fill: 'forwards',
               easing: 'linear'
             }
-          }
+          };
           //console.log("destBounds "+destBounds.left+" "+destBounds.top);
-          let index = 0
+          let index = 0;
 
           while (index < eles.length) {
-            setBounds(eles[index], destBounds)
-            index++
+            setBounds(eles[index], destBounds);
+            index++;
           }
         }
       }
-    } else if (options.slide.direction == "right") {
+    }
+    else if (options.slide.direction == "right") {
       //console.log("right")
 
       for (let i = (max_col_index - 1); i >= cur_col_index; i--) {
@@ -1052,22 +1024,23 @@ function slideContents(options) {
           let destBounds = {
             "left": grid[next_grid_index].x + "px",
             "top": grid[next_grid_index].y + "px",
-            "animation_options": {
+            "animationOptions": {
               duration: 800,
               fill: 'forwards',
               easing: 'linear'
             }
-          }
+          };
           //console.log("destBounds "+destBounds.left+" "+destBounds.top);
-          let index = 0
+          let index = 0;
 
           while (index < eles.length) {
-            setBounds(eles[index], destBounds)
-            index++
+            setBounds(eles[index], destBounds);
+            index++;
           }
         }
       }
-    } else if (options.slide.direction == "left") {
+    }
+    else if (options.slide.direction == "left") {
 
       //console.log("left")
 
@@ -1083,23 +1056,24 @@ function slideContents(options) {
           let destBounds = {
             "left": grid[next_grid_index].x + "px",
             "top": grid[next_grid_index].y + "px",
-            "animation_options": {
+            "animationOptions": {
               duration: 800,
               fill: 'forwards',
               easing: 'linear'
             }
-          }
+          };
           //console.log("destBounds "+destBounds.left+" "+destBounds.top);
-          let index = 0
+          let index = 0;
 
           while (index < eles.length) {
-            setBounds(eles[index], destBounds)
-            index++
+            setBounds(eles[index], destBounds);
+            index++;
           }
         }
       }
 
-    } else {//up
+    }
+    else {//up
 
       for (let i = 2; i <= cur_row_index; i++) {
         x1 = grid[i + "|" + cur_col_index].rx;
@@ -1113,18 +1087,18 @@ function slideContents(options) {
           let destBounds = {
             "left": grid[next_grid_index].x + "px",
             "top": grid[next_grid_index].y + "px",
-            "animation_options": {
+            "animationOptions": {
               duration: 800,
               fill: 'forwards',
               easing: 'linear'
             }
-          }
+          };
           //console.log("destBounds "+destBounds.left+" "+destBounds.top);
-          let index = 0
+          let index = 0;
 
           while (index < eles.length) {
-            setBounds(eles[index], destBounds)
-            index++
+            setBounds(eles[index], destBounds);
+            index++;
           }
         }
       }
@@ -1135,47 +1109,53 @@ function slideContents(options) {
 
 // converts em to pixels
 function toPixels(options) {
-  let ems = parseFloat(getComputedStyle(document.body, "").fontSize)
-  let w = parseInt(getComputedStyle(document.body, '').width)
-  let h = parseInt(getComputedStyle(document.body, '').height)
+  let ems = parseFloat(getComputedStyle(document.body, "").fontSize);
+  let w = parseInt(getComputedStyle(document.body, '').width);
+  let h = parseInt(getComputedStyle(document.body, '').height);
 
   try {
     if (typeof (options) == "string") {
       if (options.indexOf("em") > -1) {
-        options = Math.round(ems * parseFloat(options)) + "px"
+        options = Math.round(ems * parseFloat(options)) + "px";
       }
-    } else if (typeof (options) == "object") {
+    }
+    else if (typeof (options) == "object") {
       if (!options.position) {
         if (options.top && options.top.indexOf("em") > -1) {
-          options.top = Math.round(ems * parseFloat(options.top)) + "px"
+          options.top = Math.round(ems * parseFloat(options.top)) + "px";
         }
 
         if (options.left && options.left.indexOf("em") > -1) {
-          options.left = Math.round(ems * parseFloat(options.left)) + "px"
+          options.left = Math.round(ems * parseFloat(options.left)) + "px";
         }
       }
 
       if (options.width) {
         if (typeof (options.width) == "string" && options.width.indexOf("em") > -1) {
-          options.width = Math.round(ems * parseFloat(options.width)) + 'px'
-        } else if (typeof (options.width) == "number") {
-          options.width = Math.round(options.width) + 'px'
-        } else {
-          options.width = Math.round(parseFloat(options.width)) + 'px'
+          options.width = Math.round(ems * parseFloat(options.width)) + 'px';
+        }
+        else if (typeof (options.width) == "number") {
+          options.width = Math.round(options.width) + 'px';
+        }
+        else {
+          options.width = Math.round(parseFloat(options.width)) + 'px';
         }
       }
       if (options.height) {
         if (typeof (options.height) == "string" && options.height.indexOf("em") > -1) {
-          options.height = Math.round(ems * parseFloat(options.height)) + 'px'
-        } else if (typeof (options.height) == "number") {
-          options.height = Math.round(options.height) + 'px'
-        } else {
-          options.height = Math.round(parseFloat(options.height)) + 'px'
+          options.height = Math.round(ems * parseFloat(options.height)) + 'px';
+        }
+        else if (typeof (options.height) == "number") {
+          options.height = Math.round(options.height) + 'px';
+        }
+        else {
+          options.height = Math.round(parseFloat(options.height)) + 'px';
         }
       }
     }
-  } catch (e) {
-    console.log(e, options)
+  }
+  catch (e) {
+    console.log(e, options);
   }
 }
 
@@ -1210,7 +1190,6 @@ io.rabbit.onTopic('pointing.api.display', msgs => {
   try {
     msgs = JSON.parse(msgs);
     for (let msg of msgs.data) {
-      //console.log(msg);
       let elem;
       if (!hands[msg.userId]) {
         elem = document.createElement('div');
@@ -1226,7 +1205,7 @@ io.rabbit.onTopic('pointing.api.display', msgs => {
         hands[msg.userId] = {
           elem: elem,
           timeout: null
-        }
+        };
       }
       else {
         elem = hands[msg.userId].elem;

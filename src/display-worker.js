@@ -1,8 +1,8 @@
 const { BrowserWindow } = require('electron');
 const logger = require('@cisl/logger');
 const io = require('@cisl/io');
-const DisplayError = require('./display-error');
-
+const path = require('path');
+const {formatError} = require('./util');
 
 // Display Worker class
 class DisplayWorker {
@@ -52,7 +52,6 @@ class DisplayWorker {
     logger.info();
     logger.info('Display-worker configuration:');
     logger.info(io.config.display);
-    logger.info(io.config.display.templateDir);
     this.config = io.config.display;
 
     // DisplayName is used to identify a display worker instance.
@@ -77,15 +76,16 @@ class DisplayWorker {
     this.webviewOwnerStack = new Map();
 
     // listens and processes RPC call
-    io.rabbit.onRpc('rpc-display-' + io.config.display.displayName, (request, reply) => {
-      this.process_message(msg, reply);
+    io.rabbit.onRpc('rpc-display-' + io.config.display.displayName, (response, reply) => {
+      this.processMessage(response.content, reply);
     });
 
     // Publishes a display.added event
     io.rabbit.publishTopic('display.added', {
       name: io.config.display.displayName
     });
-    logger.info('\nworker server started.\n');
+    logger.info('worker server started.');
+    logger.info();
   }
 
   // closes a display context, removes associated windows and view objects
@@ -95,7 +95,7 @@ class DisplayWorker {
     if (b_list) {
       let wv_ids = [];
       b_list.forEach((b_id) => {
-        let b = this.getBrowserWindowFromName(b_id)
+        let b = this.getBrowserWindowFromName(b_id);
         if(b) {
           b.close();
           this.windowIdMap.delete(b_id);
@@ -106,69 +106,71 @@ class DisplayWorker {
           if (v === b_id) {
             wv_id.push(k);
           }
-        })
+        });
         wv_id.forEach((v) => {
-          wv_ids.push(v)
-          this.webviewOwnerStack.delete(v)
-        })
+          wv_ids.push(v);
+          this.webviewOwnerStack.delete(v);
+        });
       }, this);
 
-      this.dcWindows.delete(context)
-      this.activeDisplayContext = 'default'
-      next(JSON.stringify({
+      this.dcWindows.delete(context);
+      this.activeDisplayContext = 'default';
+      next({
         'status' : 'success',
         'command' : 'close-display-context',
         'displayName' : this.displayName,
         'message' : context + ' : context closed. The active display context is set to default context. Please use setDisplayContext to bring up the default context or specify an existing or new display context.',
-        'closedDisplayContext' : context,
+        'closedDisplayContextName' : context,
         'closedWindows' : b_list,
         'closedViewObjects' : wv_ids
-      }))
-    }else{
-      next(JSON.stringify({
+      });
+    }
+    else{
+      next({
         'status' : 'warning',
         'displayName' : this.displayName,
         'command' : 'close-display-context',
         'message' : context + ' : context does not exist'
-      }))
+      });
     }
   }
 
   // activates or creates a display context
   set_display_context(context, next) {
-    let lastContext = this.activeDisplayContext
+    let lastContext = this.activeDisplayContext;
     if( this.activeDisplayContext != context ){
-      let b_list  = this.dcWindows.get(this.activeDisplayContext)
+      let b_list  = this.dcWindows.get(this.activeDisplayContext);
       if(b_list){
         b_list.forEach((element) => {
-          let b = this.getBrowserWindowFromName(element)
+          let b = this.getBrowserWindowFromName(element);
           if(b) {
-            b.hide()
+            b.hide();
           }
         }, this);
       }
     }
-    this.activeDisplayContext = context
+    this.activeDisplayContext = context;
     if(this.dcWindows.has(this.activeDisplayContext)){
-      let b_list  = this.dcWindows.get(this.activeDisplayContext)
+      let b_list  = this.dcWindows.get(this.activeDisplayContext);
       b_list.forEach((element) => {
-        let b = this.getBrowserWindowFromName(element)
-        if(b) b.show()
-      }, this)
-    }else{
+        let b = this.getBrowserWindowFromName(element);
+        if(b) b.show();
+      }, this);
+    }
+    else{
       this.dcWindows.set(this.activeDisplayContext, []);
     }
 
-    next(JSON.stringify({
+    next({
       'status' : 'success',
       'command' : 'set-active-context',
       'displayName' : this.displayName,
       'message' : this.activeDisplayContext + ' is now active'
-    }))
+    });
   }
 
   // creates a new BrowserWindow
-  create_window(context, options, next) {
+  createWindow(context, options, next) {
     let b_id = options.windowName;
     this.windowOptions.set(options.windowName, options);
     let opts = {
@@ -183,19 +185,21 @@ class DisplayWorker {
       backgroundColor: '#2e2c29',
       webPreferences: {
         nodeIntegration: true,
+        webviewTag: true
       }
     };
 
     if (io.config.display.liaison_worker_url) {
+      logger.warn(`LiasionWorker uses http - Disabling webSecurity and enabling allowRunningInsecureContent`);
       opts.webPreferences.webSecurity = io.config.display.liaison_worker_url.startsWith('https'),
-      opts.webPreferences.allowRunningInsecureContent = !io.config.display.liaison_worker_url.startsWith('https')
+      opts.webPreferences.allowRunningInsecureContent = !io.config.display.liaison_worker_url.startsWith('https');
     }
 
     let browser = new BrowserWindow(opts);
     let template_path = path.resolve(path.join(__dirname, 'template'));
 
-    logger.info(`loading template: file://${template_path}`);
-    browser.loadURL(`file://${template_path}`);
+    logger.info(`loading template: file://${template_path}/index.html`);
+    browser.loadURL(`file://${template_path}/index.html`);
 
     browser.on('closed', () => {
     });
@@ -220,7 +224,7 @@ class DisplayWorker {
 
     // Avoids navigating away from template page
     browser.webContents.on('will-navigate', (e) => {
-      logger.info('preventing attempt to navigate browser window content')
+      logger.info('preventing attempt to navigate browser window content');
       e.preventDefault();
       return false;
     });
@@ -235,9 +239,9 @@ class DisplayWorker {
       browser.isReady = true;
 
       if (options.contentGrid) {
-        this.execute_in_displaywindow(Object.assign(options, {
+        this.executeInDisplayWindow(Object.assign(options, {
           displayName: this.displayName,
-          displayContext: this.activeDisplayContext,
+          displayContextName: this.activeDisplayContext,
           windowName: options.windowName,
           template: options.template,
           x: options.x,
@@ -248,16 +252,16 @@ class DisplayWorker {
         }), next);
       }
       else {
-        next(JSON.stringify({
+        next({
           status: 'success',
           x: options.x,
           y: options.y,
           width: options.width,
           height: options.height,
           displayName: this.displayName,
-          displayContext: this.activeDisplayContext,
+          displayContextName: this.activeDisplayContext,
           windowName: options.windowName
-        }));
+        });
       }
     });
 
@@ -268,63 +272,67 @@ class DisplayWorker {
     });
 
     // Publishes a displayWindowCreated event
-    io.rabbit.publishTopic('display.window', JSON.stringify({
+    io.rabbit.publishTopic('display.window', {
       type: 'displayWindowCreated',
       details: {
-        displayContext: this.activeDisplayContext,
+        displayContextName: this.activeDisplayContext,
         displayName: this.displayName,
         windowName: b_id
       }
-    }));
+    });
   }
 
   // Creates a ViewObject
-  create_viewobj( ctx, options, next){
-    let view_id = io.generateUuid();
-    this.webviewOwnerStack.set(view_id, options.windowName)
+  createViewObject(ctx, options, next) {
+    let viewId = io.generateUuid();
+    this.webviewOwnerStack.set(viewId, options.windowName);
 
-    this.execute_in_displaywindow(Object.assign(options, {
-      displayName : options.displayName,
-      windowName : options.windowName,
-      displayContext : ctx,
-      command: 'create-viewobj',
-      view_id : view_id
-    }), next)
+    this.executeInDisplayWindow(Object.assign(options, {
+      displayName: options.displayName,
+      windowName: options.windowName,
+      displayContextName: ctx,
+      command: 'create-view-object',
+      viewId: viewId
+    }), next);
   }
 
   // Executes js commands in the template page
-  execute_in_displaywindow(options, next){
-    let b = this.getBrowserWindowFromName(options.windowName)
+  executeInDisplayWindow(options, next) {
+    let b = this.getBrowserWindowFromName(options.windowName);
     if(b == undefined) {
-      logger.error('windowName not found')
-      options.displayName = this.displayName
-      logger.error('Display Worker Error: windowName not found: ' + JSON.stringify(options))
-      next(new DisplayError('Display Worker Error', 'windowName not found', options))
-    }else{
-      if(b.isReady){
-        b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d)=>{
-          if(d.status === 'error'){
-            logger.error('ViewObject Command Execution Error: ' + JSON.stringify(d))
-            next( new DisplayError('ViewObject Command Execution Error', d.error_message, d))
-          }else{
-            if(d.command == 'close'){
-              this.webviewOwnerStack.delete( d.view_id )
-            }else if(d.command == 'clear-contents'){
-              let wv_id = new Array();
-              this.webviewOwnerStack.forEach( (v, k) => {
-                if(v == options.windowName)
-                  wv_id.push(k)
-              })
-              wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-              d.viewObjects = wv_id
-            }
-            next(JSON.stringify(d))
+      logger.error('windowName not found');
+      options.displayName = this.displayName;
+      logger.error('Display Worker Error: windowName not found: ' + JSON.stringify(options));
+      next(formatError('windowName not found', options));
+    }
+    else {
+      if (b.isReady) {
+        b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d) => {
+          if (d.status === 'error') {
+            logger.error('ViewObject Command Execution Error: ' + JSON.stringify(d));
+            next(d);
           }
-        })
-      }else{
-        options.displayName = this.displayName
-        logger.error('Display Worker Error: DOM not ready: ' + JSON.stringify(options))
-        next(new DisplayError( 'Display Window Error', 'DOM not ready', options) )
+          else {
+            if (d.command === 'close') {
+              this.webviewOwnerStack.delete( d.viewId );
+            }
+            else if(d.command == 'clear-contents') {
+              let wv_id = new Array();
+              this.webviewOwnerStack.forEach((v, k) => {
+                if(v == options.windowName)
+                  wv_id.push(k);
+              });
+              wv_id.forEach((v) => this.webviewOwnerStack.delete(v) );
+              d.viewObjects = wv_id;
+            }
+            next(d);
+          }
+        });
+      }
+      else {
+        options.displayName = this.displayName;
+        logger.error('Display Worker Error: DOM not ready: ' + JSON.stringify(options));
+        next(formatError('DOM not ready', options));
       }
 
     }
@@ -353,7 +361,7 @@ class DisplayWorker {
   }
 
   // Process commands specified through RPC
-  process_message(message, next) {
+  processMessage(message, next) {
     logger.info(`processing ${message.command}`);
     let ctx = this.activeDisplayContext;
     try {
@@ -386,15 +394,17 @@ class DisplayWorker {
           'windows': _winOptions,
           'viewObjects': _vbo
         };
-        next(JSON.stringify(state));
+        next(state);
         break;
+
       case 'get-display-bounds':
         let bound = {
           'displayName': this.displayName,
           'bounds': this.bounds
         };
-        next(JSON.stringify(bound));
+        next(bound);
         break;
+
       case 'get-window-bounds':
         let _windows = this.dcWindows.get(message.options.context);
         let _windowOptions = {};
@@ -405,7 +415,7 @@ class DisplayWorker {
               _bounds.displayName = this.displayName;
             }
             _bounds.windowName = _win;
-            _bounds.displayContext = message.options.context;
+            _bounds.displayContextName = message.options.context;
             _windowOptions[_win] = _bounds;
           });
         }
@@ -413,20 +423,23 @@ class DisplayWorker {
           let _bounds = this.bounds;
           _bounds.displayName = this.displayName;
           _bounds.windowName = this.displayName;
-          _bounds.displayContext = message.options.context;
+          _bounds.displayContextName = message.options.context;
           _windowOptions[this.displayName] = _bounds;
         }
-        next(JSON.stringify(_windowOptions));
+        next(_windowOptions);
         break;
+
       case 'get-context-list' :
-        next(JSON.stringify([...this.displayContext]));
+        next([...this.displayContext]);
         break;
+
       case 'set-display-context':
         if (!this.displayContext.has(message.options.context)) {
           this.displayContext.add(message.options.context);
         }
         this.set_display_context(message.options.context, next);
         break;
+
       case 'hide-display-context':
         let b_list = this.dcWindows.get(message.options.context);
         if (b_list) {
@@ -437,21 +450,23 @@ class DisplayWorker {
             }
           }, this);
         }
-        next(JSON.stringify({
+        next({
           'displayName': this.displayName,
           'command': 'hide-display-context',
           'status': 'success'
-        }));
+        });
         break;
+
       case 'close-display-context':
         if (message.options.context === 'default') {
           message.command = 'hide-display-context';
-          this.process_message(message, next);
+          this.processMessage(message, next);
         }
         else {
           this.close_display_context(message.options.context, next);
         }
         break;
+
       case 'get-focus-window':
         const w = BrowserWindow.getFocusedWindow();
         if (w) {
@@ -459,7 +474,7 @@ class DisplayWorker {
           let _winName = '';
           for (let [k, v] of this.windowIdMap) {
             if (v === w.id) {
-              _winName = k
+              _winName = k;
             }
           }
 
@@ -468,13 +483,13 @@ class DisplayWorker {
               _dc = k;
             }
           }
-          next(JSON.stringify({
+          next({
             'command': 'get-focus-window',
             'status': 'success',
             'windowName': _winName,
             'displayName': this.displayName,
-            'displayContext': _dc
-          }));
+            'displayContextName': _dc
+          });
         }
         else {
           let e_details = {
@@ -482,220 +497,240 @@ class DisplayWorker {
             displayName: this.displayName
           };
           logger.error(`Display Worker Error: None of the  display windows are in focus ${JSON.stringify(e_details)}`);
-          next(new DisplayError('Display Worker Error', 'None of the  display windows are in focus', e_details));
+          next(formatError('None of the  display windows are in focus', e_details));
         }
         break;
+
       case 'create-window':
-        if (message.options.displayContext) {
-          ctx = message.options.displayContext;
+        if (message.options.displayContextName) {
+          ctx = message.options.displayContextName;
         }
-        this.create_window(ctx, message.options, next);
+        this.createWindow(ctx, message.options, next);
         break;
+
       case 'close-all-windows':
-        for( let ctx of this.displayContext){
-          let b_list  = this.dcWindows.get(ctx)
+        for(let ctx of this.displayContext){
+          let b_list  = this.dcWindows.get(ctx);
           if(b_list){
             b_list.forEach((b_id) => {
-              let b = this.getBrowserWindowFromName(b_id)
+              let b = this.getBrowserWindowFromName(b_id);
               if(b){
-                b.close()
-                this.windowIdMap.delete(b_id)
+                b.close();
+                this.windowIdMap.delete(b_id);
               }
 
               let wv_id = new Array();
               this.webviewOwnerStack.forEach( (v, k) => {
                 if(v == b_id)
-                  wv_id.push(k)
-              })
-              wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
+                  wv_id.push(k);
+              });
+              wv_id.forEach((v) => this.webviewOwnerStack.delete(v) );
 
-            }, this)
+            }, this);
           }
         }
-        this.displayContext.clear()
-        this.displayContext.add('default')
-        next(JSON.stringify({
+        this.displayContext.clear();
+        this.displayContext.add('default');
+        next({
           'displayName' : this.displayName,
           'command' : 'close-all-windows',
           'status' : 'success'
-        }))
-
-
+        });
         break;
+
       case 'hide-window':
         if(message.options.windowName){
           let b = this.getBrowserWindowFromName(message.options.windowName);
           if(b){
-            b.hide()
-            next(JSON.stringify({
+            b.hide();
+            next({
               'command' : 'hide-window',
               'status' : 'success',
               'displayName' : this.displayName
-            }))
-          }else{
+            });
+          }
+          else{
             let e_details = {
               command : 'hide-window',
               displayName : this.displayName
-            }
-            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
-            next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
+            };
+            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
+            next(formatError('windowName not present', e_details));
           }
-        }else{
+        }
+        else{
           let e_details = {
             command : 'hide-window',
             displayName : this.displayName
-          }
-          logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
-          next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
+          };
+          logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
+          next(formatError('windowName not present', e_details));
         }
 
         break;
-      case 'hide-all-windows':
-        let bs = BrowserWindow.getAllWindows()
-        for( var i = 0; i < bs.length ;i++)
-          bs[i].hide()
 
-        next(JSON.stringify({
+      case 'hide-all-windows':
+        let bs = BrowserWindow.getAllWindows();
+        for( var i = 0; i < bs.length ;i++)
+          bs[i].hide();
+
+        next({
           'command' : 'hide-all-windows',
           'status' : 'success',
           'displayName' : this.displayName
-        }))
+        });
         break;
+
       case 'show-window':
         if(message.options.windowName){
           let b = this.getBrowserWindowFromName(message.options.windowName);
           if(b){
-            b.show()
-            next(JSON.stringify({
+            b.show();
+            next({
               'command' : 'show-window',
               'status' : 'success',
               'displayName' : this.displayName
-            }))
-          }else{
+            });
+          }
+          else{
             let e_details = {
               command : 'show-window',
               displayName : this.displayName
-            }
-            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
-            next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
+            };
+            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
+            next(formatError('windowName not present', e_details));
           }
-        }else{
+        }
+        else{
           let e_details = {
             command : 'show-window',
             displayName : this.displayName
-          }
-          logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
-          next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
+          };
+          logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
+          next(formatError('windowName not present', e_details));
         }
         break;
+
       case 'close-window':
         if(message.options.windowName){
-          let b = this.getBrowserWindowFromName(message.options.windowName)
+          let b = this.getBrowserWindowFromName(message.options.windowName);
           if(b){
 
             let wv_id = new Array();
             this.webviewOwnerStack.forEach( (v, k) => {
               if(v == message.options.windowName)
-                wv_id.push(k)
-            })
-            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) )
-            let w_ctx = this.getWindowContext(b.id)
+                wv_id.push(k);
+            });
+            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) );
+            let w_ctx = this.getWindowContext(b.id);
             if(this.dcWindows.has(w_ctx)){
-              let win_arr = this.dcWindows.get( w_ctx   )
-              win_arr.splice( win_arr.indexOf(message.options.windowName) , 1)
-              this.dcWindows.set(w_ctx, win_arr)
+              let win_arr = this.dcWindows.get( w_ctx   );
+              win_arr.splice( win_arr.indexOf(message.options.windowName) , 1);
+              this.dcWindows.set(w_ctx, win_arr);
             }
-            b.close()
-            this.windowIdMap.delete( message.options.windowName )
-            next(JSON.stringify({
+            b.close();
+            this.windowIdMap.delete( message.options.windowName );
+            next({
               'command' : 'close-window',
               'status' : 'success',
               'windowName' : message.options.windowName,
               'viewObjects' : wv_id,
               'displayName' : this.displayName
-            }))
+            });
 
-            io.rabbit.publishTopic('display.window', JSON.stringify({
+            io.rabbit.publishTopic('display.window', {
               type : 'displayWindowClosed',
               details : {
-                displayContext : w_ctx,
+                displayContextName: w_ctx,
                 windowName : message.options.windowName,
                 displayName : this.displayName
               }
-            }))
-          }else{
+            });
+          }
+          else{
             let e_details = {
               command : 'close-window',
               displayName : this.displayName
-            }
-            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
-            next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
+            };
+            logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
+            next(formatError('windowName not present', e_details));
           }
-        }else{
+        }
+        else{
           let e_details = {
             command : 'close-window',
             displayName : this.displayName
-          }
-          logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details))
-          next(new DisplayError('Display Worker Error', 'windowName not present', e_details))
+          };
+          logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
+          next(formatError('windowName not present', e_details));
         }
         break;
-      case 'window-dev-tools':
 
-        let b = this.getBrowserWindowFromName(message.options.windowName)
+      case 'window-dev-tools':
+        let b = this.getBrowserWindowFromName(message.options.windowName);
         if(b){
           if(message.options.devTools)
-            b.openDevTools()
+            b.openDevTools();
           else
-            b.closeDevTools()
+            b.closeDevTools();
         }
-        next(JSON.stringify({'status' : 'success', 'devTools' : message.options.devTools,  'displayName' : this.displayName} ))
+        next({'status' : 'success', 'devTools' : message.options.devTools,  'displayName' : this.displayName});
         break;
-      case 'create-viewobj' :
-        if(message.options.displayContext){
-          ctx = message.options.displayContext
+
+      case 'create-view-object' :
+        if (message.options.displayContextName) {
+          ctx = message.options.displayContextName;
         }
-        this.create_viewobj(ctx, message.options, next)
+        this.createViewObject(ctx, message.options, next);
         break;
+
       case 'capture-window':
-        let focw = this.getBrowserWindowFromName(message.options.windowName)
+        let focw = this.getBrowserWindowFromName(message.options.windowName);
         if (focw) {
           focw.capturePage(img => {
-            next(img.toJPEG(80))
-          })
-        }else{
+            next(img.toJPEG(80));
+          });
+        }
+        else{
           let e_details = {
             command : 'capture-window',
             displayName : this.displayName
-          }
-          logger.error('Display Worker Error', `Window ${message.options.windowName} not found: `, e_details)
-          next(new DisplayError('Display Worker Error', `Window ${message.options.windowName} not found`, e_details))
+          };
+          logger.error('Display Worker Error', `Window ${message.options.windowName} not found: `, e_details);
+          next(formatError(`Window ${message.options.windowName} not found`, e_details));
         }
         break;
-      default :
-        if(message.options.view_id){
-          message.options.command = message.command
-          message.options.client_id = message.client_id
-          if(this.webviewOwnerStack.has(message.options.view_id) ){
-            message.options.windowName = this.webviewOwnerStack.get(message.options.view_id)
-            this.execute_in_displaywindow(message.options , next)
-          }else{
-            message.options.displayName = this.displayName
-            logger.error('Display Worker Error: ' +  message.options.view_id + ' - view object not found: ' + JSON.stringify(message.options))
-            next(new DisplayError('Display Worker Error', message.options.view_id + ' - view object is not found.' , message.options ))
+
+      default:
+        if(message.options.viewId){
+          message.options.command = message.command;
+          message.options.client_id = message.client_id;
+          if(this.webviewOwnerStack.has(message.options.viewId) ){
+            message.options.windowName = this.webviewOwnerStack.get(message.options.viewId);
+            this.executeInDisplayWindow(message.options , next);
           }
-        }else if(message.options.windowName){
-          message.options.command = message.command
-          this.execute_in_displaywindow(message.options , next)
-        }else{
-          message.options.displayName = this.displayName
-          logger.error('Display Worker Error: Command not defined: ' + JSON.stringify(message.options))
-          next(new DisplayError('Display Worker Error', 'Command not defined' , message.options ))
+          else{
+            message.options.displayName = this.displayName;
+            logger.error('Display Worker Error: ' +  message.options.viewId + ' - view object not found: ' + JSON.stringify(message.options));
+            next(formatError(message.options.viewId + ' - view object is not found.' , message.options ));
+          }
+        }
+        else if(message.options.windowName){
+          message.options.command = message.command;
+          this.executeInDisplayWindow(message.options , next);
+        }
+        else{
+          message.options.displayName = this.displayName;
+          logger.error('Display Worker Error: Command not defined: ' + JSON.stringify(message.options));
+          next(formatError('Command not defined' , message.options ));
         }
       }
-    }catch(e){
-      logger.error(e)
-      next(JSON.stringify({ status : e.toString() }))
+    }
+    catch(exc) {
+      logger.error(exc.stack);
+      next({
+        status: exc.toString()
+      });
     }
   }
 }

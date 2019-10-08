@@ -5,7 +5,9 @@
   "description": "Display worker helps to show and manipulate contents on screen",
   "main": "index.js",
   "scripts": {
-    "start": "./node_modules/.bin/electron index.js"
+    "start": "./node_modules/.bin/electron index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix ."
   },
   "contributors": [
     "Yedendra Shrinivasan <yshrini@us.ibm.com>",
