@@ -1,90 +1,124 @@
-let previousValue = new Map();
-let uniformGridCellSize = { padding: 0 };
-let dragTimer = new Map();
-let grid = {};
-let gridSize = {};
-let displayContextName = '';
+import { ipcRenderer, WebviewTag } from 'electron';
+import io from '@cisl/io';
 
-const {ipcRenderer} = require('electron');
-const io = require('@cisl/io');
+interface GridCell {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx: number;
+  ry: number;
+  rw: number;
+  rh: number;
+};
 
-document.addEventListener('scroll', () => {
-  document.scrollLeft(0);
-  document.scrollTop(0);
-});
-
-function clearAllCursors() {
-  // pass
+interface GridSize {
+  rows: number;
+  cols: number;
 }
 
+interface ClosestGridCell {
+  label: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  distance: number;
+}
+
+let previousValue = new Map();
+let uniformGridCellSize = { height: 0, width: 0, padding: 0 };
+let dragTimer = new Map();
+let grid: {
+  center: GridCell,
+  fullscreen: GridCell,
+  [key: string]: GridCell
+} | null = null;
+
+const gridSize: GridSize = {
+  rows: 0,
+  cols: 0
+};
+let displayContextName = '';
+
 // set displayContext for this BrowserWindow
-function setDisplayContext(ctx) {
+function setDisplayContext(ctx: string) {
   displayContextName = ctx;
 }
 
-// sets the fontSize at root dom level
-function setFontSize(fs) {
-  console.log(`options.fontSize = ${fs}`);
-  document.body.style.fontSize = fs;
-  snappingDistance = parseInt(fs) / 2;
-}
-
 // gets the closest grid for a point
-function getClosestGrid(x, y) {
+function getClosestGrid(x: number, y: number): false | {label: string, distance: number} {
+  if (!grid) {
+    return false;
+  }
+
   let min_dist = Number.MAX_VALUE;
   let temp_label = '';
 
   for (let k in grid) {
+    // skip "fullscreen" and "center" and other non-grid positions
+    if (!k.includes('|')) {
+      continue;
+    }
     let diff_x = grid[k].rx - x;
     let diff_y = grid[k].ry - y;
     // no need to do sqrt to save time
     let cur_dist = Math.pow(diff_x, 2) + Math.pow(diff_y, 2);
-    // console.log(k, cur_dist)
     if (cur_dist < min_dist) {
       min_dist = cur_dist;
       temp_label = k;
     }
   }
 
-  // console.log("min_dist : ", min_dist, "label : ", temp_label)
   if (temp_label === '') {
     return false;
   }
   else {
     return {
       label: temp_label,
-      left: grid[temp_label].x,
-      top: grid[temp_label].y,
-      width: grid[temp_label].width,
-      height: grid[temp_label].height,
       distance: Math.sqrt(min_dist)
     };
   }
 }
 
-// selects elements if its top and left fall within a rectangle
-function rectangleSelect(selector, x1, y1, x2, y2) {
-  let elements = [];
-  document.querySelectorAll(selector).forEach((elem) => {
-    let x = elem.offsetLeft;
-    let y = elem.offsetTop;
-    let w = elem.clientWidth;
-    let h = elem.clientHeight;
+/**
+ * Helper function to get webview from document and return it as Electron.WebviewTag type
+ *
+ * @param viewId id of webview element
+ */
+function getWebviewById(viewId: string): WebviewTag | null {
+  return document.getElementById(viewId) as WebviewTag;
+}
+function isHtmlElement(element: Element): element is HTMLElement {
+  return (element as HTMLElement).offsetLeft !== undefined;
+}
 
-    if (x >= x1 && y >= y1 && x <= x2 && y <= y2) {
-      // this element fits inside the selection rectangle
-      elements.push(elem);
+// selects elements if its top and left fall within a rectangle
+function rectangleSelect(selector: string, x1: number, y1: number, x2: number, y2: number): HTMLElement[] {
+  let elements: HTMLElement[] = [];
+  document.querySelectorAll(selector).forEach((elem) => {
+    if (isHtmlElement(elem)) {
+      let x = elem.offsetLeft;
+      let y = elem.offsetTop;
+      let w = elem.clientWidth;
+      let h = elem.clientHeight;
+
+      if (x >= x1 && y >= y1 && x <= x2 && y <= y2) {
+        // this element fits inside the selection rectangle
+        elements.push(elem);
+      }
     }
+
   });
   return elements;
 }
 
 // creates a uniform grid
-function createGrid(row, col, rowHeight, colWidth, padding) {
-  gridSize.row = row;
-  gridSize.col = col;
-  let w = parseInt(getComputedStyle(document.body, '').width);
-  let h = parseInt(getComputedStyle(document.body, '').height);
+function createGrid(rows: number, cols: number, rowHeight?: number[], colWidth?: number[], padding?: number) {
+  gridSize.rows = rows;
+  gridSize.cols = cols;
+  let w = parseInt(getComputedStyle(document.body, '').width!);
+  let h = parseInt(getComputedStyle(document.body, '').height!);
 
   if (!padding) {
     padding = 2;
@@ -92,24 +126,24 @@ function createGrid(row, col, rowHeight, colWidth, padding) {
 
   if (!rowHeight) {
     rowHeight = [];
-    for (let x = 0; x < row; x++) {
-      rowHeight[x] = Math.ceil(h / row);
+    for (let x = 0; x < rows; x++) {
+      rowHeight[x] = Math.ceil(h / rows);
     }
   }
   else {
-    for (let x = 0; x < row; x++) {
+    for (let x = 0; x < rows; x++) {
       rowHeight[x] = Math.ceil(rowHeight[x] * h);
     }
   }
 
   if (!colWidth) {
     colWidth = [];
-    for (let y = 0; y < col; y++) {
-      colWidth[y] = Math.ceil(w / col);
+    for (let y = 0; y < cols; y++) {
+      colWidth[y] = Math.ceil(w / cols);
     }
   }
   else {
-    for (let y = 0; y < col; y++) {
+    for (let y = 0; y < cols; y++) {
       colWidth[y] = Math.ceil(colWidth[y] * w);
     }
   }
@@ -122,7 +156,6 @@ function createGrid(row, col, rowHeight, colWidth, padding) {
   for (let x = 0; x < colWidth.length; x++) {
     uniformGridCellSize.width += colWidth[x];
   }
-
   uniformGridCellSize.width /= colWidth.length;
 
   uniformGridCellSize.height = 0;
@@ -131,10 +164,33 @@ function createGrid(row, col, rowHeight, colWidth, padding) {
   }
   uniformGridCellSize.height /= rowHeight.length;
 
+  grid = {
+    center: {
+      rx: Math.round(w / 4),
+      ry: Math.round(h / 4),
+      rw: Math.round(w / 2),
+      rh: Math.round(h / 2),
+      x: Math.round(w / 4) + padding,
+      y: Math.round(h / 4) + padding,
+      width: Math.round(w / 2) - 2 * padding,
+      height: Math.round(h / 2) - 2 * padding
+    },
+    fullscreen: {
+      rx: 0,
+      ry: 0,
+      rw: w,
+      rh: h,
+      x: padding,
+      y: padding,
+      width: w - 2 * padding,
+      height: h - 2 * padding
+    }
+  };
+
   let rr = 0;
-  for (let r = 1; r <= row; r++) {
+  for (let r = 1; r <= rows; r++) {
     let cc = 0;
-    for (let c = 1; c <= col; c++) {
+    for (let c = 1; c <= cols; c++) {
       let key = r + '|' + c;
 
       grid[key] = {
@@ -151,126 +207,25 @@ function createGrid(row, col, rowHeight, colWidth, padding) {
     }
     rr += rowHeight[r - 1];
   }
-
-  grid['center'] = {
-    rx: Math.round(w / 4),
-    ry: Math.round(h / 4),
-    rw: Math.round(w / 2),
-    rh: Math.round(h / 2),
-    x: Math.round(w / 4) + padding,
-    y: Math.round(h / 4) + padding,
-    width: Math.round(w / 2) - 2 * padding,
-    height: Math.round(h / 2) - 2 * padding
-  };
-
-  grid['fullscreen'] = {
-    rx: 0,
-    ry: 0,
-    rw: w,
-    rh: h,
-    x: padding,
-    y: padding,
-    width: w - 2 * padding,
-    height: h - 2 * padding
-  };
 }
 
-// returns a grid or grid cell
-function getGrid(row, col) {
-  if (row && col) {
-    return grid[row + ':' + col];
-  }
-  else {
-    return grid;
-  }
-}
-
-// adds a custome cell to grid
-function addToGrid(label, bounds, style) {
-  // if(!grid[label]){
-  let pad = 0;
-  if (uniformGridCellSize.padding)
-    pad = uniformGridCellSize.padding;
-
-  grid[label] = {
-    rx: parseInt(bounds.left),
-    ry: parseInt(bounds.top),
-    rw: parseInt(bounds.width),
-    rh: parseInt(bounds.height),
-    x: parseInt(bounds.left) + pad,
-    y: parseInt(bounds.top) + pad,
-    width: parseInt(bounds.width) - 2 * pad,
-    height: parseInt(bounds.height) - 2 * pad
-  };
-  if (style) {
-    let ediv = document.getElementById("bg" + label);
-    if (ediv)
-      document.getElementById("background").removeChild(ediv);
-
-    let div = document.createElement('div');
-    div.id = "bg" + label;
-    div.className = "background-div";
-    div.style.top = bounds.top;
-    div.style.left = bounds.left;
-    div.style.width = bounds.width;
-    div.style.height = bounds.height;
-    for (let k of Object.keys(style)) {
-      div.style[k] = style[k];
-    }
-    document.getElementById("background").appendChild(div);
-  }
-  return { status: 'success' };
-  // }else{
-  //     return { status : 'failed' , message : 'Label :  ' + label + ' exists.' }
-  // }
-}
-
-
-// removes a cell from grid
-function removeFromGrid(label) {
-  let div = document.getElementById("bg" + label);
-  if (div)
-    document.getElementById("background").removeChild(div);
-
-  delete grid[label];
-  return grid;
-}
-
-// Executes js commands specified through RPC using CELIO lib
-function execute(opts) {
-  let options = JSON.parse(opts);
+/**
+ * Executes a string-encoded JSON payload coming from DisplayWorker.executeInDisplayWindow.
+ *
+ * So as to avoid potential encoding issues of the payload breaking the calling scope in DisplayWindow,
+ * it gets encoded to a string first that we have to decode here. The return of this function however
+ * can be a regular JSON object
+ * @param opts JSON object encoding as string with details on what to execute
+ */
+function execute(opts: string) {
+  const options = JSON.parse(opts);
   console.log('Executed command : ', options.command, options);
   try {
     if (options.command === 'create-grid') {
-      let cont_grid = options.contentGrid;
-      grid = {};
-      if (cont_grid.row && cont_grid.col) {
-        createGrid(cont_grid.row, cont_grid.col, cont_grid.rowHeight, cont_grid.colWidth, cont_grid.padding);
-      }
+      let contentGrid = options.contentGrid;
 
-      if (cont_grid.custom) {
-        for (let x = 0; x < cont_grid.length; x++) {
-          let g = cont_grid.custom[x];
-          toPixels(g);
-          addToGrid(g.label, { left: g.left, top: g.top, width: g.width, height: g.height });
-        }
-      }
-
-      if (options.gridBackground) {
-        document.getElementById('background').innerHTML = "";
-        for (let key of Object.keys(options.gridBackground)) {
-
-          let g = grid[key];
-          let div = document.createElement('div');
-          div.id = "bg" + key;
-          div.className = "background-div";
-          div.style.top = g.ry + "px";
-          div.style.left = g.rx + "px";
-          div.style.width = g.rw;
-          div.style.height = g.rh;
-          div.style.background = options.gridBackground[key];
-          document.getElementById("background").appendChild(div);
-        }
+      if (contentGrid.rows && contentGrid.cols) {
+        createGrid(contentGrid.rows, contentGrid.cols, contentGrid.rowHeight, contentGrid.colWidth, contentGrid.padding);
       }
 
       return {
@@ -280,8 +235,7 @@ function execute(opts) {
         x: options.x,
         y: options.y,
         width: options.width,
-        height: options.height,
-        template: options.template
+        height: options.height
       };
     }
     else if (options.command == "get-grid") {
@@ -290,48 +244,12 @@ function execute(opts) {
     else if (options.command == "uniform-grid-cell-size") {
       return uniformGridCellSize;
     }
-    else if (options.command == "add-to-grid") {
-      toPixels(options.bounds);
-      addToGrid(options.label, options.bounds, options.style);
-      return grid;
-    }
-    else if (options.command == "remove-from-grid") {
-      removeFromGrid(options.label);
-      return grid;
-    }
     else if (options.command == "clear-grid") {
-      document.getElementById('background').innerHTML = "";
-      grid = {};
+      grid = null;
       return { command: "clear-grid", "status": "success" };
     }
     else if (options.command == "clear-contents") {
-      document.getElementById('content').innerHTML = "";
       return { "status": "success", command: "clear-contents" };
-    }
-    else if (options.command == "cell-style") {
-      let g = document.getElementById("bg" + options.label);
-      if (g) {
-        let currentValue = {};
-        let destValue = {};
-
-        for (let k of Object.keys(options.style)) {
-          currentValue[k] = getComputedStyle(g, "")[k];
-          destValue[k] = options.style[k];
-        }
-        g.animate([currentValue, destValue], options.animationOptions ? options.animationOptions : {
-          duration: 800, fill: 'forwards', easing: 'ease-in-out'
-        });
-
-        return { "command": "cell-style", "status": "success" };
-      }
-      else {
-        return { "command": "cell-style", "status": "error", "error_message" : "cell not found" };
-      }
-
-    }
-    else if (options.command == "set-displaywindow-font-size") {
-      setFontSize(options.fontSize);
-      return { command: "set-displaywindow-font-size", "status": "success" };
     }
     else if (options.command === "create-view-object") {
       if (options.slide && options.position) {
@@ -339,6 +257,16 @@ function execute(opts) {
       }
 
       if (options.position) {
+        if (!grid) {
+          return {
+            status: "error",
+            message: "grid not being used, do not use gridTop or gridLeft",
+            viewId: options.id,
+            displayName: options.displayName,
+            displayContextName: options.displayContextName
+          };
+        }
+
         let pos = options.position;
         if (typeof pos == "object") {
           if (pos.gridTop && pos.gridLeft) {
@@ -356,12 +284,22 @@ function execute(opts) {
           }
         }
         let box = grid[pos];
-        console.log("box=" + JSON.stringify(box));
         if (box) {
+          console.log("box=" + JSON.stringify(box));
           options.left = box.x;
           options.top = box.y;
           options.width = options.width ? options.width : box.width;
           options.height = options.height ? options.height : box.height;
+        }
+        else {
+          return {
+            status: "error",
+            message: "invalid value for position",
+            viewId: options.id,
+            displayName: options.displayName,
+            windowName: options.windowName,
+            displayContextName: options.displayContextName
+          }
         }
       }
 
@@ -376,6 +314,11 @@ function execute(opts) {
       wvContainer.style.width = options.width;
       wvContainer.style.height = options.height;
 
+      let dragCover = document.createElement("webview-drag");
+      dragCover.classList.add("webview-drag");
+      dragCover.id = 'drag-' + options.viewId;
+      wvContainer.append(dragCover);
+
       let wv = document.createElement("webview");
       wvContainer.appendChild(wv);
       wv.id = options.viewId;
@@ -388,7 +331,8 @@ function execute(opts) {
 
       wv.addEventListener("dom-ready", (e) => {
         const params = {
-          webviewId: wv.id
+          webviewId: wv.id,
+          liaison_worker_url: ''
         };
         if (io.config.display.liaison_worker_url) {
           params.liaison_worker_url = io.config.display.liaison_worker_url.replace(/\/$/, '');
@@ -399,61 +343,32 @@ function execute(opts) {
         }
       });
 
-      wv.addEventListener("crashed", (e, killed) => {
-        ipcRenderer.send('view-object-event', {
-          type: "viewObjectCrashed",
-          displayContextName: displayContextName,
-          details: {
-            viewId: wv.id,
-            killed: killed
-          }
-        });
-      });
-
-      wv.addEventListener("gpu-crashed", (e) => {
-        ipcRenderer.send('view-object-event', {
-          type: "viewObjectGPUCrashed",
-          displayContextName: displayContextName,
-          details: {
-            viewId: wv.id
-          }
-        });
-      });
-
-      wv.addEventListener("plugin-crashed", (e) => {
-        ipcRenderer.send('view-object-event', {
-          type: "viewObjectPluginCrashed",
-          displayContextName: displayContextName,
-          details: {
-            viewId: wv.id
-          }
-        });
-      });
-
-      let closebtn;
+      let closebtn: HTMLDivElement;
       if (options.uiClosable) {
         closebtn = document.createElement("div")
         closebtn.className = "closebtn"
         closebtn.id = wv.id + "-closehint"
         closebtn.innerHTML = "x"
         closebtn.addEventListener("mousedown", () => {
-          document.getElementById('content').removeChild(wvContainer);
-          ipcRenderer.send('view-object-event', JSON.stringify({
+          document.getElementById('content')!.removeChild(wvContainer);
+          ipcRenderer.send('view-object-event', {
             type: "viewObjectClosed",
             displayContextName: displayContextName,
             details: {
               viewId: wv.id
             }
-          }));
+          });
         });
-        wvContainer.append(closebtn);
+        if (options.url !== 'https://google.com') {
+          wvContainer.append(closebtn);
+        }
       }
 
       if (options.uiDraggable) {
         wvContainer.addEventListener("mouseenter", (e) => {
           let closest;
-          if (!wvContainer.canDrag) {
-            wvContainer.canDrag = true;
+          if (wvContainer.dataset.canDrag !== 'true') {
+            wvContainer.dataset.canDrag = 'true';
             wvContainer.dispatchEvent(new Event("dragHintStart"));
             $(wvContainer).draggable({
               disabled: false,
@@ -464,18 +379,21 @@ function execute(opts) {
                 if (closebtn) {
                   closebtn.style.display = 'none';
                 }
-                pointingDiv.style.display = 'none';
-                contentElement.removeChild(wvContainer);
-                contentElement.append(wvContainer);
+                pointingDiv!.style.display = 'none';
+                contentElement!.removeChild(wvContainer);
+                contentElement!.append(wvContainer);
               },
-              drag: (e) => {
-                wvContainer.isDragging = true;
-                if (e.screenY < 1 && options.uiClosable) {
-                  $(wvContainer).draggable( {disabled : true});
-                  wvContainer.isDragging = false;
-                  pointingDiv.style.display = "none";
+              drag: (e: unknown) => {
+                // TODO: remove once https://github.com/DefinitelyTyped/DefinitelyTyped/pull/39184 merged
+                let event = (e as JQuery.Event);
+                wvContainer.dataset.isDragging = 'true';
+                if (event && event.screenY && event.screenY < 1 && options.uiClosable) {
+                  $(wvContainer).draggable({disabled : true});
+                  wvContainer.dataset.isDragging = 'false';
+                  pointingDiv!.style.display = "none";
+                  dragCover.style.display = "none";
                   wvContainer.dispatchEvent(new Event("dragHintEnd"));
-                  document.getElementById('content').removeChild(wvContainer);
+                  document.getElementById('content')!.removeChild(wvContainer);
                   ipcRenderer.send('view-object-event', {
                     type : "viewObjectClosed",
                     displayContextName : displayContextName,
@@ -487,69 +405,68 @@ function execute(opts) {
 
               },
               stop: () => {
-                if (wvContainer.isDragging) {
+                if (wvContainer.dataset.isDragging === 'true') {
                   ipcRenderer.send('set-drag-cursor', "");
                   $(wvContainer).draggable({ disabled: true });
-                  wvContainer.isDragging = false;
+                  wvContainer.dataset.isDragging = 'false';
                   if (closebtn) {
                     closebtn.style.display = 'block';
                   }
                   wvContainer.dispatchEvent(new Event("dragHintEnd"));
                   let _d = {
-                    top: $(wvContainer).offset().top,
-                    left: $(wvContainer).offset().left,
+                    top: $(wvContainer).offset()!.top,
+                    left: $(wvContainer).offset()!.left,
                     width: $(wvContainer).width(),
                     height: $(wvContainer).height(),
                     units: "px",
                     viewId: wvContainer.id
                   };
 
-                  closest = getClosestGrid($(wvContainer).offset().left, $(wvContainer).offset().top);
-                  let computedStyle = {
-                    width: parseFloat(getComputedStyle(wvContainer).width),
-                    height: parseFloat(getComputedStyle(wvContainer).height)
-                  };
-
-                  if (closest && closest.distance > 0) {
-                    let destBounds = {
-                      "left": closest.left + "px",
-                      "top": closest.top + "px",
-                      "width": (closest.width > computedStyle.width ? closest.width : computedStyle.width) + "px",
-                      "height": (closest.height > computedStyle.height ? closest.height : computedStyle.height) + "px",
-                      "animationOptions": {
-                        duration: 500,
-                        fill: 'forwards',
-                        easing: 'linear'
-                      }
+                  if (grid) {
+                    const closest = getClosestGrid(_d.left, _d.top);
+                    const computedStyle = {
+                      width: parseFloat(getComputedStyle(wvContainer).width || ''),
+                      height: parseFloat(getComputedStyle(wvContainer).height || '')
                     };
-                    _d.top = closest.top;
-                    _d.left = closest.left;
-                    _d.width = parseInt(destBounds.width);
-                    _d.height = parseInt(destBounds.height);
 
-                    let animate = setBounds(wvContainer, destBounds);
-                    if (animate) {
-                      animate.onfinish = () => {
+                    if (closest !== false && closest.distance > 0 && grid) {
+                      const closestCell = grid[closest.label];
+                      let destBounds = {
+                        "left": closestCell.x + "px",
+                        "top": closestCell.y + "px",
+                        "width": (closestCell.width > computedStyle.width ? closestCell.width : computedStyle.width) + "px",
+                        "height": (closestCell.height > computedStyle.height ? closestCell.height : computedStyle.height) + "px",
+                        "animationOptions": {
+                          duration: 500,
+                          fill: 'forwards',
+                          easing: 'linear'
+                        }
+                      };
+                      _d.top = closestCell.y;
+                      _d.width = parseInt(destBounds.width);
+                      _d.height = parseInt(destBounds.height);
+
+                      setBounds(wvContainer, destBounds, () => {
                         ipcRenderer.send('view-object-event', {
                           type: "viewObjectBoundsChanged",
                           displayContextName: displayContextName,
                           details: _d
                         });
-                      };
+                      });
                     }
-                  }
-                  else {
-                    ipcRenderer.send('view-object-event', {
-                      type: "viewObjectBoundsChanged",
-                      displayContextName: displayContextName,
-                      details: _d
-                    });
+                    else {
+                      ipcRenderer.send('view-object-event', {
+                        type: "viewObjectBoundsChanged",
+                        displayContextName: displayContextName,
+                        details: _d
+                      });
+                    }
                   }
                 }
               }
             });
 
-            let pointingDiv = document.getElementById(wvContainer.id + "-draghint");
+            let pointingDiv = (document.getElementById(wvContainer.id + "-draghint") as HTMLImageElement);
 
             if (!pointingDiv) {
               pointingDiv = document.createElement("img");
@@ -562,24 +479,25 @@ function execute(opts) {
             }
 
             pointingDiv.style.display = "block";
+            dragCover.style.display = "block";
 
             dragTimer.set(wvContainer.id, setTimeout(() => {
               dragTimer.delete(wvContainer.id);
-              if (!wvContainer.isDragging) {
-                if (document.getElementById(wvContainer.id + "-draghint")) {
-                  document.getElementById(wvContainer.id + "-draghint").style.display = "none";
+              if (wvContainer.dataset.isDragging !== "true") {
+                if (pointingDiv) {
+                  pointingDiv.style.display = "none";
+                  dragCover.style.display = "none";
                 }
                 $(wvContainer).draggable({ disabled: true });
                 wvContainer.dispatchEvent(new Event("dragHintEnd"));
               }
             }, 750));
           }
-
         });
         wvContainer.addEventListener("mouseleave", (e) => {
           clearTimeout(dragTimer.get(wvContainer.id));
           dragTimer.delete(wvContainer.id);
-          wvContainer.canDrag = false;
+          wvContainer.dataset.canDrag = "false";
           $(wvContainer).draggable({ disabled: false });
           if (document.getElementById(wvContainer.id + "-draghint")) {
             document.getElementById(wvContainer.id + "-draghint").style.display = "none";
@@ -587,18 +505,7 @@ function execute(opts) {
         });
       }
 
-      wv.nodeintegration = options.nodeIntegration === true;
-
-      if (options.cssText) {
-        wv.cssText = options.cssText;
-        wv.addEventListener('did-finish-load', (evt) => {
-          wv.insertCSS(wv.cssText);
-        });
-
-        wv.addEventListener('dom-ready', (evt) => {
-          wv.insertCSS(wv.cssText);
-        });
-      }
+      wv.nodeintegration = options.nodeIntegration === true ? "true" : "false";
 
       document.getElementById("content").append(wvContainer);
 
@@ -618,34 +525,18 @@ function execute(opts) {
       };
     }
     else if(options.command == "webview-execute-javascript") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
-        userGesture = (options.userGesture) ? options.userGesture == true : false;
+        let userGesture = (options.userGesture) ? options.userGesture == true : false;
         wv.executeJavaScript(options.code, userGesture)
         return {"viewId": wv.id, command: "execute-javascript", "status": "success"};
       }
       else {
         return {"viewId": options.viewId, command: "execute-javascript", "status": "error", "error_message" : "view not found" };
-    }
-    }
-    else if (options.command == "set-webview-css-style") {
-      let wv = document.getElementById(options.viewId);
-      if (wv) {
-        wv.cssText = options.cssText;
-        try {
-          wv.insertCSS(options.cssText);
-        }
-        catch (e) {
-
-        }
-        return { "viewId": wv.id, command: "set-css-style", "status": "success" };
-      }
-      else {
-        return { "viewId": wv.id, command: "set-css-style", "status": "error", "error_message" : "view not found" };
       }
     }
     else if (options.command == "set-url") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         wv.src = options.url;
         ipcRenderer.send('view-object-event', {
@@ -665,7 +556,7 @@ function execute(opts) {
 
     }
     else if (options.command == "get-url") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         return { "viewId": wv.id, command: "get-url", "status": "success", "url": wv.src };
       }
@@ -675,7 +566,7 @@ function execute(opts) {
 
     }
     else if (options.command == "reload") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         wv.reload();
         ipcRenderer.send('view-object-event', {
@@ -694,7 +585,7 @@ function execute(opts) {
 
     }
     else if (options.command == "hide") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
 
       if (wv) {
         let c = {
@@ -718,7 +609,7 @@ function execute(opts) {
       }
     }
     else if (options.command == "show") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
 
       if (wv) {
         let c = previousValue.get(options.viewId);
@@ -757,26 +648,22 @@ function execute(opts) {
       }
     }
     else if (options.command == "set-bounds") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
-        let animate = setBounds(wv, options);
-        if (animate) {
-          animate.onfinish = () => {
-            ipcRenderer.send('view-object-event', {
-              type: "viewObjectBoundsChanged",
-              displayContextName: displayContextName,
-              details: {
-                viewId: wv.id,
-                top: $(wv).offset().top,
-                left: $(wv).offset().left,
-                width: $(wv).width(),
-                height: $(wv).height(),
-                units: "px"
-              }
-            });
-          };
-        }
-
+        setBounds(wv, options, () => {
+          ipcRenderer.send('view-object-event', {
+            type: "viewObjectBoundsChanged",
+            displayContextName: displayContextName,
+            details: {
+              viewId: wv.id,
+              top: $(wv).offset().top,
+              left: $(wv).offset().left,
+              width: $(wv).width(),
+              height: $(wv).height(),
+              units: "px"
+            }
+          });
+        });
         return { "viewId": wv.id, command: "set-bounds", "status": "success" };
       }
       else {
@@ -785,15 +672,19 @@ function execute(opts) {
 
     }
     else if (options.command == "get-bounds") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
-        let _d = {};
-        _d.left = getComputedStyle(wv).left;
-        _d.top = getComputedStyle(wv).top;
-        _d.width = getComputedStyle(wv).width;
-        _d.height = getComputedStyle(wv).height;
-
-        return { "viewId": wv.id, command: "get-bounds", "status": "success", "bounds": _d };
+        return {
+          "viewId": wv.id,
+          command: "get-bounds",
+          "status": "success",
+          "bounds": {
+            left: getComputedStyle(wv).left,
+            top: getComputedStyle(wv).top,
+            width: getComputedStyle(wv).width,
+            height: getComputedStyle(wv).height
+          }
+        };
       }
       else {
         return { "viewId": wv.id, command: "get-bounds", "status": "error", "error_message" :"view not found" };
@@ -801,7 +692,7 @@ function execute(opts) {
 
     }
     else if (options.command == "back") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         wv.goBack();
         return { "viewId": wv.id, command: "back", "status": "success" };
@@ -811,7 +702,7 @@ function execute(opts) {
       }
     }
     else if (options.command == "forward") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         wv.goForward();
         return { "viewId": wv.id, command: "forward", "status": "success" };
@@ -821,7 +712,7 @@ function execute(opts) {
       }
     }
     else if (options.command == "enable-device-emulation") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         wv.getWebContents().enableDeviceEmulation(options.parameters);
         return { "viewId": wv.id, command: "enable-device-emulation", "status": "success" };
@@ -831,7 +722,7 @@ function execute(opts) {
       }
     }
     else if (options.command == "disable-device-emulation") {
-      let wv = document.getElementById(options.viewId);
+      let wv = getWebviewById(options.viewId);
       if (wv) {
         wv.getWebContents().disableDeviceEmulation();
         return { "viewId": wv.id, command: "disable-device-emulation", "status": "success" };
@@ -841,64 +732,17 @@ function execute(opts) {
       }
     }
     else if (options.command == 'view-object-dev-tools') {
-      let vb = document.getElementById(options.viewId);
-      if (vb) {
-        if (options.devTools)
-          vb.openDevTools();
-        else
-          vb.closeDevTools();
+      let wv = getWebviewById(options.viewId);
+      if (wv) {
+        if (options.devTools) {
+          wv.openDevTools();
+        }
+        else {
+          wv.closeDevTools();
+        }
       }
 
       return { "status": "success" };
-    }
-    else if (options.command == 'play-video') {
-      let vb = document.getElementById(options.viewId);
-      if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("play()");
-        return { "viewId": wv.id, command: "play-video", "status": "success" };
-      }
-      else {
-        return { "viewId": wv.id, command: "play-video", "status": "error", "error_message" :"view not found" };
-      }
-    }
-    else if (options.command == 'pause-video') {
-      let vb = document.getElementById(options.viewId);
-      if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("pause()");
-        return { "viewId": vb.id, command: "pause-video", "status": "success" };
-      }
-      else {
-        return { "viewId": vb.id, command: "pause-video", "status": "error", "error_message" :"view not found" };
-      }
-    }
-    else if (options.command == 'set-current-video-time') {
-      let vb = document.getElementById(options.viewId);
-      if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("setCurrentTime('" + options.time + "')");
-        return { "viewId": vb.id, command: "set-current-video-time", "status": "success" };
-      }
-      else {
-        return { "viewId": vb.id, command: "set-current-video-time", "status": "error", "error_message" :"view not found" };
-      }
-      // } else if (options.command == 'get-current-video-time') {
-      //     let vb = document.getElementById(options.viewId)
-      //     if (vb && vb.src.indexOf("video.html") > -1) {
-      //         vb.executeJavaScript("getCurrentTime()", true, (t) => {
-      //             return { "viewId": vb.id, command: "get-current-video-time", "time": t, "status": "success" }
-      //         })
-      //     } else {
-      //         return { "viewId": vb.id, command: "get-current-video-time", "status": "error", "error_message" :"view not found" }
-      //     }
-    }
-    else if (options.command == 'replay-video') {
-      let vb = document.getElementById(options.viewId);
-      if (vb && vb.src.indexOf("video.html") > -1) {
-        vb.executeJavaScript("replay()");
-        return { "viewId": vb.id, command: "replay-video", "status": "success" };
-      }
-      else {
-        return { "viewId": vb.id, command: "replay-video", "status": "error", "error_message" :"view not found" };
-      }
     }
     else {
       return { "viewId": options.viewId, command: options.command, "status": "error", "error_message" :"command not defined" };
@@ -925,24 +769,29 @@ function execute(opts) {
       }
 */
 // resize and move view objects
-function setBounds(wv, destBounds) {
-  if (!wv)
+function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallback?: () => void) {
+  if (!webviewContainer) {
     return;
+  }
 
+  const content = document.getElementById('content');
   if (destBounds.bringToFront) {
-    const content = document.getElementById('content');
-    content.removeChild(wv);
-    content.appendChild(wv);
+    content!.removeChild(webviewContainer);
+    content!.appendChild(webviewContainer);
   }
   else if (destBounds.sendToBack) {
-    const content = document.getElementById('content');
-    content.removeChild(wv);
-    content.prepend(wv);
+    content!.removeChild(webviewContainer);
+    content!.prepend(webviewContainer);
   }
 
   toPixels(destBounds);
 
-  const animationProperties = {};
+  const animationProperties: {
+    left?: number;
+    top?: number;
+    height?: number;
+    width?: number;
+  } = {};
   const animationOptions = {duration: 800, fill: 'forwards', easing: 'ease-in-out'};
   if (destBounds.left) {
     animationProperties.left = destBounds.left;
@@ -961,7 +810,11 @@ function setBounds(wv, destBounds) {
     return false;
   }
   else {
-    return $(wv).animate(animationProperties, destBounds.animationOptions ? destBounds.animationOptions : animationOptions);
+    return $(webviewContainer).animate(
+      animationProperties,
+      destBounds.animationOptions ? destBounds.animationOptions : animationOptions,
+      animateCallback
+    );
   }
 }
 
@@ -970,8 +823,8 @@ function slideContents(options) {
 
   //  Shang's code
 
-  var max_row_index = gridSize.row;
-  var max_col_index = gridSize.col;
+  var max_row_index = gridSize.rows;
+  var max_col_index = gridSize.cols;
   var cur_row_index = options.position.gridTop;
   var cur_col_index = options.position.gridLeft;
   var x1, x2;
@@ -1159,7 +1012,7 @@ function toPixels(options) {
   }
 }
 
-function invertColor(hex) {
+function invertColor(hex: string) {
   if (hex.indexOf('#') === 0) {
     hex = hex.slice(1);
   }
@@ -1178,7 +1031,7 @@ function invertColor(hex) {
   return '#' + padZero(r) + padZero(g) + padZero(b);
 }
 
-function padZero(str, len) {
+function padZero(str: string, len?: number) {
   len = len || 2;
   var zeros = new Array(len).join('0');
   return (zeros + str).slice(-len);
@@ -1186,17 +1039,17 @@ function padZero(str, len) {
 
 let hands = {};
 
-io.rabbit.onTopic('pointing.api.display', msgs => {
+io.rabbit.onTopic('pointing.api.display', (response) => {
   try {
-    msgs = JSON.parse(msgs);
+    const msgs = JSON.parse((response.content as string));
     for (let msg of msgs.data) {
       let elem;
       if (!hands[msg.userId]) {
         elem = document.createElement('div');
         elem.classList.add('pointing');
         elem.setAttribute('id', 'pointing-' + msg.userId);
-        hand_elem = document.createElement('div');
-        span_elem = document.createElement('span');
+        const hand_elem = document.createElement('div');
+        const span_elem = document.createElement('span');
         span_elem.classList.add('right-hand-text');
         span_elem.innerText = msg.userId;
         elem.appendChild(hand_elem);

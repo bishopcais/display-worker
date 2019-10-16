@@ -4,20 +4,6 @@ Display Worker is a electron-based display daemon that helps to remotely manage 
 
 ## Development or Running from Source Requirements
 
-### Setup
-
-#### Dev Environment Prerequisites
-- Windows
-Visual Studio 2013 (Express works fine).
-Python (v2.7.3 recommended, v3.x.x is not supported).
-- Mac
-Xcode Command Line Tools.
-- Linux
-Python (v2.7 recommended, v3.x.x is not supported).
-make.
-A C/C++ compiler like GCC.
-libxtst-dev and libpng++-dev (sudo apt-get install libxtst-dev libpng++-dev).
-
 
 #### Clone display-Worker
 ```

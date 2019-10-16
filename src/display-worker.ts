@@ -1,12 +1,51 @@
-const { BrowserWindow } = require('electron');
-const logger = require('@cisl/logger');
-const io = require('@cisl/io');
-const path = require('path');
-const {formatError} = require('./util');
+import { BrowserWindow, BrowserWindowConstructorOptions, Display, Screen as ElectronScreen } from 'electron';
+import logger from '@cisl/logger';
+import io from '@cisl/io';
+import path from 'path';
+import { setError } from './util';
+
+declare module 'electron' {
+  interface BrowserWindow {
+    isReady: boolean;
+  }
+}
+
+export interface ExecuteDisplayWindowResponse {
+  command: string;
+  status: 'success' | 'error';
+  error_message?: string;
+  viewId?: string;
+  viewObjects?: string[];
+}
+
+export interface Bounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface DisplayConfig {
+  displayName: string;
+  bounds?: Bounds
+  liaison_worker_url?: string;
+}
 
 // Display Worker class
-class DisplayWorker {
-  constructor(screen) {
+export class DisplayWorker {
+  private displays: Display[];
+  private bounds: Bounds;
+  private config: DisplayConfig;
+  private displayName: string;
+  private displayContext: Set<string>;
+  private activeDisplayContext: string;
+  private windowIdMap: Map<string, number>;
+  private windowOptions: Map<string, any>;
+  /** maps an array of WindowNames to a displayContext. Key - DisplayContext Name (String), Value - an array of WindowNames (Array<String>) */
+  private dcWindows: Map<string, string[]>;
+  private webviewOwnerStack: Map<string, string>;
+
+  constructor(screen: ElectronScreen) {
     // gets screen information via Electron Native API
     this.displays = screen.getAllDisplays();
 
@@ -24,32 +63,30 @@ class DisplayWorker {
         x: 0,
         y: 0,
         right: 0,
-        bottom: 0
+        bottom: 0,
+        width: 0,
+        height: 0
       };
       this.displays.forEach((disp) => {
-        //bounds: { x: 0, y: 0, width: 1920, height: 1200 }
-        let bl = disp.bounds.x;
-        let bt = disp.bounds.y;
-        let br = disp.bounds.width + bl;
-        let bb = disp.bounds.height + bt;
+        bounds.x = Math.min(disp.bounds.x, bounds.x);
+        bounds.y = Math.min(disp.bounds.y, bounds.y);
 
-        bounds.x = Math.min(bl, bounds.x);
-        bounds.y = Math.min(bt, bounds.y);
-
-        bounds.right = Math.max(br, bounds.right);
-        bounds.bottom = Math.max(bb, bounds.bottom);
-
-        bounds.width = bounds.right - bounds.x;
-        bounds.height = bounds.bottom - bounds.y;
+        bounds.right = Math.max(disp.bounds.width + disp.bounds.x, bounds.right);
+        bounds.bottom = Math.max(disp.bounds.height + disp.bounds.y, bounds.bottom);
       });
-      bounds.details = this.displays;
-      this.bounds = bounds;
+
+      this.bounds = {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.right - bounds.x,
+        height: bounds.bottom - bounds.y
+      };
 
       io.config.display.bounds = this.bounds;
     }
 
     // Prints Display Configuration
-    logger.info();
+    logger.info('');
     logger.info('Display-worker configuration:');
     logger.info(io.config.display);
     this.config = io.config.display;
@@ -68,7 +105,7 @@ class DisplayWorker {
     // windowOptions catalogs options such as contentGrid and background specified by user while creating a DisplayContext
     this.windowOptions = new Map();
 
-    // dcWindows maps an array of WindowNames to a displayContext. Key - DisplayContext Name (String), Value - an array of WindowNames (Array<String>)
+
     this.dcWindows = new Map();
     this.dcWindows.set(this.activeDisplayContext, []);
 
@@ -76,24 +113,24 @@ class DisplayWorker {
     this.webviewOwnerStack = new Map();
 
     // listens and processes RPC call
-    io.rabbit.onRpc('rpc-display-' + io.config.display.displayName, (response, reply) => {
+    io.rabbit!.onRpc('rpc-display-' + io.config.display.displayName, (response, reply) => {
       this.processMessage(response.content, reply);
     });
 
     // Publishes a display.added event
-    io.rabbit.publishTopic('display.added', {
+    io.rabbit!.publishTopic('display.added', {
       name: io.config.display.displayName
     });
     logger.info('worker server started.');
-    logger.info();
+    logger.info('');
   }
 
   // closes a display context, removes associated windows and view objects
-  close_display_context (context, next) {
+  closeDisplayContext(context: any, next: (msg: object) => void) {
     this.displayContext.delete(context);
     let b_list = this.dcWindows.get(context);
     if (b_list) {
-      let wv_ids = [];
+      let closedWebviewIds: string[] = [];
       b_list.forEach((b_id) => {
         let b = this.getBrowserWindowFromName(b_id);
         if(b) {
@@ -101,15 +138,11 @@ class DisplayWorker {
           this.windowIdMap.delete(b_id);
         }
 
-        let wv_id = new Array();
-        this.webviewOwnerStack.forEach( (v, k) => {
-          if (v === b_id) {
-            wv_id.push(k);
+        this.webviewOwnerStack.forEach((webviewId, k) => {
+          if (webviewId === b_id) {
+            closedWebviewIds.push(webviewId);
+            this.webviewOwnerStack.delete(webviewId);
           }
-        });
-        wv_id.forEach((v) => {
-          wv_ids.push(v);
-          this.webviewOwnerStack.delete(v);
         });
       }, this);
 
@@ -122,7 +155,7 @@ class DisplayWorker {
         'message' : context + ' : context closed. The active display context is set to default context. Please use setDisplayContext to bring up the default context or specify an existing or new display context.',
         'closedDisplayContextName' : context,
         'closedWindows' : b_list,
-        'closedViewObjects' : wv_ids
+        'closedViewObjects' : closedWebviewIds
       });
     }
     else{
@@ -136,9 +169,8 @@ class DisplayWorker {
   }
 
   // activates or creates a display context
-  set_display_context(context, next) {
-    let lastContext = this.activeDisplayContext;
-    if( this.activeDisplayContext != context ){
+  setDisplayContext(context: any, next: (msg: object) => void) {
+    if(this.activeDisplayContext !== context ){
       let b_list  = this.dcWindows.get(this.activeDisplayContext);
       if(b_list){
         b_list.forEach((element) => {
@@ -150,12 +182,16 @@ class DisplayWorker {
       }
     }
     this.activeDisplayContext = context;
-    if(this.dcWindows.has(this.activeDisplayContext)){
+    if (this.dcWindows.has(this.activeDisplayContext)){
       let b_list  = this.dcWindows.get(this.activeDisplayContext);
-      b_list.forEach((element) => {
-        let b = this.getBrowserWindowFromName(element);
-        if(b) b.show();
-      }, this);
+      if (b_list) {
+        b_list.forEach((element) => {
+          let b = this.getBrowserWindowFromName(element);
+          if(b) {
+            b.show();
+          }
+        }, this);
+      }
     }
     else{
       this.dcWindows.set(this.activeDisplayContext, []);
@@ -170,17 +206,17 @@ class DisplayWorker {
   }
 
   // creates a new BrowserWindow
-  createWindow(context, options, next) {
+  createWindow(context: string, options: any, next: (msg: object) => void) {
     let b_id = options.windowName;
     this.windowOptions.set(options.windowName, options);
-    let opts = {
+    let opts: BrowserWindowConstructorOptions = {
       x: options.x,
       y: options.y,
       width: options.width,
       height: options.height,
       frame: false,
       // fullscreen: true,
-      enableLargerThanScreen: true,
+      enableLargerThanScreen: false,
       acceptFirstMouse: true,
       backgroundColor: '#2e2c29',
       webPreferences: {
@@ -191,8 +227,8 @@ class DisplayWorker {
 
     if (io.config.display.liaison_worker_url) {
       logger.warn(`LiasionWorker uses http - Disabling webSecurity and enabling allowRunningInsecureContent`);
-      opts.webPreferences.webSecurity = io.config.display.liaison_worker_url.startsWith('https'),
-      opts.webPreferences.allowRunningInsecureContent = !io.config.display.liaison_worker_url.startsWith('https');
+      opts.webPreferences!.webSecurity = io.config.display.liaison_worker_url.startsWith('https'),
+      opts.webPreferences!.allowRunningInsecureContent = !io.config.display.liaison_worker_url.startsWith('https');
     }
 
     let browser = new BrowserWindow(opts);
@@ -209,18 +245,7 @@ class DisplayWorker {
     }
 
     this.windowIdMap.set(b_id, browser.id);
-    this.dcWindows.get(context).push(b_id);
-
-    // When the browser window is out of focus, hides any cursors drawn. Also mutes audio
-    browser.on('blur', () => {
-      browser.webContents.executeJavaScript('clearAllCursors()');
-      browser.webContents.setAudioMuted(true);
-    });
-
-    // When the browser window becomes active, audio is enabled
-    browser.on('focus', () => {
-      browser.webContents.setAudioMuted(false);
-    });
+    this.dcWindows.get(context)!.push(b_id);
 
     // Avoids navigating away from template page
     browser.webContents.on('will-navigate', (e) => {
@@ -229,26 +254,22 @@ class DisplayWorker {
       return false;
     });
 
-    // sets up DisplayContext associated with BrowserWindow, default fontSize after the template page is loaded
+    // sets up DisplayContext associated with BrowserWindow
     browser.webContents.on('did-finish-load', () => {
       browser.webContents.executeJavaScript(`setDisplayContext('${context}')`);
-      if (options.fontSize) {
-        browser.webContents.executeJavaScript(`setFontSize('${options.fontSize}')`);
-      }
 
       browser.isReady = true;
 
       if (options.contentGrid) {
         this.executeInDisplayWindow(Object.assign(options, {
+          command: 'create-grid',
           displayName: this.displayName,
           displayContextName: this.activeDisplayContext,
           windowName: options.windowName,
-          template: options.template,
           x: options.x,
           y: options.y,
           width: options.width,
-          height: options.height,
-          command: 'create-grid'
+          height: options.height
         }), next);
       }
       else {
@@ -272,7 +293,7 @@ class DisplayWorker {
     });
 
     // Publishes a displayWindowCreated event
-    io.rabbit.publishTopic('display.window', {
+    io.rabbit!.publishTopic('display.window', {
       type: 'displayWindowCreated',
       details: {
         displayContextName: this.activeDisplayContext,
@@ -283,7 +304,7 @@ class DisplayWorker {
   }
 
   // Creates a ViewObject
-  createViewObject(ctx, options, next) {
+  createViewObject(ctx: string, options: any, next: (msg: object) => void) {
     let viewId = io.generateUuid();
     this.webviewOwnerStack.set(viewId, options.windowName);
 
@@ -297,17 +318,17 @@ class DisplayWorker {
   }
 
   // Executes js commands in the template page
-  executeInDisplayWindow(options, next) {
+  executeInDisplayWindow(options: any, next: (msg: object) => void) {
     let b = this.getBrowserWindowFromName(options.windowName);
     if(b == undefined) {
       logger.error('windowName not found');
       options.displayName = this.displayName;
       logger.error('Display Worker Error: windowName not found: ' + JSON.stringify(options));
-      next(formatError('windowName not found', options));
+      next(setError(options, 'windowName not found'));
     }
     else {
       if (b.isReady) {
-        b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true, (d) => {
+        b.webContents.executeJavaScript("execute('"+ JSON.stringify(options)  +"')", true).then((d: ExecuteDisplayWindowResponse) => {
           if (d.status === 'error') {
             logger.error('ViewObject Command Execution Error: ' + JSON.stringify(d));
             next(d);
@@ -332,14 +353,13 @@ class DisplayWorker {
       else {
         options.displayName = this.displayName;
         logger.error('Display Worker Error: DOM not ready: ' + JSON.stringify(options));
-        next(formatError('DOM not ready', options));
+        next(setError(options, 'DOM not ready'));
       }
-
     }
   }
 
   // returns DisplayContext associated with a window Name
-  getWindowContext(windowName) {
+  getWindowContext(windowName: string): string {
     let ctx = '';
 
     this.dcWindows.forEach((v, k) => {
@@ -350,10 +370,20 @@ class DisplayWorker {
     return ctx;
   }
 
+  getWindowNameFromBrowserId(browserId: number): string {
+    let windowName = '';
+    this.windowIdMap.forEach((v, k) => {
+      if (v === browserId) {
+        windowName = k;
+      }
+    });
+    return windowName;
+  }
+
   // returns the system window id from user defined window name
-  getBrowserWindowFromName(name) {
+  getBrowserWindowFromName(name: string): BrowserWindow | null {
     if (this.windowIdMap.has(name)) {
-      return BrowserWindow.fromId(this.windowIdMap.get(name));
+      return BrowserWindow.fromId((this.windowIdMap.get(name) as number));
     }
     else {
       return null;
@@ -361,14 +391,14 @@ class DisplayWorker {
   }
 
   // Process commands specified through RPC
-  processMessage(message, next) {
+  processMessage(message: any, next: (msg: object) => void) {
     logger.info(`processing ${message.command}`);
     let ctx = this.activeDisplayContext;
     try {
       switch (message.command) {
       case 'get-dw-context-windows-vbo':
-        let _vbo;
-        let _winOptions;
+        let _vbo: any;
+        let _winOptions: any;
         let _wins = this.dcWindows.get(message.options.context);
 
         // add bounds and other information
@@ -407,10 +437,10 @@ class DisplayWorker {
 
       case 'get-window-bounds':
         let _windows = this.dcWindows.get(message.options.context);
-        let _windowOptions = {};
+        let _windowOptions: any = {};
         if (_windows) {
           _windows.forEach(_win => {
-            let _bounds = this.windowOptions.get(_win);
+            let _bounds: any = this.windowOptions.get(_win);
             if (_bounds.displayName === undefined) {
               _bounds.displayName = this.displayName;
             }
@@ -420,7 +450,7 @@ class DisplayWorker {
           });
         }
         else {
-          let _bounds = this.bounds;
+          let _bounds: any = this.bounds;
           _bounds.displayName = this.displayName;
           _bounds.windowName = this.displayName;
           _bounds.displayContextName = message.options.context;
@@ -437,7 +467,7 @@ class DisplayWorker {
         if (!this.displayContext.has(message.options.context)) {
           this.displayContext.add(message.options.context);
         }
-        this.set_display_context(message.options.context, next);
+        this.setDisplayContext(message.options.context, next);
         break;
 
       case 'hide-display-context':
@@ -463,7 +493,7 @@ class DisplayWorker {
           this.processMessage(message, next);
         }
         else {
-          this.close_display_context(message.options.context, next);
+          this.closeDisplayContext(message.options.context, next);
         }
         break;
 
@@ -497,7 +527,7 @@ class DisplayWorker {
             displayName: this.displayName
           };
           logger.error(`Display Worker Error: None of the  display windows are in focus ${JSON.stringify(e_details)}`);
-          next(formatError('None of the  display windows are in focus', e_details));
+          next(setError(e_details, 'None of the  display windows are in focus'));
         }
         break;
 
@@ -555,7 +585,7 @@ class DisplayWorker {
               displayName : this.displayName
             };
             logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
-            next(formatError('windowName not present', e_details));
+            next(setError(e_details, 'windowName not present'));
           }
         }
         else{
@@ -564,7 +594,7 @@ class DisplayWorker {
             displayName : this.displayName
           };
           logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
-          next(formatError('windowName not present', e_details));
+          next(setError(e_details, 'windowName not present'));
         }
 
         break;
@@ -598,7 +628,7 @@ class DisplayWorker {
               displayName : this.displayName
             };
             logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
-            next(formatError('windowName not present', e_details));
+            next(setError(e_details, 'windowName not present'));
           }
         }
         else{
@@ -607,26 +637,25 @@ class DisplayWorker {
             displayName : this.displayName
           };
           logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
-          next(formatError('windowName not present', e_details));
+          next(setError(e_details, 'windowName not present'));
         }
         break;
 
       case 'close-window':
-        if(message.options.windowName){
+        if (message.options.windowName) {
           let b = this.getBrowserWindowFromName(message.options.windowName);
-          if(b){
-
-            let wv_id = new Array();
-            this.webviewOwnerStack.forEach( (v, k) => {
-              if(v == message.options.windowName)
-                wv_id.push(k);
+          if (b) {
+            let webviewIds = new Array();
+            this.webviewOwnerStack.forEach((v, k) => {
+              if(v === message.options.windowName)
+              webviewIds.push(k);
             });
-            wv_id.forEach((v) => this.webviewOwnerStack.delete(v) );
-            let w_ctx = this.getWindowContext(b.id);
-            if(this.dcWindows.has(w_ctx)){
-              let win_arr = this.dcWindows.get( w_ctx   );
-              win_arr.splice( win_arr.indexOf(message.options.windowName) , 1);
-              this.dcWindows.set(w_ctx, win_arr);
+            webviewIds.forEach((v) => this.webviewOwnerStack.delete(v));
+            let windowContext = this.getWindowContext(this.getWindowNameFromBrowserId(b.id));
+            if(this.dcWindows.has(windowContext)){
+              let windowNames = (this.dcWindows.get(windowContext) as string[]);
+              windowNames.splice( windowNames.indexOf(message.options.windowName) , 1);
+              this.dcWindows.set(windowContext, windowNames);
             }
             b.close();
             this.windowIdMap.delete( message.options.windowName );
@@ -634,14 +663,14 @@ class DisplayWorker {
               'command' : 'close-window',
               'status' : 'success',
               'windowName' : message.options.windowName,
-              'viewObjects' : wv_id,
+              'viewObjects' : webviewIds,
               'displayName' : this.displayName
             });
 
-            io.rabbit.publishTopic('display.window', {
+            io.rabbit!.publishTopic('display.window', {
               type : 'displayWindowClosed',
               details : {
-                displayContextName: w_ctx,
+                displayContextName: windowContext,
                 windowName : message.options.windowName,
                 displayName : this.displayName
               }
@@ -653,7 +682,7 @@ class DisplayWorker {
               displayName : this.displayName
             };
             logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
-            next(formatError('windowName not present', e_details));
+            next(setError(e_details, 'windowName not present'));
           }
         }
         else{
@@ -662,19 +691,25 @@ class DisplayWorker {
             displayName : this.displayName
           };
           logger.error('Display Worker Error: windowName not present' + JSON.stringify(e_details));
-          next(formatError('windowName not present', e_details));
+          next(setError(e_details, 'windowName not present'));
         }
         break;
 
       case 'window-dev-tools':
-        let b = this.getBrowserWindowFromName(message.options.windowName);
-        if(b){
-          if(message.options.devTools)
-            b.openDevTools();
-          else
-            b.closeDevTools();
+        let browserWindow = this.getBrowserWindowFromName(message.options.windowName);
+        if (browserWindow) {
+          if (message.options.devTools) {
+            browserWindow.webContents.openDevTools();
+          }
+          else {
+            browserWindow.webContents.closeDevTools();
+          }
         }
-        next({'status' : 'success', 'devTools' : message.options.devTools,  'displayName' : this.displayName});
+        next({
+          status: 'success',
+          devTools: message.options.devTools,
+          displayName: this.displayName
+        });
         break;
 
       case 'create-view-object' :
@@ -697,7 +732,7 @@ class DisplayWorker {
             displayName : this.displayName
           };
           logger.error('Display Worker Error', `Window ${message.options.windowName} not found: `, e_details);
-          next(formatError(`Window ${message.options.windowName} not found`, e_details));
+          next(setError(e_details, `Window ${message.options.windowName} not found`));
         }
         break;
 
@@ -712,17 +747,17 @@ class DisplayWorker {
           else{
             message.options.displayName = this.displayName;
             logger.error('Display Worker Error: ' +  message.options.viewId + ' - view object not found: ' + JSON.stringify(message.options));
-            next(formatError(message.options.viewId + ' - view object is not found.' , message.options ));
+            next(setError(message.options, `${message.options.viewId} - view object is not found.`));
           }
         }
         else if(message.options.windowName){
           message.options.command = message.command;
-          this.executeInDisplayWindow(message.options , next);
+          this.executeInDisplayWindow(message.options, next);
         }
         else{
           message.options.displayName = this.displayName;
           logger.error('Display Worker Error: Command not defined: ' + JSON.stringify(message.options));
-          next(formatError('Command not defined' , message.options ));
+          next(setError(message.options, 'Command not defined'));
         }
       }
     }
@@ -734,5 +769,3 @@ class DisplayWorker {
     }
   }
 }
-
-module.exports = DisplayWorker;
