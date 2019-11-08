@@ -14,7 +14,7 @@ interface ViewObjectEventArg {
 
 declare module '@cisl/io/io' {
   interface Config {
-    display: DisplayConfig
+    display: DisplayConfig;
   }
 }
 
