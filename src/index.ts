@@ -1,4 +1,4 @@
-import io from '@cisl/io';
+import cislio from '@cisl/io';
 import '@cisl/io/io';
 import logger from '@cisl/logger';
 import { app, ipcMain, screen as electronScreen } from 'electron';
@@ -18,16 +18,17 @@ declare module '@cisl/io/io' {
   }
 }
 
+const io = cislio();
+
 if (!io.rabbit) {
   throw new Error('RabbitMQ not loaded');
 }
 
-io.config.display = Object.assign(
-  {
+io.config.defaults({
+  display: {
     displayName: 'main'
   },
-  io.config.display
-);
+});
 
 process.title = 'display-worker';
 
@@ -35,7 +36,7 @@ logger.info('Loading configuration from cog.json');
 
 // check if displayName is defined
 try {
-  logger.info(`Display Worker Name : ${io.config.display.displayName}`);
+  logger.info(`Display Worker Name : ${io.config.get('display:displayName')}`);
 }
 catch (e) {
   logger.error('Unable to start Display Worker. Please specify displayName under display settings in the configuration file.');
@@ -53,7 +54,7 @@ app.on('ready', () => {
 app.on('quit', () => {
   logger.info('closing display worker');
   io.rabbit!.publishTopic('display.removed', {
-    name: io.config.display.displayName
+    name: io.config.get('display:displayName')
   });
 });
 

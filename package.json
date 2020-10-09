@@ -19,7 +19,7 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "@cisl/io": "^1.0.0-dev12",
+    "@cisl/io": "^1.0.0-dev.24",
     "@cisl/logger": "^1.2.0",
     "@types/jquery": "^3.3.31",
     "@types/jqueryui": "^1.12.9",

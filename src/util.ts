@@ -1,5 +1,5 @@
 
-export function setError(params: {[key: string]: unknown}, message: string) {
+export function setError(params: {[key: string]: unknown}, message: string): {[key: string]: unknown} {
   params.status = 'error';
   params.message = message;
   return params;

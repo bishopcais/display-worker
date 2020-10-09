@@ -1,7 +1,8 @@
 import { ipcRenderer, WebviewTag } from 'electron';
-import io from '@cisl/io';
+import cislio from '@cisl/io';
 import { invertColor, toPixels } from '../util';
 
+const io = cislio();
 interface GridCell {
   x: number;
   y: number;
@@ -426,6 +427,8 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
     if (options.command === 'create-grid') {
       const contentGrid = options.contentGrid;
 
+      console.log(JSON.stringify(contentGrid, null, 2));
+
       if (contentGrid.rows && contentGrid.cols) {
         createGrid(contentGrid.rows, contentGrid.cols, contentGrid.rowHeight, contentGrid.colWidth, contentGrid.padding);
       }
@@ -536,8 +539,8 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
           webviewId: wv.id,
           liaison_worker_url: ''
         };
-        if (io.config.display.liaison_worker_url) {
-          params.liaison_worker_url = io.config.display.liaison_worker_url.replace(/\/$/, '');
+        if (io.config.has('display:liaison_worker_url')) {
+          params.liaison_worker_url = io.config.get<string>('display:liaison_worker_url').replace(/\/$/, '');
         }
         wv.send('dom-ready', params);
         if (options.deviceEmulation) {

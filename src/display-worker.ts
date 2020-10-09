@@ -1,8 +1,10 @@
 import { BrowserWindow, BrowserWindowConstructorOptions, Display, Screen as ElectronScreen } from 'electron';
 import logger from '@cisl/logger';
-import io from '@cisl/io';
+import cislio from '@cisl/io';
 import path from 'path';
 import { setError } from './util';
+
+const io = cislio();
 
 declare module 'electron' {
   interface BrowserWindow {
@@ -70,10 +72,10 @@ export class DisplayWorker {
     });
 
     // Loads bounds information from settings file if present otherwise infers from Electron's Screen information
-    if (io.config.display.bounds) {
-      this.bounds = io.config.display.bounds;
+    try {
+      this.bounds = io.config.get('display:bounds');
     }
-    else {
+    catch {
       const bounds = {
         x: 0,
         y: 0,
@@ -97,14 +99,18 @@ export class DisplayWorker {
         height: bounds.bottom - bounds.y
       };
 
-      io.config.display.bounds = this.bounds;
+      io.config.defaults({
+        display: {
+          bounds: this.bounds
+        }
+      });
     }
 
     // Prints Display Configuration
     logger.info('');
     logger.info('Display-worker configuration:');
-    logger.info(io.config.display);
-    this.config = io.config.display;
+    logger.info(io.config.get('display'));
+    this.config = io.config.get('display');
 
     // DisplayName is used to identify a display worker instance.
     this.displayName = this.config.displayName;
@@ -128,20 +134,20 @@ export class DisplayWorker {
     this.webviewOwnerStack = new Map();
 
     // listens and processes RPC call
-    io.rabbit!.onRpc('rpc-display-' + io.config.display.displayName, (response, reply) => {
+    io.rabbit!.onRpc('rpc-display-' + io.config.get('display:displayName'), (response, reply) => {
       this.processMessage((response.content as DisplayMessage), reply);
     });
 
     // Publishes a display.added event
     io.rabbit!.publishTopic('display.added', {
-      name: io.config.display.displayName
+      name: io.config.get('display:displayName'),
     });
     logger.info('worker server started.');
     logger.info('');
   }
 
   // closes a display context, removes associated windows and view objects
-  closeDisplayContext(context: any, next: (msg: object) => void) {
+  closeDisplayContext(context: any, next: (msg: object) => void): void {
     this.displayContext.delete(context);
     const b_list = this.dcWindows.get(context);
     if (b_list) {
@@ -184,7 +190,7 @@ export class DisplayWorker {
   }
 
   // activates or creates a display context
-  setDisplayContext(context: any, next: (msg: object) => void) {
+  setDisplayContext(context: any, next: (msg: object) => void): void {
     if (this.activeDisplayContext !== context ) {
       const b_list  = this.dcWindows.get(this.activeDisplayContext);
       if (b_list) {
@@ -221,7 +227,7 @@ export class DisplayWorker {
   }
 
   // creates a new BrowserWindow
-  createWindow(context: string, options: any, next: (msg: object) => void) {
+  createWindow(context: string, options: any, next: (msg: object) => void): void {
     const b_id = options.windowName;
     this.windowOptions.set(options.windowName, options);
     const opts: BrowserWindowConstructorOptions = {
@@ -240,10 +246,10 @@ export class DisplayWorker {
       }
     };
 
-    if (io.config.display.liaison_worker_url) {
+    if (io.config.has('display:liaison_worker_url')) {
       logger.warn(`LiasionWorker uses http - Disabling webSecurity and enabling allowRunningInsecureContent`);
-      opts.webPreferences!.webSecurity = io.config.display.liaison_worker_url.startsWith('https'),
-      opts.webPreferences!.allowRunningInsecureContent = !io.config.display.liaison_worker_url.startsWith('https');
+      opts.webPreferences!.webSecurity = io.config.get<string>('display:liaison_worker_url').startsWith('https'),
+      opts.webPreferences!.allowRunningInsecureContent = !io.config.get<string>('display:liaison_worker_url').startsWith('https');
     }
 
     const browser = new BrowserWindow(opts);
@@ -253,6 +259,7 @@ export class DisplayWorker {
     browser.loadURL(`file://${template_path}/index.html`);
 
     browser.on('closed', () => {
+      // run closed code
     });
 
     if (!this.dcWindows.has(context)) {
@@ -304,7 +311,7 @@ export class DisplayWorker {
     // When the dom is ready, Grid is defined if specified. The create_window
     // call returns after the dom is ready to allow users create view objects
     browser.webContents.on('dom-ready', () => {
-
+      // define actions for dom-ready
     });
 
     // Publishes a displayWindowCreated event
@@ -319,7 +326,7 @@ export class DisplayWorker {
   }
 
   // Creates a ViewObject
-  createViewObject(ctx: string, options: any, next: (msg: object) => void) {
+  createViewObject(ctx: string, options: any, next: (msg: object) => void): void {
     const viewId = io.generateUuid();
     this.webviewOwnerStack.set(viewId, options.windowName);
 
@@ -333,7 +340,7 @@ export class DisplayWorker {
   }
 
   // Executes js commands in the template page
-  executeInDisplayWindow(options: any, next: (msg: object) => void) {
+  executeInDisplayWindow(options: any, next: (msg: object) => void): void {
     const b = this.getBrowserWindowFromName(options.windowName);
     if (b == undefined) {
       logger.error('windowName not found');
@@ -407,7 +414,7 @@ export class DisplayWorker {
   }
 
   // Process commands specified through RPC
-  processMessage(message: DisplayMessage, next: (msg: object) => void) {
+  processMessage(message: DisplayMessage, next: (msg: object) => void): void {
     logger.info(`processing ${message.command}`);
     let ctx = this.activeDisplayContext;
     try {
