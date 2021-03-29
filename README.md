@@ -1,4 +1,4 @@
-#Display Worker
+# Display Worker
 
 Display Worker is a electron-based display daemon that helps to remotely manage web-based contents. CELIO display APIs supports this process. For more details on how to display content please refer [CELIO documentation](https://github.ibm.com/celio/CELIO).
 
