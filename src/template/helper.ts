@@ -429,9 +429,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
 
       console.log(JSON.stringify(contentGrid, null, 2));
 
-      if (contentGrid.rows && contentGrid.cols) {
-        createGrid(contentGrid.rows, contentGrid.cols, contentGrid.rowHeight, contentGrid.colWidth, contentGrid.padding);
-      }
+      createGrid(contentGrid.row, contentGrid.col, contentGrid.rowHeight, contentGrid.colWidth, contentGrid.padding);
 
       return {
         displayName: options.displayName,
@@ -504,6 +502,18 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
             displayName: options.displayName,
             windowName: options.windowName,
             displayContextName: options.displayContextName
+          };
+        }
+      }
+      else {
+        if (options.left === undefined || options.top === undefined) {
+          return {
+            status: "error",
+            messsage: "must provide left and top if not using grid",
+            viewId: options.id,
+            displayName: options.displayName,
+            windowName: options.windowName,
+            displayContextName: options.displayContextName,
           };
         }
       }
