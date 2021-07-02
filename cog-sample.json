@@ -1,12 +1,6 @@
 {
-  "mq": {
-     "url": "localhost",
-     "username": "guest",
-     "password": "guest"
-  },
-  "store" : {
-    "url" : "localhost"
-  },
+  "rabbit": true,
+  "redis" : true,
   "display" : {
     "displayName": "main"
   }
