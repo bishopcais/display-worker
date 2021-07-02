@@ -1,3 +1,5 @@
+import type { Display } from 'electron';
+import { Bounds } from './display-worker';
 
 export function setError(params: {[key: string]: unknown}, message: string): {[key: string]: unknown} {
   params.status = 'error';
@@ -79,3 +81,18 @@ export function toPixels(body: HTMLElement, options: any): void {
     console.log(e, options);
   }
 }
+
+export const calculateBoundaries = (displays: Display[]): Bounds => {
+  const bounds: Bounds = { x: 0, y: 0, width: 0, height: 0 };
+  let maxRight = 0;
+  let maxBottom = 0;
+  displays.forEach((disp) => {
+    bounds.x = Math.min(disp.bounds.x, bounds.x);
+    bounds.y = Math.min(disp.bounds.y, bounds.y);
+    maxRight = Math.max(disp.bounds.width + disp.bounds.x, maxRight);
+    maxBottom = Math.max(disp.bounds.height + disp.bounds.y, maxBottom);
+  });
+  bounds.width = maxRight - bounds.x;
+  bounds.height = maxBottom - bounds.y;
+  return bounds;
+};

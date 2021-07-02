@@ -3,6 +3,7 @@ import '@cisl/io/io';
 import logger from '@cisl/logger';
 import { app, ipcMain, screen as electronScreen } from 'electron';
 import { DisplayWorker, DisplayConfig } from './display-worker';
+import { CoguiWorker } from './cogui-worker';
 
 interface ViewObjectEventArg {
   displayContextName?: string;
@@ -49,6 +50,9 @@ app.setName('CELIO Display Worker');
 
 app.on('ready', () => {
   new DisplayWorker(electronScreen);
+  if (io.config.has('ephd:ephdUILocalURL')) {
+    new CoguiWorker(io);
+  }
 });
 
 app.on('quit', () => {
@@ -66,5 +70,21 @@ app.on('window-all-closed', () => {
 ipcMain.on('view-object-event', (_, arg: ViewObjectEventArg) => {
   if (arg.displayContextName && arg.type) {
     io.rabbit!.publishTopic(`display.${arg.displayContextName}.${arg.type}.${arg.details.viewId}`, arg);
+  }
+});
+
+ipcMain.on('show-bubble-view', (event, argString) => {
+  const arg = JSON.parse(argString);
+  if (arg.displayContext) {
+    io.rabbit.publishTopic(`mmui.show-bubble-view`, argString);
+    io.rabbit.publishTopic(`cogui.show-full-view`, argString);
+  }
+});
+
+ipcMain.on('show-full-view', (event, argString) => {
+  const arg = JSON.parse(argString);
+  if (arg.displayContext) {
+    io.rabbit.publishTopic(`mmui.show-full-view`, argString);
+    io.rabbit.publishTopic(`cogui.show-bubble-view`, argString);
   }
 });
