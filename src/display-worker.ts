@@ -330,13 +330,12 @@ export class DisplayWorker {
     const viewId = io.generateUuid();
     this.webviewOwnerStack.set(viewId, options.windowName);
 
-    this.executeInDisplayWindow(Object.assign(options, {
-      displayName: options.displayName,
-      windowName: options.windowName,
+    this.executeInDisplayWindow({
+      ...options,
       displayContextName: ctx,
       command: 'create-view-object',
       viewId: viewId
-    }), next);
+    }, next);
   }
 
   // Executes js commands in the template page
