@@ -1,0 +1,80 @@
+const cislio, { registerPlugins } = require('@cisl/io');
+const { registerDisplayWorker } = require('@cisl/io-display');
+
+registerPlugins(registerDisplayWorker);
+
+const io = cislio();
+
+(async function () {
+  const { displayContext } = await io.display.openDisplayWorker('contextOne', {
+    main: {
+      displayName: 'main',
+      contentGrid: {
+        row: 3,
+        col: 3,
+      },
+      width: 300,
+      height: 400,
+    },
+    foo: {
+      displayName: 'main',
+      contentGrid: {
+        row: 3,
+        col: 3,
+      },
+      width: 300,
+      height: 400,
+      x: 1000,
+    },
+    bar: {
+      displayName: 'other',
+      contentGrid: {
+        row: 3,
+        col: 3,
+      },
+      width: 300,
+      height: 400,
+      x: 500,
+      y: 200,
+    },
+  });
+
+  const promises = [];
+
+  promises.push(io.display.displayUrl('main', 'http://www.google.com', {
+    widthFactor: 1,
+    heightFactor: 1,
+  }));
+
+  promises.push(io.display.displayUrl('foo', 'https://www.example.com', {
+    widthFactor: 1,
+    heightFactor: 1,
+    position: {
+      gridLeft: 2,
+      gridTop: 2,
+    },
+  }));
+
+  promises.push(io.display.displayUrl('bar', 'https://acme.com', {
+    widthFactor: 1,
+    heightFactor: 1,
+    position: {
+      gridLeft: 3,
+      gridTop: 3,
+    },
+  }));
+
+  await Promise.all(promises);
+
+  await new Promise((resolve) => {
+    setTimeout(resolve, 8000);
+  });
+  await displayContext.close();
+})()
+  .then(() => {
+    console.log('done');
+    process.exit();
+  })
+  .catch((err) => {
+    console.error(err);
+  });
