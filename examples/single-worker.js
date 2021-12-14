@@ -1,7 +1,5 @@
-const cislio, { registerPlugins } = require('@cisl/io');
-const { registerDisplayWorker } = require('@cisl/io-display');
-
-registerPlugins(registerDisplayWorker);
+const cislio = require('@cisl/io');
+require('@cisl/io-display');
 
 const io = cislio();
 
