@@ -4,7 +4,7 @@ require('@cisl/io-display');
 const io = cislio();
 
 (async function () {
-  const { displayContext } = await io.display.openDisplayWorker('contextOne', {
+  const displayContext = await io.display.openDisplayContext('contextOne', {
     main: {
       displayName: 'main',
       contentGrid: {
