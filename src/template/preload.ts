@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import { v1 } from 'uuid';
 
 declare global {
   interface Window {
@@ -15,7 +16,7 @@ ipcRenderer.on('dom-ready', (event, message: {[key: string]: any}): void => {
     (window as any)[window.webviewId] = {};
   }
 
-  (window as any)[window.webviewId].uuid = require('uuid/v1');
+  (window as any)[window.webviewId].uuid = v1;
 
   if (window.liaison_worker_url) {
     // injection script within liaison-worker handles
