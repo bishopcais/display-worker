@@ -89,7 +89,7 @@ const io = cislio();
   await new Promise((resolve) => {
     setTimeout(resolve, 4000);
   });
-  //await displayContext.close();
+  await displayContext.close();
 })()
   .then(() => {
     console.log('done');
