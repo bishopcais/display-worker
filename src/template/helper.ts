@@ -91,12 +91,12 @@ function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallba
 
   const content = document.getElementById('content');
   if (destBounds.bringToFront) {
-    content!.removeChild(webviewContainer);
-    content!.appendChild(webviewContainer);
+    content.removeChild(webviewContainer);
+    content.appendChild(webviewContainer);
   }
   else if (destBounds.sendToBack) {
-    content!.removeChild(webviewContainer);
-    content!.prepend(webviewContainer);
+    content.removeChild(webviewContainer);
+    content.prepend(webviewContainer);
   }
 
   toPixels(document.body, destBounds);
@@ -107,7 +107,7 @@ function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallba
     height?: number;
     width?: number;
   } = {};
-  const animationOptions = {duration: 800, fill: 'forwards', easing: 'ease-in-out'};
+  const animationOptions = {duration: 800, fill: 'forwards', easing: 'swing'};
   if (destBounds.left) {
     animationProperties.left = destBounds.left;
   }
@@ -125,6 +125,7 @@ function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallba
     return false;
   }
   else {
+    console.log(animationProperties);
     return $(webviewContainer).animate(
       animationProperties,
       destBounds.animationOptions ? destBounds.animationOptions : animationOptions,
@@ -139,8 +140,13 @@ function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallba
  * @param viewId id of webview element
  */
 function getWebviewById(viewId: string): WebviewTag | null {
-  return document.getElementById(viewId) as WebviewTag;
+  return document.getElementById(viewId) as WebviewTag | null;
 }
+
+function getWebviewContainerById(viewId: string): WebviewTag | null {
+  return document.getElementById(`container-${viewId}`) as WebviewTag | null;
+}
+
 function isHtmlElement(element: Element): element is HTMLElement {
   return (element as HTMLElement).offsetLeft !== undefined;
 }
@@ -860,7 +866,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
       }
     }
     else if (options.command == "set-bounds") {
-      const wv = getWebviewById(options.viewId);
+      const wv = getWebviewContainerById(options.viewId);
       if (wv) {
         setBounds(wv, options, () => {
           ipcRenderer.send('view-object-event', {

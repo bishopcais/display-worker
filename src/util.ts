@@ -44,11 +44,17 @@ export function toPixels(body: HTMLElement, options: any): void {
     }
     else if (typeof (options) == "object") {
       if (!options.position) {
-        if (options.top && options.top.indexOf("em") > -1) {
+        if (typeof options.top === 'number') {
+          options.top = `${Math.round(options.top)}px`;
+        }
+        else if (options.top && options.top.indexOf("em") > -1) {
           options.top = Math.round(ems * parseFloat(options.top)) + "px";
         }
 
-        if (options.left && options.left.indexOf("em") > -1) {
+        if (typeof options.left === 'number') {
+          options.left = `${Math.round(options.left)}px`;
+        }
+        else if (options.left && options.left.indexOf("em") > -1) {
           options.left = Math.round(ems * parseFloat(options.left)) + "px";
         }
       }
