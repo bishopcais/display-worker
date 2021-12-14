@@ -22,5 +22,6 @@ module.exports = {
     "@typescript-eslint/semi": ["error"],
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-non-null-assertion": "off"
-  }
+  },
+  ignorePatterns: [ "examples" ],
 }
