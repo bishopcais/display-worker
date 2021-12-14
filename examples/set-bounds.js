@@ -20,7 +20,7 @@ const io = cislio();
   //    foo:  // the window name
   //      - viewObjA
   //      - viewObjB
-  const { displayContext } = await io.display.openDisplayWorker('contextOne', {
+  const displayContext = await io.display.openDisplayContext('contextOne', {
     foo: {
       displayName: 'main',
       contentGrid: {
