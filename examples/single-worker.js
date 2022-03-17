@@ -33,7 +33,7 @@ const io = cislio();
     heightFactor: 1,
   }));
 
-  promises.push(displayContext.createViewObject('foo', {
+  promises.push(displayContext.createViewObject({
     url: 'https://www.example.com',
     widthFactor: 1,
     heightFactor: 1,
@@ -44,7 +44,7 @@ const io = cislio();
     uiDraggable: true,
     uiClosable: true,
     nodeIntegration: false,
-  }));
+  }, 'foo'));
 
   await Promise.all(promises);
 
