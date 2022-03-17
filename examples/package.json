@@ -1,0 +1,14 @@
+{
+  "name": "@bishopcais/display-worker-examples",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cisl/io": "^1.4.5",
+    "@cisl/io-display": "^1.4.5"
+  }
+}

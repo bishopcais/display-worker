@@ -4,7 +4,7 @@ require('@cisl/io-display');
 const io = cislio();
 
 (async function () {
-  const { displayContext } = await io.display.openDisplayWorker('contextOne', {
+  const displayContext = await io.display.openDisplayContext('contextOne', {
     main: {
       displayName: 'main',
       contentGrid: {
@@ -39,12 +39,12 @@ const io = cislio();
 
   const promises = [];
 
-  promises.push(io.display.displayUrl('main', 'http://www.google.com', {
+  promises.push(displayContext.displayUrl('main', 'http://www.google.com', {
     widthFactor: 1,
     heightFactor: 1,
   }));
 
-  promises.push(io.display.displayUrl('foo', 'https://www.example.com', {
+  promises.push(displayContext.displayUrl('foo', 'https://www.example.com', {
     widthFactor: 1,
     heightFactor: 1,
     position: {
@@ -53,7 +53,7 @@ const io = cislio();
     },
   }));
 
-  promises.push(io.display.displayUrl('bar', 'https://acme.com', {
+  promises.push(displayContext.displayUrl('bar', 'https://acme.com', {
     widthFactor: 1,
     heightFactor: 1,
     position: {
