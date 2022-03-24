@@ -723,7 +723,9 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
         });
       }
 
-      wv.nodeintegration = options.nodeIntegration === true ? "true" : "false";
+      if (options.nodeIntegration) {
+        wv.nodeintegration = "true";
+      }
 
       document.getElementById("content").append(wvContainer);
 
