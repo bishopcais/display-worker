@@ -709,7 +709,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
                 $(wvContainer).draggable({ disabled: true });
                 wvContainer.dispatchEvent(new Event("dragHintEnd"));
               }
-            }, 750));
+            }, 1500));
           }
         });
         wvContainer.addEventListener("mouseleave", () => {
