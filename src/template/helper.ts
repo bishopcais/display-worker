@@ -560,7 +560,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
         }
         wv.send('dom-ready', params);
         if (options.deviceEmulation) {
-          wv.getWebContents().enableDeviceEmulation(options.deviceEmulation);
+          ipcRenderer.invoke('enableDeviceEmulation', wv.getWebContentsId(), options.deviceEmulation);
         }
       });
 
@@ -723,9 +723,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
         });
       }
 
-      if (options.nodeIntegration) {
-        wv.nodeintegration = "true";
-      }
+      wv.nodeintegration = !!options.nodeIntegration;
 
       document.getElementById("content").append(wvContainer);
 
@@ -934,7 +932,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
     else if (options.command == "enable-device-emulation") {
       const wv = getWebviewById(options.viewId);
       if (wv) {
-        wv.getWebContents().enableDeviceEmulation(options.parameters);
+        ipcRenderer.invoke('enableDeviceEmulation', wv.getWebContentsId(), options.parameters);
         return { "viewId": wv.id, command: "enable-device-emulation", "status": "success" };
       }
       else {
@@ -944,7 +942,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
     else if (options.command == "disable-device-emulation") {
       const wv = getWebviewById(options.viewId);
       if (wv) {
-        wv.getWebContents().disableDeviceEmulation();
+        ipcRenderer.invoke('disableDeviceEmulation', wv.getWebContentsId());
         return { "viewId": wv.id, command: "disable-device-emulation", "status": "success" };
       }
       else {

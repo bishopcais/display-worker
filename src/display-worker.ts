@@ -754,7 +754,7 @@ export class DisplayWorker {
         case 'capture-window': {
           const focw = this.getBrowserWindowFromName(message.options.windowName);
           if (focw) {
-            focw.capturePage((img) => {
+            focw.capturePage().then((img) => {
               next(img.toJPEG(80));
             });
           }

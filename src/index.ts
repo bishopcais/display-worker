@@ -1,7 +1,7 @@
 import cislio from '@cisl/io';
 import '@cisl/io/io';
 import logger from '@cisl/logger';
-import { app, ipcMain, screen as electronScreen } from 'electron';
+import { app, ipcMain, Parameters, screen as electronScreen, WebContents, webContents } from 'electron';
 import { DisplayWorker, DisplayConfig } from './display-worker';
 import { CoguiWorker } from './cogui-worker';
 
@@ -87,4 +87,22 @@ ipcMain.on('show-full-view', (event, argString) => {
     io.rabbit.publishTopic(`mmui.show-full-view`, argString);
     io.rabbit.publishTopic(`cogui.show-bubble-view`, argString);
   }
+});
+
+const getWebContents = (webContentId: number): WebContents => {
+  const guest = webContents.fromId(webContentId);
+  if (!guest) {
+    throw new Error(`Could not find webContents for ${webContentId}`);
+  }
+  return guest;
+};
+
+ipcMain.handle('enableDeviceEmulation', (event, webContentsId: number, options: Parameters) => {
+  const guest = getWebContents(webContentsId);
+  guest.enableDeviceEmulation(options);
+});
+
+ipcMain.handle('disableDeviceEmulation', (_, webContentsId: number) => {
+  const guest = getWebContents(webContentsId);
+  guest.disableDeviceEmulation();
 });

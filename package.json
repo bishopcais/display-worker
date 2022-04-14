@@ -19,19 +19,18 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "@cisl/io": "^1.4.2",
-    "@cisl/logger": "^1.2.0",
     "@types/jquery": "^3.3.31",
     "@types/jqueryui": "^1.12.9",
-    "electron": "^6.0.12",
+    "@types/uuid": "^8.3.3",
+    "@cisl/io": "^1.4.2",
+    "@cisl/logger": "^1.2.0",
+    "electron": "^11.5.0",
     "typescript": "^3.6.4",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@types/uuid": "^8.3.3",
     "@typescript-eslint/eslint-plugin": "^2.4.0",
     "@typescript-eslint/parser": "^2.4.0",
-    "electron-rebuild": "^1.8.6",
     "eslint": "^6.5.1"
   },
   "repository": {
