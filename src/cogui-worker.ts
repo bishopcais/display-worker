@@ -69,6 +69,7 @@ export class CoguiWorker {
       resizable: false,
       backgroundColor: '#012',
       webPreferences: {
+        contextIsolation: false,
         nodeIntegration: false,
       }
     });

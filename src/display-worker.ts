@@ -241,6 +241,8 @@ export class DisplayWorker {
       acceptFirstMouse: true,
       backgroundColor: '#2e2c29',
       webPreferences: {
+        // TODO: enable this for better web security?
+        contextIsolation: false,
         nodeIntegration: true,
         webviewTag: true
       }
