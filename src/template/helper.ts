@@ -89,14 +89,48 @@ function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallba
     return false;
   }
 
-  const content = document.getElementById('content');
-  if (destBounds.bringToFront) {
-    content.removeChild(webviewContainer);
-    content.appendChild(webviewContainer);
+  if (destBounds.bringToFront !== undefined) {
+    destBounds.sendToFront = destBounds.bringToFront;
   }
-  else if (destBounds.sendToBack) {
-    content.removeChild(webviewContainer);
-    content.prepend(webviewContainer);
+
+  const content = document.getElementById('content');
+  if (destBounds.zIndex !== undefined || destBounds.sendToFront || destBounds.sendToBack) {
+    const oldZIndex = parseInt(webviewContainer.style.zIndex, 10);
+    const webviews = content.getElementsByClassName('webview-container') as HTMLCollectionOf<HTMLElement>;
+    if (destBounds.zIndex !== undefined) {
+      for (const webview of webviews) {
+        const zIndex = parseInt(webview.style.zIndex, 10);
+        if (destBounds.zIndex < oldZIndex) {
+          if (zIndex < oldZIndex) {
+            webview.style.zIndex = `${zIndex + 1}`;
+          }
+        }
+        else {
+          if (zIndex > oldZIndex) {
+            webview.style.zIndex = `${zIndex - 1}`;
+          }
+        }
+      }
+      webviewContainer.style.zIndex = Math.max(0, Math.min(webviews.length - 1, destBounds.zIndex)).toString();
+    }
+    else if (destBounds.sendToFront) {
+      for (const webview of webviews) {
+        const zIndex = parseInt(webview.style.zIndex, 10);
+        if (zIndex > oldZIndex) {
+          webview.style.zIndex = `${zIndex - 1}`;
+        }
+      }
+      webviewContainer.style.zIndex = `${webviews.length - 1}`;
+    }
+    else if (destBounds.sendToBack) {
+      for (const webview of webviews) {
+        const zIndex = parseInt(webview.style.zIndex, 10);
+        if (zIndex < oldZIndex) {
+          webview.style.zIndex = `${zIndex + 1}`;
+        }
+      }
+      webviewContainer.style.zIndex = '0';
+    }
   }
 
   toPixels(document.body, destBounds);
@@ -125,7 +159,6 @@ function setBounds(webviewContainer: HTMLElement, destBounds: any, animateCallba
     return false;
   }
   else {
-    console.log(animationProperties);
     return $(webviewContainer).animate(
       animationProperties,
       destBounds.animationOptions ? destBounds.animationOptions : animationOptions,
@@ -292,14 +325,12 @@ function slideContents(options: any): void {
 
   if (options.slide.cascade) {
     if (options.slide.direction == "down") {
-      //console.log("down")
       for (let i = (max_row_index - 1); i >= cur_row_index; i--) {
         x1 = grid[i + "|" + cur_col_index].rx;
         y1 = grid[i + "|" + cur_col_index].ry;
         x2 = grid[i + "|" + cur_col_index].rx + grid[i + "|" + cur_col_index].rw;
         y2 = grid[i + "|" + cur_col_index].ry + grid[i + "|" + cur_col_index].rh;
         const eles = rectangleSelect("webview", x1, y1, x2, y2);
-        //console.log("eles.length="+eles.length);
         if (eles.length > 0) {
           const next_grid_index = (i + 1) + "|" + cur_col_index;
           const destBounds = {
@@ -311,7 +342,6 @@ function slideContents(options: any): void {
               easing: 'linear'
             }
           };
-          //console.log("destBounds "+destBounds.left+" "+destBounds.top);
           let index = 0;
 
           while (index < eles.length) {
@@ -322,15 +352,12 @@ function slideContents(options: any): void {
       }
     }
     else if (options.slide.direction == "right") {
-      //console.log("right")
-
       for (let i = (max_col_index - 1); i >= cur_col_index; i--) {
         x1 = grid[cur_row_index + "|" + i].rx;
         y1 = grid[cur_row_index + "|" + i].ry;
         x2 = grid[cur_row_index + "|" + i].rx + grid[cur_row_index + "|" + i].rw;
         y2 = grid[cur_row_index + "|" + i].ry + grid[cur_row_index + "|" + i].rh;
         const eles = rectangleSelect("webview", x1, y1, x2, y2);
-        //console.log("eles.length="+eles.length);
         if (eles.length > 0) {
           const next_grid_index = cur_row_index + "|" + (i + 1);
           const destBounds = {
@@ -342,7 +369,6 @@ function slideContents(options: any): void {
               easing: 'linear'
             }
           };
-          //console.log("destBounds "+destBounds.left+" "+destBounds.top);
           let index = 0;
 
           while (index < eles.length) {
@@ -353,16 +379,12 @@ function slideContents(options: any): void {
       }
     }
     else if (options.slide.direction == "left") {
-
-      //console.log("left")
-
       for (let i = 2; i <= cur_col_index; i++) {
         x1 = grid[cur_row_index + "|" + i].rx;
         y1 = grid[cur_row_index + "|" + i].ry;
         x2 = grid[cur_row_index + "|" + i].rx + grid[cur_row_index + "|" + i].rw;
         y2 = grid[cur_row_index + "|" + i].ry + grid[cur_row_index + "|" + i].rh;
         const eles = rectangleSelect("webview", x1, y1, x2, y2);
-        //console.log("eles.length="+eles.length);
         if (eles.length > 0) {
           const next_grid_index = cur_row_index + "|" + (i - 1);
           const destBounds = {
@@ -374,7 +396,6 @@ function slideContents(options: any): void {
               easing: 'linear'
             }
           };
-          //console.log("destBounds "+destBounds.left+" "+destBounds.top);
           let index = 0;
 
           while (index < eles.length) {
@@ -383,17 +404,14 @@ function slideContents(options: any): void {
           }
         }
       }
-
     }
     else {//up
-
       for (let i = 2; i <= cur_row_index; i++) {
         x1 = grid[i + "|" + cur_col_index].rx;
         y1 = grid[i + "|" + cur_col_index].ry;
         x2 = grid[i + "|" + cur_col_index].rx + grid[i + "|" + cur_col_index].rw;
         y2 = grid[i + "|" + cur_col_index].ry + grid[i + "|" + cur_col_index].rh;
         const eles = rectangleSelect("webview", x1, y1, x2, y2);
-        //console.log("eles.length="+eles.length);
         if (eles.length > 0) {
           const next_grid_index = (i - 1) + "|" + cur_col_index;
           const destBounds = {
@@ -405,7 +423,6 @@ function slideContents(options: any): void {
               easing: 'linear'
             }
           };
-          //console.log("destBounds "+destBounds.left+" "+destBounds.top);
           let index = 0;
 
           while (index < eles.length) {
@@ -534,6 +551,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
       wvContainer.style.left = options.left;
       wvContainer.style.width = options.width;
       wvContainer.style.height = options.height;
+      wvContainer.style.zIndex = `${document.getElementsByClassName('webview-container').length}`;
 
       const dragCover = document.createElement("webview-drag");
       dragCover.classList.add("webview-drag");
@@ -580,9 +598,7 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
             }
           });
         });
-        if (options.url !== 'https://google.com') {
-          wvContainer.append(closebtn);
-        }
+        wvContainer.append(closebtn);
       }
 
       if (options.uiDraggable) {
@@ -607,13 +623,20 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
               scroll: false,
               refreshPositions: true,
               start: () => {
-                const contentElement = document.getElementById('content');
                 if (closebtn) {
                   closebtn.style.display = 'none';
                 }
                 pointingDiv.style.display = 'none';
-                contentElement!.removeChild(wvContainer);
-                contentElement!.append(wvContainer);
+
+                const oldZindex = parseInt(wvContainer.style.zIndex, 10);
+                const elems = document.getElementsByClassName('webview-container') as HTMLCollectionOf<HTMLElement>;
+                for (const elem of elems) {
+                  const zIndex = parseInt(elem.style.zIndex, 10);
+                  if (zIndex > oldZindex) {
+                    elem.style.zIndex = (zIndex - 1).toString();
+                  }
+                }
+                wvContainer.style.zIndex = `${elems.length - 1}`;
               },
               drag: (event: JQueryEventObject) => {
                 wvContainer.dataset.isDragging = 'true';
@@ -632,7 +655,6 @@ function execute(opts: string): any { // eslint-disable-line @typescript-eslint/
                     }
                   });
                 }
-
               },
               stop: () => {
                 if (wvContainer.dataset.isDragging === 'true') {
