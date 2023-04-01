@@ -134,12 +134,12 @@ export class DisplayWorker {
     this.webviewOwnerStack = new Map();
 
     // listens and processes RPC call
-    io.rabbit!.onRpc('rpc-display-' + io.config.get('display:displayName'), (response, reply) => {
+    io.rabbit.onRpc('rpc-display-' + io.config.get('display:displayName'), (response, reply) => {
       this.processMessage((response.content as DisplayMessage), reply);
     });
 
     // Publishes a display.added event
-    io.rabbit!.publishTopic('display.added', {
+    io.rabbit.publishTopic('display.added', {
       name: io.config.get('display:displayName'),
     });
     logger.info('worker server started.');
@@ -317,7 +317,7 @@ export class DisplayWorker {
     });
 
     // Publishes a displayWindowCreated event
-    io.rabbit!.publishTopic('display.window', {
+    io.rabbit.publishTopic('display.window', {
       type: 'displayWindowCreated',
       details: {
         displayContextName: this.activeDisplayContext,
@@ -700,7 +700,7 @@ export class DisplayWorker {
                 'displayName' : this.displayName
               });
 
-              io.rabbit!.publishTopic('display.window', {
+              io.rabbit.publishTopic('display.window', {
                 type : 'displayWindowClosed',
                 details : {
                   displayContextName: windowContext,

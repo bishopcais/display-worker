@@ -57,8 +57,15 @@ app.on('ready', () => {
 
 app.on('quit', () => {
   logger.info('closing display worker');
-  io.rabbit!.publishTopic('display.removed', {
+  io.rabbit.publishTopic('display.removed', {
     name: io.config.get('display:displayName')
+  }).then(() => {
+    return io.rabbit.close();
+  }).then(() => {
+    process.exit(0);
+  }).catch((err) => {
+    logger.error(err);
+    process.exit(1);
   });
 });
 
@@ -69,7 +76,7 @@ app.on('window-all-closed', () => {
 // Listen and publish view object events
 ipcMain.on('view-object-event', (_, arg: ViewObjectEventArg) => {
   if (arg.displayContextName && arg.type) {
-    io.rabbit!.publishTopic(`display.${arg.displayContextName}.${arg.type}.${arg.details.viewId}`, arg);
+    io.rabbit.publishTopic(`display.${arg.displayContextName}.${arg.type}.${arg.details.viewId}`, arg);
   }
 });
 
@@ -105,4 +112,12 @@ ipcMain.handle('enableDeviceEmulation', (event, webContentsId: number, options: 
 ipcMain.handle('disableDeviceEmulation', (_, webContentsId: number) => {
   const guest = getWebContents(webContentsId);
   guest.disableDeviceEmulation();
+});
+
+process.on('SIGINT', () => {
+  app.quit();
+});
+
+process.on('SIGTERM', () => {
+  app.quit();
 });
