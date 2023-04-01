@@ -11,6 +11,8 @@ In this example, we do the following:
  */
 const cislio = require('@cisl/io');
 require('@cisl/io-display');
+const readline = require('readline-sync');
+const { wait } = require('./utils');
 
 const io = cislio();
 
@@ -66,17 +68,31 @@ const io = cislio();
     setTimeout(resolve, 2000);
   });
 
-  await viewObjB.setBounds({ gridTop: 2, heightFactor: 2 });
+  await viewObjB.setBounds({ gridLeft: 2, gridTop: 2 });
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 2000);
-  });
+  await wait();
 
-  await viewObjA.setUrl('https://www.acme.com');
+  await viewObjA.setBounds({ sendToFront: true });
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 4000);
-  });
+  await wait();
+
+  await viewObjA.setBounds({ zIndex: 0 });
+
+  await wait();
+
+  await viewObjB.setBounds({ sendToBack: true });
+
+  await wait();
+
+  await viewObjB.setBounds({ zIndex: 2 });
+
+  await wait();
+
+  await viewObjB.setBounds({ gridLeft: 3 });
+
+  await wait();
+
+  readline.prompt('Press enter to close the display context');
 
   await viewObjA.close();
 

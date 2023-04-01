@@ -9,6 +9,7 @@
   "license": "MIT",
   "dependencies": {
     "@cisl/io": "^1.4.5",
-    "@cisl/io-display": "^1.4.5"
+    "@cisl/io-display": "^1.4.5",
+    "readline-sync": "1.4.0"
   }
 }
