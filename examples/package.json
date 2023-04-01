@@ -8,8 +8,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@cisl/io": "^1.4.5",
-    "@cisl/io-display": "^1.4.5",
+    "@cisl/io": "^2.0.0",
+    "@cisl/io-display": "^2.0.0",
     "readline-sync": "1.4.0"
   }
 }

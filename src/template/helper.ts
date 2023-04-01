@@ -1,4 +1,4 @@
-import { ipcRenderer, WebviewTag } from 'electron';
+import { ipcRenderer } from 'electron';
 import cislio from '@cisl/io';
 import { invertColor, toPixels } from '../util';
 
@@ -27,6 +27,11 @@ interface ClosestGridCell {
   height: number;
   distance: number;
 }
+
+// This can be removed when upgrading to Electron 25 which should have a fix
+// for the type definition for Electron to include this.
+const _webview = document.createElement('webview');
+type WebviewTag = typeof _webview;
 
 const previousValue = new Map();
 const uniformGridCellSize = { height: 0, width: 0, padding: 0 };

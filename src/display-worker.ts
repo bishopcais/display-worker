@@ -8,7 +8,7 @@ const io = cislio();
 
 declare module 'electron' {
   interface BrowserWindow {
-    isReady: boolean;
+    isReady?: boolean;
   }
 }
 

@@ -46,11 +46,11 @@ export class CoguiWorker {
   }
 
   // returns the system window id from user defined window name
-  getBrowserWindowFromName(windowName): BrowserWindow {
+  getBrowserWindowFromName(windowName: string): BrowserWindow | null {
     if (this.windowNameToWindowMap.has(windowName)) {
       return BrowserWindow.fromId(this.windowNameToWindowMap.get(windowName).id);
     }
-    return undefined;
+    return null;
   }
 
   //launches cogUI
